@@ -1,0 +1,545 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		162696049C4E2F1D8DC3D175 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */; };
+		1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D3E361632FD5BDFF57EAED /* TaskItem.swift */; };
+		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
+		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
+		40885B1ADEBE3753843F8A54 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E946B3F227D267E00F6D9C73 /* WeatherService.swift */; };
+		4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6319322836627DA4F54FAD /* LoginItemService.swift */; };
+		4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */; };
+		526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */; };
+		721999F6EF250D7B692A3EDF /* BriefingComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */; };
+		73E90DA7F5A420582754AF22 /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F597BC852599AE0CBB694F4B /* SavedLocation.swift */; };
+		86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39902BB88D836CA9896FAE1 /* AppState.swift */; };
+		8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */; };
+		999E9E3FC6F99036C44E9FDE /* ProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1676D6679B29E4122F6E3E /* ProjectsView.swift */; };
+		A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */; };
+		A9ADE8ED59F0E10599D961EF /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE0303E41DC4C80F1F68571 /* TasksView.swift */; };
+		ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */; };
+		B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DF1F9E077E514D300D8146 /* TodayView.swift */; };
+		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
+		D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C7D173283F605CA610779F /* ProjectItem.swift */; };
+		D8DBCAA1E7DB74F432DD485A /* NewsAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */; };
+		DBA2EB3D421963F5B225E7EC /* NewsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */; };
+		E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */; };
+		E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */; };
+		F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */; };
+		FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3533E8C57302BECECA537A1F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3E32FA844661E25E73FF27A3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D607A25A1DF19834FE3D8DD9;
+			remoteInfo = JarvisDashboard;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0667036D8A5683EE9111E98D /* NewsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsService.swift; sourceTree = "<group>"; };
+		12DF1F9E077E514D300D8146 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIServiceTests.swift; sourceTree = "<group>"; };
+		2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		2EE0303E41DC4C80F1F68571 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
+		35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDashboardApp.swift; sourceTree = "<group>"; };
+		3B1676D6679B29E4122F6E3E /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
+		6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshotTests.swift; sourceTree = "<group>"; };
+		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIKeyStore.swift; sourceTree = "<group>"; };
+		929151532C0ADDCF47913F8B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposerTests.swift; sourceTree = "<group>"; };
+		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
+		A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarthquakeService.swift; sourceTree = "<group>"; };
+		AD6319322836627DA4F54FAD /* LoginItemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemService.swift; sourceTree = "<group>"; };
+		C0C7D173283F605CA610779F /* ProjectItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectItem.swift; sourceTree = "<group>"; };
+		C39902BB88D836CA9896FAE1 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceView.swift; sourceTree = "<group>"; };
+		DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsServiceTests.swift; sourceTree = "<group>"; };
+		E0D3E361632FD5BDFF57EAED /* TaskItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskItem.swift; sourceTree = "<group>"; };
+		E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingPanelController.swift; sourceTree = "<group>"; };
+		E946B3F227D267E00F6D9C73 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		F597BC852599AE0CBB694F4B /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
+		FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposer.swift; sourceTree = "<group>"; };
+		FACC438E464E4C497F0523A8 /* JarvisDashboard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JarvisDashboard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1F2C4CD0712B7E3362C7D688 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */,
+				D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */,
+				6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */,
+				3B1676D6679B29E4122F6E3E /* ProjectsView.swift */,
+				929151532C0ADDCF47913F8B /* RootView.swift */,
+				7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */,
+				2EE0303E41DC4C80F1F68571 /* TasksView.swift */,
+				12DF1F9E077E514D300D8146 /* TodayView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		2D324CFE8CE75304C3E4A663 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				615BF7F2BB160436AB78E2C9 /* JarvisDashboardTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		3306EBA22158007880EF6335 /* JarvisDashboard */ = {
+			isa = PBXGroup;
+			children = (
+				35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */,
+				A33DD5C0F3D99F2A66A990D5 /* App */,
+				BB08F8481B5D11AB97AB6FB9 /* Models */,
+				E10959E12D24077588D275CC /* Services */,
+				1F2C4CD0712B7E3362C7D688 /* Views */,
+			);
+			path = JarvisDashboard;
+			sourceTree = "<group>";
+		};
+		39B57581D057ADD3657D4D7B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FACC438E464E4C497F0523A8 /* JarvisDashboard.app */,
+				7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		615BF7F2BB160436AB78E2C9 /* JarvisDashboardTests */ = {
+			isa = PBXGroup;
+			children = (
+				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
+				2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */,
+				DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */,
+				73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */,
+			);
+			path = JarvisDashboardTests;
+			sourceTree = "<group>";
+		};
+		A33DD5C0F3D99F2A66A990D5 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C39902BB88D836CA9896FAE1 /* AppState.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		BB08F8481B5D11AB97AB6FB9 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				C0C7D173283F605CA610779F /* ProjectItem.swift */,
+				F597BC852599AE0CBB694F4B /* SavedLocation.swift */,
+				E0D3E361632FD5BDFF57EAED /* TaskItem.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		C443957C6FF4747CCE53E148 = {
+			isa = PBXGroup;
+			children = (
+				FC357B95D2E3D2BBAA72E8BF /* Sources */,
+				2D324CFE8CE75304C3E4A663 /* Tests */,
+				39B57581D057ADD3657D4D7B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E10959E12D24077588D275CC /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */,
+				A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */,
+				AD6319322836627DA4F54FAD /* LoginItemService.swift */,
+				87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */,
+				0667036D8A5683EE9111E98D /* NewsService.swift */,
+				2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */,
+				9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */,
+				E946B3F227D267E00F6D9C73 /* WeatherService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		FC357B95D2E3D2BBAA72E8BF /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				3306EBA22158007880EF6335 /* JarvisDashboard */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D607A25A1DF19834FE3D8DD9 /* JarvisDashboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0FBA49F1C0C5B735D38DA5D /* Build configuration list for PBXNativeTarget "JarvisDashboard" */;
+			buildPhases = (
+				B95529E0DBA40B18939733AB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JarvisDashboard;
+			packageProductDependencies = (
+			);
+			productName = JarvisDashboard;
+			productReference = FACC438E464E4C497F0523A8 /* JarvisDashboard.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E3CE9E9B8D31A277B5E93793 /* JarvisDashboardTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7AF6674EC6D8668E04A93C41 /* Build configuration list for PBXNativeTarget "JarvisDashboardTests" */;
+			buildPhases = (
+				B7EC030F5594D6777F397A61 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B9E5532753D46422F10ACF7F /* PBXTargetDependency */,
+			);
+			name = JarvisDashboardTests;
+			packageProductDependencies = (
+			);
+			productName = JarvisDashboardTests;
+			productReference = 7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3E32FA844661E25E73FF27A3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					D607A25A1DF19834FE3D8DD9 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					E3CE9E9B8D31A277B5E93793 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = EB6E3C3335023CA62B09D084 /* Build configuration list for PBXProject "JarvisDashboard" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C443957C6FF4747CCE53E148;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 39B57581D057ADD3657D4D7B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D607A25A1DF19834FE3D8DD9 /* JarvisDashboard */,
+				E3CE9E9B8D31A277B5E93793 /* JarvisDashboardTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B7EC030F5594D6777F397A61 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
+				ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */,
+				DBA2EB3D421963F5B225E7EC /* NewsServiceTests.swift in Sources */,
+				526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B95529E0DBA40B18939733AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */,
+				721999F6EF250D7B692A3EDF /* BriefingComposer.swift in Sources */,
+				A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */,
+				E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */,
+				8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */,
+				4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */,
+				4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */,
+				FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */,
+				D8DBCAA1E7DB74F432DD485A /* NewsAPIKeyStore.swift in Sources */,
+				33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */,
+				162696049C4E2F1D8DC3D175 /* NotificationService.swift in Sources */,
+				D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */,
+				999E9E3FC6F99036C44E9FDE /* ProjectsView.swift in Sources */,
+				BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */,
+				73E90DA7F5A420582754AF22 /* SavedLocation.swift in Sources */,
+				E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */,
+				1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */,
+				A9ADE8ED59F0E10599D961EF /* TasksView.swift in Sources */,
+				B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */,
+				F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */,
+				40885B1ADEBE3753843F8A54 /* WeatherService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B9E5532753D46422F10ACF7F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D607A25A1DF19834FE3D8DD9 /* JarvisDashboard */;
+			targetProxy = 3533E8C57302BECECA537A1F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		50BA3302EA591938A287F200 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5925744872157BF8F8143AC4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skeemadigital.jarvisdashboard.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JarvisDashboard.app/Contents/MacOS/JarvisDashboard";
+			};
+			name = Debug;
+		};
+		B07FDA65796AFF74D6357D40 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skeemadigital.jarvisdashboard.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JarvisDashboard.app/Contents/MacOS/JarvisDashboard";
+			};
+			name = Release;
+		};
+		B8AFC152ECB45D8E254A54E3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = Supporting/JarvisDashboard.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Supporting/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skeemadigital.jarvisdashboard;
+				PRODUCT_NAME = JarvisDashboard;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C1AD27AC70D05248E08D7648 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = Supporting/JarvisDashboard.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Supporting/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skeemadigital.jarvisdashboard;
+				PRODUCT_NAME = JarvisDashboard;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		F4D4C4136C37393CF64CD35A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7AF6674EC6D8668E04A93C41 /* Build configuration list for PBXNativeTarget "JarvisDashboardTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5925744872157BF8F8143AC4 /* Debug */,
+				B07FDA65796AFF74D6357D40 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D0FBA49F1C0C5B735D38DA5D /* Build configuration list for PBXNativeTarget "JarvisDashboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B8AFC152ECB45D8E254A54E3 /* Debug */,
+				C1AD27AC70D05248E08D7648 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EB6E3C3335023CA62B09D084 /* Build configuration list for PBXProject "JarvisDashboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				50BA3302EA591938A287F200 /* Debug */,
+				F4D4C4136C37393CF64CD35A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3E32FA844661E25E73FF27A3 /* Project object */;
+}

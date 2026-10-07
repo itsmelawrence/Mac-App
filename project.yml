@@ -1,0 +1,81 @@
+name: JarvisDashboard
+
+options:
+  bundleIdPrefix: com.skeemadigital
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  JarvisDashboard:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/JarvisDashboard
+    info:
+      path: Supporting/Info.plist
+      properties:
+        CFBundleDisplayName: JARVIS Dashboard
+        CFBundleName: JARVIS Dashboard
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
+        NSHumanReadableCopyright: Copyright © 2026 Skeema Digital. All rights reserved.
+        NSSupportsAutomaticTermination: false
+        NSSupportsSuddenTermination: true
+    entitlements:
+      path: Supporting/JarvisDashboard.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_NAME: JarvisDashboard
+        PRODUCT_BUNDLE_IDENTIFIER: com.skeemadigital.jarvisdashboard
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Supporting/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Supporting/JarvisDashboard.entitlements
+        ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+    scheme:
+      gatherCoverageData: true
+      testTargets:
+        - JarvisDashboardTests
+
+  JarvisDashboardTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/JarvisDashboardTests
+    dependencies:
+      - target: JarvisDashboard
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skeemadigital.jarvisdashboard.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  JarvisDashboard:
+    build:
+      targets:
+        JarvisDashboard: all
+        JarvisDashboardTests: [test]
+    test:
+      gatherCoverageData: true
+      targets:
+        - JarvisDashboardTests
+    run:
+      config: Debug
+    archive:
+      config: Release
