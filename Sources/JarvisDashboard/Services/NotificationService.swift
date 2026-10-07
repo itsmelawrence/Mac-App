@@ -2,6 +2,10 @@ import Foundation
 import UserNotifications
 
 struct NotificationService {
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+
     func requestAuthorization() async throws -> Bool {
         try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
     }

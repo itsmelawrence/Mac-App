@@ -100,6 +100,7 @@ struct SettingsView: View {
             loginItemService.refresh()
             hasStoredNewsAPIKey = newsAPIKeyStore.read() != nil
         }
+        .task { await refreshNotificationStatus() }
     }
 
     private func saveNewsAPIKey() {
@@ -121,6 +122,20 @@ struct SettingsView: View {
             newsAPIStatus = "Removed. RSS fallback feeds remain active."
         } catch {
             newsAPIStatus = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func refreshNotificationStatus() async {
+        switch await NotificationService().authorizationStatus() {
+        case .authorized, .provisional, .ephemeral:
+            notificationStatus = "Authorised"
+        case .denied:
+            notificationStatus = "Not authorised"
+        case .notDetermined:
+            notificationStatus = "Not requested"
+        @unknown default:
+            notificationStatus = "Unknown"
         }
     }
 }

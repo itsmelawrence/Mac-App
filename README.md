@@ -2,6 +2,8 @@
 
 A local-first macOS command centre for tasks, projects, briefings, weather, news, and safety alerts.
 
+The application icon uses the letter-free JARVIS HUD artwork in `Supporting/Brand/JarvisIconMaster.png`; the complete macOS icon set is generated under `Supporting/Assets.xcassets`.
+
 ## Requirements
 
 - macOS 14 or newer

@@ -26,6 +26,7 @@
 		B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DF1F9E077E514D300D8146 /* TodayView.swift */; };
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
 		D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C7D173283F605CA610779F /* ProjectItem.swift */; };
+		D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E664AC10761E65E6FED7D18 /* Assets.xcassets */; };
 		D8DBCAA1E7DB74F432DD485A /* NewsAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */; };
 		DBA2EB3D421963F5B225E7EC /* NewsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */; };
 		E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */; };
@@ -57,6 +58,7 @@
 		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIKeyStore.swift; sourceTree = "<group>"; };
+		8E664AC10761E65E6FED7D18 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		929151532C0ADDCF47913F8B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposerTests.swift; sourceTree = "<group>"; };
 		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
@@ -138,6 +140,14 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		B4D2383A8E8CA13DBA104B61 /* Supporting */ = {
+			isa = PBXGroup;
+			children = (
+				8E664AC10761E65E6FED7D18 /* Assets.xcassets */,
+			);
+			path = Supporting;
+			sourceTree = "<group>";
+		};
 		BB08F8481B5D11AB97AB6FB9 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -152,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				FC357B95D2E3D2BBAA72E8BF /* Sources */,
+				B4D2383A8E8CA13DBA104B61 /* Supporting */,
 				2D324CFE8CE75304C3E4A663 /* Tests */,
 				39B57581D057ADD3657D4D7B /* Products */,
 			);
@@ -188,6 +199,7 @@
 			buildConfigurationList = D0FBA49F1C0C5B735D38DA5D /* Build configuration list for PBXNativeTarget "JarvisDashboard" */;
 			buildPhases = (
 				B95529E0DBA40B18939733AB /* Sources */,
+				0351373E6938ED5813DB0119 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -256,6 +268,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0351373E6938ED5813DB0119 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B7EC030F5594D6777F397A61 /* Sources */ = {
@@ -364,7 +387,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -498,7 +521,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
