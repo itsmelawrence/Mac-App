@@ -3,44 +3,136 @@ import SwiftData
 
 @Model
 final class ProjectItem {
+    var id: UUID = UUID()
     var name: String
     var client: String
+    var type: String = ""
     var summary: String
     var statusRawValue: String
+    var priorityRawValue: String = ProjectPriority.medium.rawValue
     var progress: Double
     var nextAction: String
+    var startDate: Date?
+    var dueDate: Date?
+    var tagsRawValue: String = ""
+    var createdAt: Date = Date.now
     var updatedAt: Date
+    var archivedAt: Date?
 
     init(
         name: String,
         client: String = "",
+        type: String = "",
         summary: String = "",
         status: ProjectStatus = .active,
+        priority: ProjectPriority = .medium,
         progress: Double = 0,
         nextAction: String = "",
-        updatedAt: Date = .now
+        startDate: Date? = nil,
+        dueDate: Date? = nil,
+        tags: [String] = [],
+        createdAt: Date = .now,
+        updatedAt: Date = .now,
+        archivedAt: Date? = nil
     ) {
         self.name = name
         self.client = client
+        self.type = type
         self.summary = summary
         self.statusRawValue = status.rawValue
+        self.priorityRawValue = priority.rawValue
         self.progress = progress
         self.nextAction = nextAction
+        self.startDate = startDate
+        self.dueDate = dueDate
+        self.tagsRawValue = Self.encodeTags(tags)
+        self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.archivedAt = archivedAt
     }
 
     var status: ProjectStatus {
-        get { ProjectStatus(rawValue: statusRawValue) ?? .active }
-        set { statusRawValue = newValue.rawValue }
+        get {
+            switch statusRawValue {
+            case "planning": .notStarted
+            case "waiting": .onHold
+            default: ProjectStatus(rawValue: statusRawValue) ?? .active
+            }
+        }
+        set {
+            statusRawValue = newValue.rawValue
+            archivedAt = newValue == .archived ? (archivedAt ?? .now) : nil
+        }
+    }
+
+    var priority: ProjectPriority {
+        get { ProjectPriority(rawValue: priorityRawValue) ?? .medium }
+        set { priorityRawValue = newValue.rawValue }
+    }
+
+    var tags: [String] {
+        get {
+            tagsRawValue
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        }
+        set { tagsRawValue = Self.encodeTags(newValue) }
+    }
+
+    var isArchived: Bool { status == .archived || archivedAt != nil }
+
+    func duplicate() -> ProjectItem {
+        ProjectItem(
+            name: "\(name) Copy",
+            client: client,
+            type: type,
+            summary: summary,
+            status: status == .archived ? .notStarted : status,
+            priority: priority,
+            progress: progress,
+            nextAction: nextAction,
+            startDate: startDate,
+            dueDate: dueDate,
+            tags: tags
+        )
+    }
+
+    private static func encodeTags(_ tags: [String]) -> String {
+        tags
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
     }
 }
 
 enum ProjectStatus: String, CaseIterable, Identifiable {
-    case planning
+    case notStarted = "not_started"
     case active
-    case waiting
+    case inReview = "in_review"
+    case onHold = "on_hold"
     case completed
     case archived
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .notStarted: "Not Started"
+        case .active: "Active"
+        case .inReview: "In Review"
+        case .onHold: "On Hold"
+        case .completed: "Completed"
+        case .archived: "Archived"
+        }
+    }
+}
+
+enum ProjectPriority: String, CaseIterable, Identifiable {
+    case low
+    case medium
+    case high
+    case urgent
 
     var id: Self { self }
     var title: String { rawValue.capitalized }

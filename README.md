@@ -36,6 +36,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Native SwiftUI macOS application
 - Today dashboard with generated briefing
 - Persistent tasks and projects using SwiftData
+- Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion
 - Menu-bar command centre
 - Launch-at-login setting using `SMAppService`
 - Sleep/wake monitoring and configurable wake briefings
