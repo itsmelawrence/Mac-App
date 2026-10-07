@@ -14,7 +14,7 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
-    MARKETING_VERSION: "0.1.1"
+    MARKETING_VERSION: "0.1.2"
     CURRENT_PROJECT_VERSION: "1"
 
 targets:
@@ -24,6 +24,8 @@ targets:
     sources:
       - path: Sources/JarvisDashboard
       - path: Supporting/Assets.xcassets
+      - path: Supporting/Splash/jarvis-startup.html
+        buildPhase: resources
     info:
       path: Supporting/Info.plist
       properties:

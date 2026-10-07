@@ -4,6 +4,8 @@ A local-first macOS command centre for tasks, projects, briefings, weather, news
 
 The application icon uses the letter-free JARVIS HUD artwork in `Supporting/Brand/JarvisIconMaster.png`; the complete macOS icon set is generated under `Supporting/Assets.xcassets`.
 
+At launch, the supplied self-contained HTML animation runs as a native full-window WebKit overlay while the dashboard refreshes beneath it. The overlay fades only after both the 3.8-second animation and the first dashboard data attempt have completed.
+
 ## Requirements
 
 - macOS 14 or newer

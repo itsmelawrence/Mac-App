@@ -172,7 +172,10 @@ struct TodayView: View {
     @MainActor
     private func refreshIntelligence() async {
         isRefreshing = true
-        defer { isRefreshing = false }
+        defer {
+            isRefreshing = false
+            appState.markDashboardReady()
+        }
 
         async let weatherRequest = try? weatherService.currentWeather(for: primaryLocation)
         async let earthquakeRequest = try? earthquakeService.recentPhilippineEvents()

@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		162696049C4E2F1D8DC3D175 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */; };
 		1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D3E361632FD5BDFF57EAED /* TaskItem.swift */; };
+		21A63FCA43A1EFCFDFC5D848 /* SplashReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C83FF91319337AAA710E7D1 /* SplashReadinessTests.swift */; };
+		226E32BD966824AAB1C5A8E7 /* jarvis-startup.html in Resources */ = {isa = PBXBuildFile; fileRef = 5E12F30F5479770C436A1701 /* jarvis-startup.html */; };
+		316B90D294E5BF86F3021568 /* StartupSplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9329F725F9C4F5119D414E6F /* StartupSplashView.swift */; };
 		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
 		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
 		40885B1ADEBE3753843F8A54 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E946B3F227D267E00F6D9C73 /* WeatherService.swift */; };
@@ -53,6 +56,8 @@
 		2EE0303E41DC4C80F1F68571 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
 		35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDashboardApp.swift; sourceTree = "<group>"; };
 		3B1676D6679B29E4122F6E3E /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
+		3C83FF91319337AAA710E7D1 /* SplashReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashReadinessTests.swift; sourceTree = "<group>"; };
+		5E12F30F5479770C436A1701 /* jarvis-startup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "jarvis-startup.html"; sourceTree = "<group>"; };
 		6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshotTests.swift; sourceTree = "<group>"; };
 		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -60,6 +65,7 @@
 		87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIKeyStore.swift; sourceTree = "<group>"; };
 		8E664AC10761E65E6FED7D18 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		929151532C0ADDCF47913F8B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		9329F725F9C4F5119D414E6F /* StartupSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSplashView.swift; sourceTree = "<group>"; };
 		9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposerTests.swift; sourceTree = "<group>"; };
 		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
 		A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarthquakeService.swift; sourceTree = "<group>"; };
@@ -86,6 +92,7 @@
 				3B1676D6679B29E4122F6E3E /* ProjectsView.swift */,
 				929151532C0ADDCF47913F8B /* RootView.swift */,
 				7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */,
+				9329F725F9C4F5119D414E6F /* StartupSplashView.swift */,
 				2EE0303E41DC4C80F1F68571 /* TasksView.swift */,
 				12DF1F9E077E514D300D8146 /* TodayView.swift */,
 			);
@@ -127,6 +134,7 @@
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
 				2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */,
 				DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */,
+				3C83FF91319337AAA710E7D1 /* SplashReadinessTests.swift */,
 				73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */,
 			);
 			path = JarvisDashboardTests;
@@ -144,6 +152,7 @@
 			isa = PBXGroup;
 			children = (
 				8E664AC10761E65E6FED7D18 /* Assets.xcassets */,
+				E38CF5B0A0F2305536B3FC56 /* Splash */,
 			);
 			path = Supporting;
 			sourceTree = "<group>";
@@ -181,6 +190,14 @@
 				E946B3F227D267E00F6D9C73 /* WeatherService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		E38CF5B0A0F2305536B3FC56 /* Splash */ = {
+			isa = PBXGroup;
+			children = (
+				5E12F30F5479770C436A1701 /* jarvis-startup.html */,
+			);
+			path = Splash;
 			sourceTree = "<group>";
 		};
 		FC357B95D2E3D2BBAA72E8BF /* Sources */ = {
@@ -275,6 +292,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */,
+				226E32BD966824AAB1C5A8E7 /* jarvis-startup.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,6 +306,7 @@
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
 				ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */,
 				DBA2EB3D421963F5B225E7EC /* NewsServiceTests.swift in Sources */,
+				21A63FCA43A1EFCFDFC5D848 /* SplashReadinessTests.swift in Sources */,
 				526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -312,6 +331,7 @@
 				BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */,
 				73E90DA7F5A420582754AF22 /* SavedLocation.swift in Sources */,
 				E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */,
+				316B90D294E5BF86F3021568 /* StartupSplashView.swift in Sources */,
 				1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */,
 				A9ADE8ED59F0E10599D961EF /* TasksView.swift in Sources */,
 				B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */,
@@ -387,7 +407,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.1.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -521,7 +541,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.1.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
