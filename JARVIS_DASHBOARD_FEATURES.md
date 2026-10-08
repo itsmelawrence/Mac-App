@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.1.12
+**Current version:** 0.1.13
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
 
@@ -53,6 +53,15 @@ The Today screen provides an at-a-glance operational summary.
 - Displays current weather for the primary saved location.
 - Displays the latest Philippine-region earthquake report.
 - Supports manual and pull-to-refresh updates.
+
+### Daily resolve and momentum widgets
+
+- Displays one locally curated philosophical quote each day, focused on discipline, endurance, and purposeful action.
+- Allows another quote to be shown without refreshing live data.
+- Keeps quotes local so the Today screen does not depend on another network service.
+- Highlights the highest-priority actionable task in **Focus now**.
+- Surfaces an urgent or waiting project and its next action in **Project pulse**.
+- Shows overall task completion, tasks due today, and blocked-task count in **Momentum**.
 
 ---
 
@@ -539,7 +548,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.1.12.zip`
+`dist/JARVIS-Dashboard-0.1.13.zip`
 
 The installed application is expected at:
 

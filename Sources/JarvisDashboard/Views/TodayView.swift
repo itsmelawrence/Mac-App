@@ -11,11 +11,20 @@ struct TodayView: View {
     @State private var earthquakes: [EarthquakeEvent] = []
     @State private var isRefreshing = false
     @State private var refreshError: String?
+    @State private var quoteOffset = 0
 
     private let weatherService = OpenMeteoWeatherService()
     private let earthquakeService = USGSEarthquakeService()
 
     private var pendingTasks: [TaskItem] { tasks.filter { !$0.isCompleted } }
+    private var completedTasks: [TaskItem] { tasks.filter(\.isCompleted) }
+    private var blockedTasks: [TaskItem] { pendingTasks.filter(\.isBlocked) }
+    private var dueTodayTasks: [TaskItem] {
+        pendingTasks.filter { task in
+            guard let dueDate = task.dueDate else { return false }
+            return Calendar.current.isDateInToday(dueDate)
+        }
+    }
     private var overdueTasks: [TaskItem] {
         pendingTasks.filter { task in
             guard let dueDate = task.dueDate else { return false }
@@ -24,6 +33,33 @@ struct TodayView: View {
     }
     private var activeProjects: [ProjectItem] { projects.filter { $0.status == .active } }
     private var significantEarthquakes: [EarthquakeEvent] { earthquakes.filter { $0.magnitude >= 4.5 } }
+    private var dailyQuote: MotivationalQuote {
+        MotivationalQuoteLibrary.quote(for: .now, offset: quoteOffset)
+    }
+    private var focusTask: TaskItem? {
+        pendingTasks.sorted { lhs, rhs in
+            if lhs.isBlocked != rhs.isBlocked { return !lhs.isBlocked }
+            if lhs.priorityRawValue != rhs.priorityRawValue { return lhs.priorityRawValue > rhs.priorityRawValue }
+            return (lhs.dueDate ?? .distantFuture) < (rhs.dueDate ?? .distantFuture)
+        }.first
+    }
+    private var pulseProject: ProjectItem? {
+        projects
+            .filter { !$0.isArchived && $0.status != .completed }
+            .sorted { lhs, rhs in
+                if lhs.status == .waitingOnClient, rhs.status != .waitingOnClient { return true }
+                if lhs.status != .waitingOnClient, rhs.status == .waitingOnClient { return false }
+                if lhs.priority != rhs.priority {
+                    return projectPriorityRank(lhs.priority) > projectPriorityRank(rhs.priority)
+                }
+                return lhs.updatedAt > rhs.updatedAt
+            }
+            .first
+    }
+    private var completionRatio: Double {
+        guard !tasks.isEmpty else { return 0 }
+        return Double(completedTasks.count) / Double(tasks.count)
+    }
     private var primaryLocation: SavedLocationValue {
         let location = savedLocations.first(where: \.isPrimary) ?? savedLocations.first
         return location.map {
@@ -47,13 +83,29 @@ struct TodayView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 header
-                briefingCard
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 14) {
+                        briefingCard
+                        resolveCard
+                    }
+                    VStack(spacing: 14) {
+                        briefingCard
+                        resolveCard
+                    }
+                }
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 14)], spacing: 14) {
                     MetricCard(title: "Pending tasks", value: "\(pendingTasks.count)", systemImage: "checklist", tint: .blue)
                     MetricCard(title: "Overdue", value: "\(overdueTasks.count)", systemImage: "exclamationmark.circle.fill", tint: overdueTasks.isEmpty ? .green : .red)
                     MetricCard(title: "Active projects", value: "\(activeProjects.count)", systemImage: "square.stack.3d.up.fill", tint: .purple)
                     MetricCard(title: "Regional alerts", value: "\(significantEarthquakes.count)", systemImage: "waveform.path.ecg", tint: .orange)
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 14)], spacing: 14) {
+                    focusWidget
+                    projectPulseWidget
+                    momentumWidget
                 }
 
                 HStack(alignment: .top, spacing: 14) {
@@ -111,6 +163,131 @@ struct TodayView: View {
         }
         .padding(20)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var resolveCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Daily resolve", systemImage: "quote.opening")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.cyan)
+                    .textCase(.uppercase)
+                Spacer()
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { quoteOffset += 1 }
+                } label: {
+                    Image(systemName: "arrow.right")
+                }
+                .buttonStyle(.plain)
+                .help("Show another quote")
+            }
+
+            Text("“\(dailyQuote.text)”")
+                .font(.system(.title3, design: .serif, weight: .medium))
+                .fixedSize(horizontal: false, vertical: true)
+                .contentTransition(.opacity)
+
+            Text("— \(dailyQuote.author) · \(dailyQuote.source)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(20)
+        .frame(maxWidth: 430, minHeight: 138, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [.cyan.opacity(0.14), .blue.opacity(0.05)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 16)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.cyan.opacity(0.18), lineWidth: 1)
+        }
+    }
+
+    private var focusWidget: some View {
+        TodayWidget(title: "Focus now", systemImage: "scope", tint: .orange) {
+            if let focusTask {
+                Text(focusTask.title)
+                    .font(.headline)
+                    .lineLimit(2)
+                HStack(spacing: 8) {
+                    Text(focusTask.priority.title)
+                    if let dueDate = focusTask.dueDate {
+                        Text("·")
+                        Text(dueDate, format: .dateTime.month(.abbreviated).day())
+                            .foregroundStyle(dueDate < .now ? .red : .secondary)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                Text("No open tasks")
+                    .font(.headline)
+                Text("The runway is clear.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var projectPulseWidget: some View {
+        TodayWidget(title: "Project pulse", systemImage: "waveform.path", tint: .purple) {
+            if let pulseProject {
+                Text(pulseProject.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                if pulseProject.status == .waitingOnClient,
+                   let days = pulseProject.waitingDays() {
+                    Text("Waiting on client · \(days) day\(days == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                } else if !pulseProject.nextAction.isEmpty {
+                    Text(pulseProject.nextAction)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                } else {
+                    Text(pulseProject.status.title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("No active projects")
+                    .font(.headline)
+                Text("A rare and peaceful condition.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var momentumWidget: some View {
+        TodayWidget(title: "Momentum", systemImage: "chart.line.uptrend.xyaxis", tint: .green) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().stroke(.secondary.opacity(0.16), lineWidth: 6)
+                    Circle()
+                        .trim(from: 0, to: completionRatio)
+                        .stroke(.green, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Text("\(Int((completionRatio * 100).rounded()))%")
+                        .font(.caption.bold())
+                }
+                .frame(width: 52, height: 52)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(completedTasks.count) completed")
+                        .font(.headline)
+                    Text("\(dueTodayTasks.count) due today · \(blockedTasks.count) blocked")
+                        .font(.caption)
+                        .foregroundStyle(blockedTasks.isEmpty ? Color.secondary : Color.orange)
+                }
+            }
+        }
     }
 
     private var taskSection: some View {
@@ -194,6 +371,15 @@ struct TodayView: View {
             refreshError = "One or more live sources could not be refreshed. Available results remain visible."
         }
     }
+
+    private func projectPriorityRank(_ priority: ProjectPriority) -> Int {
+        switch priority {
+        case .low: 0
+        case .medium: 1
+        case .high: 2
+        case .urgent: 3
+        }
+    }
 }
 
 private struct MetricCard: View {
@@ -214,6 +400,26 @@ private struct MetricCard: View {
                 .foregroundStyle(tint)
         }
         .padding(18)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+private struct TodayWidget<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(tint)
+            content
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
     }
 }
