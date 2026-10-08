@@ -140,6 +140,14 @@ struct MonitoringFinding: Equatable, Identifiable, Sendable {
     let referenceURL: String?
 }
 
+private struct RotatedTokenEnvelope: Decodable {
+    let ingestToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case ingestToken = "ingest_token"
+    }
+}
+
 struct MonitoringAPIService: Sendable {
     static let defaultBaseURL = "https://jarvis-monitoring-api-production-lhpmbl.laravel.cloud"
 
@@ -283,6 +291,39 @@ struct MonitoringAPIService: Sendable {
         return try parseSite(data: data)
     }
 
+    func rotateReporterToken(baseURLText: String, adminToken: String, siteID: String) async throws -> String {
+        let request = try makeAdminRequest(
+            baseURLText: baseURLText,
+            adminToken: adminToken,
+            path: "api/v1/sites/\(siteID)/rotate-token",
+            method: "POST"
+        )
+        let (data, response) = try await session.data(for: request)
+        try validateAdminResponse(response)
+        return try JSONDecoder().decode(RotatedTokenEnvelope.self, from: data).ingestToken
+    }
+
+    func updateFinding(
+        baseURLText: String,
+        adminToken: String,
+        findingID: String,
+        status: String,
+        note: String? = nil
+    ) async throws {
+        var request = try makeAdminRequest(
+            baseURLText: baseURLText,
+            adminToken: adminToken,
+            path: "api/v1/findings/\(findingID)",
+            method: "PATCH"
+        )
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "status": status,
+            "note": note ?? "Handled from JARVIS Dashboard"
+        ])
+        let (_, response) = try await session.data(for: request)
+        try validateAdminResponse(response)
+    }
+
     private func validateReadResponse(_ response: URLResponse) throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw MonitoringAPIError.invalidResponse
@@ -293,6 +334,34 @@ struct MonitoringAPIService: Sendable {
         case 403: throw MonitoringAPIError.forbidden
         default: throw MonitoringAPIError.serverStatus(httpResponse.statusCode)
         }
+    }
+
+    private func validateAdminResponse(_ response: URLResponse) throws {
+        guard let httpResponse = response as? HTTPURLResponse else { throw MonitoringAPIError.invalidResponse }
+        switch httpResponse.statusCode {
+        case 200..<300: return
+        case 401: throw MonitoringAPIError.unauthorised
+        case 403: throw MonitoringAPIError.adminRequired
+        default: throw MonitoringAPIError.serverStatus(httpResponse.statusCode)
+        }
+    }
+
+    private func makeAdminRequest(
+        baseURLText: String,
+        adminToken: String,
+        path: String,
+        method: String
+    ) throws -> URLRequest {
+        let baseURL = try normalizedBaseURL(from: baseURLText)
+        let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.isEmpty else { throw MonitoringAPIError.missingToken }
+        var request = URLRequest(url: baseURL.appending(path: path), timeoutInterval: 15)
+        request.httpMethod = method
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("JARVIS-Dashboard/0.5", forHTTPHeaderField: "User-Agent")
+        return request
     }
 
     func makeSummaryRequest(baseURLText: String, token: String) throws -> URLRequest {

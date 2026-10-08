@@ -26,6 +26,29 @@ struct ProjectItemTests {
         #expect(project.archivedAt == nil)
     }
 
+    @Test func waitingOnClientTracksStatusAge() {
+        let project = ProjectItem(name: "Content handoff")
+        project.status = .waitingOnClient
+        project.statusChangedAt = Date(timeIntervalSince1970: 1_000_000)
+        let threeDaysLater = project.statusChangedAt.addingTimeInterval(3 * 86_400)
+
+        #expect(project.waitingDays(now: threeDaysLater) == 3)
+    }
+
+    @Test func taskCanBelongToProjectAndBeBlocked() {
+        let projectID = UUID()
+        let task = TaskItem(
+            title: "Await homepage copy",
+            projectID: projectID,
+            isBlocked: true,
+            blockedReason: "Waiting for client content"
+        )
+
+        #expect(task.projectID == projectID)
+        #expect(task.isBlocked)
+        #expect(task.blockedReason == "Waiting for client content")
+    }
+
     @Test func duplicateCopiesProjectFieldsButStartsFresh() {
         let project = ProjectItem(
             name: "Client Website",

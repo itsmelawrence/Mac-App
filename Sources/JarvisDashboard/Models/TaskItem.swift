@@ -3,12 +3,16 @@ import SwiftData
 
 @Model
 final class TaskItem {
+    var id: UUID = UUID()
     var title: String
     var notes: String
     var dueDate: Date?
     var priorityRawValue: Int
     var isCompleted: Bool
     var createdAt: Date
+    var projectID: UUID?
+    var isBlocked: Bool = false
+    var blockedReason: String = ""
 
     init(
         title: String,
@@ -16,7 +20,10 @@ final class TaskItem {
         dueDate: Date? = nil,
         priority: TaskPriority = .normal,
         isCompleted: Bool = false,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        projectID: UUID? = nil,
+        isBlocked: Bool = false,
+        blockedReason: String = ""
     ) {
         self.title = title
         self.notes = notes
@@ -24,6 +31,9 @@ final class TaskItem {
         self.priorityRawValue = priority.rawValue
         self.isCompleted = isCompleted
         self.createdAt = createdAt
+        self.projectID = projectID
+        self.isBlocked = isBlocked
+        self.blockedReason = blockedReason
     }
 
     var priority: TaskPriority {

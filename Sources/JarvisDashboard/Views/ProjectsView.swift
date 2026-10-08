@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct ProjectsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
+    @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
 
     @AppStorage("projects.showArchived") private var showArchived = false
     @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
@@ -45,6 +46,7 @@ struct ProjectsView: View {
                     project: selectedProject,
                     selectedSection: $selectedDetailSection,
                     monitoringSite: site(for: selectedProject),
+                    tasks: tasks.filter { $0.projectID == selectedProject.id },
                     monitoringError: monitoringError,
                     isRefreshingMonitoring: isRefreshingMonitoring,
                     onRefreshMonitoring: { Task { await refreshMonitoring() } }
@@ -124,6 +126,7 @@ struct ProjectsView: View {
                             ProjectCard(
                                 project: project,
                                 monitoringSite: site(for: project),
+                                tasks: tasks.filter { $0.projectID == project.id },
                                 onOpen: {
                                     selectedDetailSection = .overview
                                     selectedProject = project
@@ -293,6 +296,7 @@ private struct ProjectCard: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var project: ProjectItem
     let monitoringSite: MonitoringSite?
+    let tasks: [TaskItem]
 
     let onOpen: () -> Void
     let onOpenSecurity: () -> Void
@@ -365,6 +369,12 @@ private struct ProjectCard: View {
                 DueDateBadge(date: dueDate, status: project.status)
             }
 
+            if let waitingDays = project.waitingDays() {
+                Label("Waiting on client · \(waitingDays) day\(waitingDays == 1 ? "" : "s")", systemImage: "hourglass")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.orange)
+            }
+
             SiteHealthPanel(
                 health: MonitoringHealth.evaluate(site: monitoringSite, connected: project.hasMonitoringSite),
                 site: monitoringSite,
@@ -375,14 +385,14 @@ private struct ProjectCard: View {
             if project.mode == .ongoing {
                 ongoingActivity
             } else {
-                ProgressView(value: project.progress)
+                ProgressView(value: taskProgress)
                     .tint(.orange)
                 HStack {
                     Text("Progress")
-                    Text("0/0 tasks")
-                        .foregroundStyle(.tertiary)
+                    Text("\(completedTaskCount)/\(tasks.count) tasks")
+                        .foregroundStyle(tasks.isEmpty ? .tertiary : .secondary)
                     Spacer()
-                    Text(project.progress, format: .percent.precision(.fractionLength(0)))
+                    Text(taskProgress, format: .percent.precision(.fractionLength(0)))
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -410,6 +420,13 @@ private struct ProjectCard: View {
         .task(id: project.repositoryBookmarkData) {
             await refreshRepository()
         }
+    }
+
+    private var completedTaskCount: Int { tasks.filter(\.isCompleted).count }
+
+    private var taskProgress: Double {
+        guard !tasks.isEmpty else { return project.progress }
+        return Double(completedTaskCount) / Double(tasks.count)
     }
 
     private var ongoingActivity: some View {
@@ -484,6 +501,7 @@ private struct ProjectDetailView: View {
     @Bindable var project: ProjectItem
     @Binding var selectedSection: ProjectDetailSection
     let monitoringSite: MonitoringSite?
+    let tasks: [TaskItem]
     let monitoringError: String?
     let isRefreshingMonitoring: Bool
     let onRefreshMonitoring: () -> Void
@@ -495,6 +513,7 @@ private struct ProjectDetailView: View {
     @State private var isRefreshingRepository = false
     @State private var showingRepositoryPicker = false
     @State private var showingMonitoringSetup = false
+    @State private var showingNewTask = false
 
     private var snapshot: ProjectSnapshot {
         ProjectSnapshot(project: project)
@@ -570,11 +589,18 @@ private struct ProjectDetailView: View {
                         }
                     } else {
                         HStack(spacing: 16) {
-                            MetricCard(title: "Progress", value: project.progress.formatted(.percent.precision(.fractionLength(0))), systemImage: "chart.line.uptrend.xyaxis")
-                            MetricCard(title: "Tasks", value: "0 / 0", systemImage: "checklist")
+                            MetricCard(title: "Progress", value: taskProgress.formatted(.percent.precision(.fractionLength(0))), systemImage: "chart.line.uptrend.xyaxis")
+                            MetricCard(title: "Tasks", value: "\(completedTaskCount) / \(tasks.count)", systemImage: "checklist")
                             MetricCard(title: "Priority", value: project.priority.title, systemImage: "flag.fill")
                         }
                     }
+
+                    if let waitingDays = project.waitingDays() {
+                        Label("Waiting on client for \(waitingDays) day\(waitingDays == 1 ? "" : "s")", systemImage: "hourglass")
+                            .foregroundStyle(.orange)
+                    }
+
+                    projectTasksSection
 
                     GroupBox("Project details") {
                         VStack(alignment: .leading, spacing: 16) {
@@ -651,6 +677,57 @@ private struct ProjectDetailView: View {
         }
         .sheet(isPresented: $showingMonitoringSetup) {
             ProjectMonitoringSheet(project: project)
+        }
+        .sheet(isPresented: $showingNewTask) {
+            NewTaskView(projectID: project.id)
+        }
+    }
+
+    private var completedTaskCount: Int { tasks.filter(\.isCompleted).count }
+
+    private var taskProgress: Double {
+        guard !tasks.isEmpty else { return project.progress }
+        return Double(completedTaskCount) / Double(tasks.count)
+    }
+
+    private var projectTasksSection: some View {
+        GroupBox("Project tasks") {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(tasks.isEmpty ? "No linked tasks yet" : "\(completedTaskCount) of \(tasks.count) complete")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Add Task", systemImage: "plus") { showingNewTask = true }
+                }
+
+                ForEach(tasks.prefix(8)) { task in
+                    HStack(spacing: 10) {
+                        Button {
+                            task.isCompleted.toggle()
+                            try? modelContext.save()
+                        } label: {
+                            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(task.isCompleted ? .green : .secondary)
+                        }
+                        .buttonStyle(.plain)
+                        Text(task.title)
+                            .strikethrough(task.isCompleted)
+                        if task.isBlocked {
+                            Label("Blocked", systemImage: "hand.raised.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .help(task.blockedReason)
+                        }
+                        Spacer()
+                        if let dueDate = task.dueDate {
+                            Text(dueDate, format: .dateTime.month(.abbreviated).day())
+                                .font(.caption)
+                                .foregroundStyle(!task.isCompleted && dueDate < .now ? .red : .secondary)
+                        }
+                    }
+                }
+            }
+            .padding(8)
         }
     }
 
@@ -890,36 +967,34 @@ private struct SiteHealthGauge: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let health: MonitoringHealth
     var compact = false
-    @State private var displayedScore = 0.0
 
     var body: some View {
-        Canvas { context, size in
-            let center = CGPoint(x: size.width / 2, y: size.height - (compact ? 7 : 10))
-            let radius = min(size.width * 0.40, size.height - (compact ? 12 : 18))
-            let lineWidth = compact ? 7.0 : 10.0
+        ZStack {
+            Canvas { context, size in
+                let center = CGPoint(x: size.width / 2, y: size.height - (compact ? 7 : 10))
+                let radius = min(size.width * 0.40, size.height - (compact ? 12 : 18))
+                let lineWidth = compact ? 7.0 : 10.0
 
-            drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 0...49, colour: .red)
-            drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 50...79, colour: .orange)
-            drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 80...100, colour: Color(red: 0.24, green: 0.81, blue: 0.56))
+                drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 0...49, colour: .red)
+                drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 50...79, colour: .orange)
+                drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 80...100, colour: Color(red: 0.24, green: 0.81, blue: 0.56))
 
-            guard health.score != nil else { return }
-            let radians = .pi + (.pi * displayedScore / 100)
-            let needleLength = radius * 0.72
-            let end = CGPoint(
-                x: center.x + cos(radians) * needleLength,
-                y: center.y + sin(radians) * needleLength
-            )
-            var needle = Path()
-            needle.move(to: center)
-            needle.addLine(to: end)
-            context.stroke(needle, with: .color(.white.opacity(0.95)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            context.fill(Path(ellipseIn: CGRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10)), with: .color(.white))
+                guard health.score != nil else { return }
+                context.fill(Path(ellipseIn: CGRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10)), with: .color(.white))
+            }
+
+            if let score = health.score {
+                SiteHealthGaugeNeedle(score: Double(score), compact: compact)
+                    .stroke(
+                        .white.opacity(0.95),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.75), value: score)
+            }
         }
         .opacity(health.state == .stale ? 0.5 : 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
-        .onAppear { animateNeedle() }
-        .onChange(of: health.score) { _, _ in animateNeedle() }
     }
 
     private func drawBand(
@@ -960,24 +1035,46 @@ private struct SiteHealthGauge: View {
         return "Site health \(health.label.lowercased())"
     }
 
-    private func animateNeedle() {
-        let target = Double(health.score ?? 0)
-        if reduceMotion {
-            displayedScore = target
-        } else {
-            displayedScore = 0
-            withAnimation(.easeOut(duration: 0.75)) { displayedScore = target }
-        }
+}
+
+private struct SiteHealthGaugeNeedle: Shape {
+    var score: Double
+    let compact: Bool
+
+    var animatableData: Double {
+        get { score }
+        set { score = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.width / 2, y: rect.height - (compact ? 7 : 10))
+        let radius = min(rect.width * 0.40, rect.height - (compact ? 12 : 18))
+        let radians = .pi + (.pi * min(max(score, 0), 100) / 100)
+        let needleLength = radius * 0.72
+        let end = CGPoint(
+            x: center.x + cos(radians) * needleLength,
+            y: center.y + sin(radians) * needleLength
+        )
+        var path = Path()
+        path.move(to: center)
+        path.addLine(to: end)
+
+        return path
     }
 }
 
 private struct SecurityMaintenanceView: View {
+    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
     let project: ProjectItem
     let site: MonitoringSite?
     let apiError: String?
     let isRefreshing: Bool
     let onRefresh: () -> Void
     let onConfigure: () -> Void
+    @State private var findingMessage: String?
+
+    private let apiService = MonitoringAPIService()
+    private let adminCredentialStore = MonitoringAdminCredentialStore()
 
     private var health: MonitoringHealth {
         MonitoringHealth.evaluate(site: site, connected: project.hasMonitoringSite)
@@ -992,6 +1089,12 @@ private struct SecurityMaintenanceView: View {
                     .font(.callout)
                     .foregroundStyle(.orange)
                     .help(apiError)
+            }
+
+            if let findingMessage {
+                Text(findingMessage)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
             }
 
             if let site {
@@ -1092,6 +1195,13 @@ private struct SecurityMaintenanceView: View {
                             if let urlText = finding.referenceURL, let url = URL(string: urlText) {
                                 Link("Reference", destination: url)
                             }
+                            Menu {
+                                Button("Mark as Handled") { Task { await updateFinding(finding, status: "handled") } }
+                                Button("Ignore") { Task { await updateFinding(finding, status: "ignored") } }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                            }
+                            .menuStyle(.borderlessButton)
                         }
                         if finding.id != open.last?.id { Divider() }
                     }
@@ -1242,6 +1352,26 @@ private struct SecurityMaintenanceView: View {
         default: .secondary
         }
     }
+
+    @MainActor
+    private func updateFinding(_ finding: MonitoringFinding, status: String) async {
+        guard let token = adminCredentialStore.read() else {
+            findingMessage = "Save the site-registration token in Connection Settings before changing a finding."
+            return
+        }
+        do {
+            try await apiService.updateFinding(
+                baseURLText: monitoringAPIBaseURL,
+                adminToken: token,
+                findingID: finding.id,
+                status: status
+            )
+            findingMessage = status == "handled" ? "Finding marked as handled." : "Finding ignored."
+            onRefresh()
+        } catch {
+            findingMessage = error.localizedDescription
+        }
+    }
 }
 
 private struct ProjectMonitoringSheet: View {
@@ -1293,6 +1423,9 @@ private struct ProjectMonitoringSheet: View {
                         }
                         Button("Copy Reporter Token", systemImage: "key") {
                             copyReporterToken()
+                        }
+                        Button("Rotate Reporter Token", systemImage: "arrow.triangle.2.circlepath") {
+                            Task { await rotateReporterToken() }
                         }
                     }
 
@@ -1531,6 +1664,31 @@ private struct ProjectMonitoringSheet: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(token, forType: .string)
         statusMessage = "Reporter token copied. Paste it only into the website host's secret manager."
+    }
+
+    @MainActor
+    private func rotateReporterToken() async {
+        let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? adminCredentialStore.read()
+            : adminToken
+        guard let token, !token.isEmpty else {
+            statusMessage = "Paste or save an admin site-registration token before rotating the reporter token."
+            return
+        }
+        isConnecting = true
+        defer { isConnecting = false }
+        do {
+            let replacement = try await apiService.rotateReporterToken(
+                baseURLText: monitoringAPIBaseURL,
+                adminToken: token,
+                siteID: project.monitoringSiteID
+            )
+            try siteCredentialStore.save(replacement, projectID: project.id)
+            issuedIngestToken = replacement
+            statusMessage = "Reporter token rotated. The previous token is revoked; update the website before its next heartbeat."
+        } catch {
+            statusMessage = error.localizedDescription
+        }
     }
 }
 

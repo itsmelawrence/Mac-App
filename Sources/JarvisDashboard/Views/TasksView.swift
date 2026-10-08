@@ -4,6 +4,7 @@ import SwiftUI
 struct TasksView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
+    @Query(sort: \ProjectItem.name) private var projects: [ProjectItem]
 
     @State private var showingNewTask = false
     @State private var searchText = ""
@@ -27,7 +28,7 @@ struct TasksView: View {
             } else {
                 List {
                     ForEach(filteredTasks) { task in
-                        TaskListRow(task: task)
+                        TaskListRow(task: task, projectName: projects.first { $0.id == task.projectID }?.name)
                     }
                     .onDelete(perform: deleteTasks)
                 }
@@ -52,6 +53,7 @@ struct TasksView: View {
 
 private struct TaskListRow: View {
     @Bindable var task: TaskItem
+    let projectName: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -68,6 +70,17 @@ private struct TaskListRow: View {
                 if !task.notes.isEmpty {
                     Text(task.notes).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
+                HStack(spacing: 8) {
+                    if let projectName {
+                        Label(projectName, systemImage: "square.stack.3d.up")
+                    }
+                    if task.isBlocked {
+                        Label(task.blockedReason.isEmpty ? "Blocked" : task.blockedReason, systemImage: "hand.raised.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             }
             Spacer()
             if let dueDate = task.dueDate {
@@ -82,18 +95,32 @@ private struct TaskListRow: View {
                 .background(.quaternary, in: Capsule())
         }
         .padding(.vertical, 5)
+        .contextMenu {
+            Button(task.isBlocked ? "Unblock Task" : "Mark as Blocked") {
+                task.isBlocked.toggle()
+                if !task.isBlocked { task.blockedReason = "" }
+            }
+        }
     }
 }
 
-private struct NewTaskView: View {
+struct NewTaskView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \ProjectItem.name) private var projects: [ProjectItem]
 
     @State private var title = ""
     @State private var notes = ""
     @State private var hasDueDate = true
     @State private var dueDate = Date.now.addingTimeInterval(3_600)
     @State private var priority = TaskPriority.normal
+    @State private var projectID: UUID?
+    @State private var isBlocked = false
+    @State private var blockedReason = ""
+
+    init(projectID: UUID? = nil) {
+        _projectID = State(initialValue: projectID)
+    }
 
     var body: some View {
         NavigationStack {
@@ -105,6 +132,16 @@ private struct NewTaskView: View {
                     ForEach(TaskPriority.allCases) { priority in
                         Text(priority.title).tag(priority)
                     }
+                }
+                Picker("Project", selection: $projectID) {
+                    Text("Inbox / No project").tag(UUID?.none)
+                    ForEach(projects.filter { !$0.isArchived }) { project in
+                        Text(project.name).tag(Optional(project.id))
+                    }
+                }
+                Toggle("Blocked", isOn: $isBlocked)
+                if isBlocked {
+                    TextField("What is blocking this task?", text: $blockedReason)
                 }
                 Toggle("Set due date", isOn: $hasDueDate)
                 if hasDueDate {
@@ -123,7 +160,10 @@ private struct NewTaskView: View {
                             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                             notes: notes,
                             dueDate: hasDueDate ? dueDate : nil,
-                            priority: priority
+                            priority: priority,
+                            projectID: projectID,
+                            isBlocked: isBlocked,
+                            blockedReason: blockedReason.trimmingCharacters(in: .whitespacesAndNewlines)
                         )
                         modelContext.insert(task)
                         if hasDueDate {

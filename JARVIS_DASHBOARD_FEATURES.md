@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.1.10
+**Current version:** 0.1.12
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
 
@@ -80,6 +80,8 @@ The Tasks section is a lightweight personal action manager.
 - Highlight overdue, incomplete tasks.
 - Delete tasks from the list.
 - Persist task data locally with SwiftData.
+- Assign a task to an individual project or leave it in the global inbox.
+- Mark a task blocked and record the blocking reason.
 
 ### Menu-bar quick tasks
 
@@ -117,6 +119,7 @@ Each project can store:
 - Active
 - In Review
 - On Hold
+- Waiting on Client, including the number of days waiting
 - Completed
 - Archived
 
@@ -132,7 +135,8 @@ Each project can store:
 - Intended for work with a defined finish.
 - Displays stored completion progress.
 - Displays due-date state, including **Due Soon** and **Overdue** warnings.
-- Retains a placeholder task count for the future project-to-task relationship.
+- Calculates completion progress from linked tasks when a project has tasks.
+- Retains manual progress only for projects that do not yet have linked tasks.
 
 ### Ongoing Client mode
 
@@ -520,8 +524,7 @@ JARVIS remains accessible from the macOS menu bar.
 
 The following distinctions are important when interpreting the dashboard:
 
-- Tasks are currently global; they are **not yet linked to individual projects**.
-- Fixed-project task totals currently display `0 / 0` as a placeholder.
+- Tasks may remain global or be linked to a project. Fixed-project progress uses linked task completion when available.
 - Ongoing-client health describes recent operational activity, not percentage completion.
 - Repository intelligence reads local Git metadata only; it does not inspect GitHub issues, pull requests, CI, deployments, or client communications.
 - Launch at login occurs after macOS login, not before a user session exists.
@@ -536,7 +539,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.1.6.zip`
+`dist/JARVIS-Dashboard-0.1.12.zip`
 
 The installed application is expected at:
 

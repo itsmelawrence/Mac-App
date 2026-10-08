@@ -19,6 +19,7 @@ final class ProjectItem {
     var createdAt: Date = Date.now
     var updatedAt: Date
     var archivedAt: Date?
+    var statusChangedAt: Date = Date.now
     var repositoryPath: String = ""
     var repositoryBookmarkData: Data?
     var monitoringWebsiteURL: String = ""
@@ -69,6 +70,9 @@ final class ProjectItem {
             }
         }
         set {
+            if statusRawValue != newValue.rawValue {
+                statusChangedAt = .now
+            }
             statusRawValue = newValue.rawValue
             archivedAt = newValue == .archived ? (archivedAt ?? .now) : nil
         }
@@ -108,6 +112,11 @@ final class ProjectItem {
     }
 
     var isArchived: Bool { status == .archived || archivedAt != nil }
+
+    func waitingDays(now: Date = .now, calendar: Calendar = .current) -> Int? {
+        guard status == .waitingOnClient else { return nil }
+        return max(0, calendar.dateComponents([.day], from: statusChangedAt, to: now).day ?? 0)
+    }
 
     func duplicate() -> ProjectItem {
         ProjectItem(
@@ -161,6 +170,7 @@ enum ProjectStatus: String, CaseIterable, Identifiable {
     case active
     case inReview = "in_review"
     case onHold = "on_hold"
+    case waitingOnClient = "waiting_on_client"
     case completed
     case archived
 
@@ -172,6 +182,7 @@ enum ProjectStatus: String, CaseIterable, Identifiable {
         case .active: "Active"
         case .inReview: "In Review"
         case .onHold: "On Hold"
+        case .waitingOnClient: "Waiting on Client"
         case .completed: "Completed"
         case .archived: "Archived"
         }

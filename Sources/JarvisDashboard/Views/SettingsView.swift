@@ -129,6 +129,13 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Laravel Cloud cost guard") {
+                Text("Laravel Cloud does not currently expose a documented live-spend API. Use its native billing alert as the authoritative cost threshold; JARVIS will not estimate or invent charges.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Link("Open Laravel Cloud", destination: URL(string: "https://cloud.laravel.com")!)
+            }
+
             Section("Data and privacy") {
                 Text("Tasks and projects are stored locally. NewsAPI.org and monitoring API credentials are stored in macOS Keychain. Live services receive only the information required for their requests.")
                     .font(.callout)
