@@ -641,6 +641,7 @@ private struct ProjectMonitoringSheet: View {
     @State private var issuedIngestToken: String?
 
     private let apiService = MonitoringAPIService()
+    private let readCredentialStore = MonitoringAPICredentialStore()
     private let adminCredentialStore = MonitoringAdminCredentialStore()
     private let siteCredentialStore = MonitoringSiteCredentialStore()
 
@@ -688,6 +689,12 @@ private struct ProjectMonitoringSheet: View {
                         Text("The registration token creates the site record. The reporter token returned by the API is stored separately for this project.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+
+                        if readCredentialStore.read() != nil {
+                            Text("Already monitored? JARVIS will attach the existing site using its saved read-only connection; no registration token is needed.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
@@ -727,7 +734,7 @@ private struct ProjectMonitoringSheet: View {
                 if isConnecting {
                     ZStack {
                         Color.black.opacity(0.12)
-                        ProgressView("Registering website…")
+                        ProgressView("Connecting website…")
                             .padding(20)
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                     }
@@ -746,21 +753,42 @@ private struct ProjectMonitoringSheet: View {
     private var canConnect: Bool {
         !project.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !websiteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && (hasStoredAdminToken || !adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            && (readCredentialStore.read() != nil
+                || hasStoredAdminToken
+                || !adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
     @MainActor
     private func connectWebsite() async {
+        isConnecting = true
+        defer { isConnecting = false }
+
+        do {
+            let normalizedURL = try apiService.normalizedWebsiteURL(from: websiteURL).absoluteString
+            websiteURL = normalizedURL
+
+            if let readToken = readCredentialStore.read(),
+               let existingSite = try await apiService.existingSite(
+                   baseURLText: monitoringAPIBaseURL,
+                   readToken: readToken,
+                   websiteURLText: normalizedURL
+               ) {
+                try attach(existingSite)
+                statusMessage = "Existing monitored website attached to this project."
+                return
+            }
+        } catch {
+            statusMessage = error.localizedDescription
+            return
+        }
+
         let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? adminCredentialStore.read()
             : adminToken
         guard let token, !token.isEmpty else {
-            statusMessage = MonitoringAPIError.missingToken.localizedDescription
+            statusMessage = "This website is not registered yet. Paste an admin site-registration token to add it."
             return
         }
-
-        isConnecting = true
-        defer { isConnecting = false }
 
         do {
             let registration = try await apiService.registerSite(
@@ -791,6 +819,16 @@ private struct ProjectMonitoringSheet: View {
         } catch {
             statusMessage = error.localizedDescription
         }
+    }
+
+    @MainActor
+    private func attach(_ site: MonitoringSite) throws {
+        project.monitoringWebsiteURL = site.url
+        project.monitoringPlatform = site.platform
+        project.monitoringSiteID = site.id
+        project.monitoringConnectedAt = .now
+        project.updatedAt = .now
+        try modelContext.save()
     }
 
     private func copyReporterToken() {

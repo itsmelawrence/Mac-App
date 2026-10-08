@@ -61,6 +61,17 @@ struct MonitoringAPIServiceTests {
         #expect(payload["platform"] == "laravel")
     }
 
+    @Test func buildsAuthenticatedSitesRequest() throws {
+        let request = try MonitoringAPIService().makeSitesRequest(
+            baseURLText: "https://api.example.com/",
+            token: " read-token "
+        )
+
+        #expect(request.url?.absoluteString == "https://api.example.com/api/v1/sites")
+        #expect(request.httpMethod == "GET")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer read-token")
+    }
+
     @Test func parsesSiteRegistrationAndOneTimeToken() throws {
         let data = Data(#"""
         {
@@ -79,6 +90,40 @@ struct MonitoringAPIServiceTests {
         #expect(registration.id == "site-123")
         #expect(registration.platform == .custom)
         #expect(registration.ingestToken == "3|one-time-reporter-token")
+    }
+
+    @Test func parsesExistingSites() throws {
+        let data = Data(#"""
+        {
+          "data": [
+            {
+              "id": "site-123",
+              "name": "Portfolio",
+              "url": "https://portfolio.example.com",
+              "platform": "laravel"
+            }
+          ]
+        }
+        """#.utf8)
+
+        let sites = try MonitoringAPIService().parseSites(data: data)
+
+        #expect(sites == [
+            MonitoringSite(
+                id: "site-123",
+                name: "Portfolio",
+                url: "https://portfolio.example.com",
+                platform: .laravel
+            )
+        ])
+    }
+
+    @Test func acceptsMarkdownWebsiteLink() throws {
+        let url = try MonitoringAPIService().normalizedWebsiteURL(
+            from: "[https://lawrenceeemadeit.laravel.cloud/](https://lawrenceeemadeit.laravel.cloud/)"
+        )
+
+        #expect(url.absoluteString == "https://lawrenceeemadeit.laravel.cloud")
     }
 
     @Test func rejectsInsecureBaseURL() {

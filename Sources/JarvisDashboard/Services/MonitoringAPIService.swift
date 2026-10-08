@@ -23,6 +23,13 @@ struct MonitoringSiteRegistration: Equatable, Sendable {
     let ingestToken: String
 }
 
+struct MonitoringSite: Equatable, Sendable {
+    let id: String
+    let name: String
+    let url: String
+    let platform: MonitoringPlatform
+}
+
 struct MonitoringAPIService: Sendable {
     static let defaultBaseURL = "https://jarvis-monitoring-api-production-lhpmbl.laravel.cloud"
 
@@ -84,6 +91,30 @@ struct MonitoringAPIService: Sendable {
         }
     }
 
+    func existingSite(
+        baseURLText: String,
+        readToken: String,
+        websiteURLText: String
+    ) async throws -> MonitoringSite? {
+        let websiteURL = try normalizedWebsiteURL(from: websiteURLText).absoluteString
+        let request = try makeSitesRequest(baseURLText: baseURLText, token: readToken)
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw MonitoringAPIError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200..<300:
+            return try parseSites(data: data).first { $0.url == websiteURL }
+        case 401:
+            throw MonitoringAPIError.unauthorised
+        case 403:
+            throw MonitoringAPIError.forbidden
+        default:
+            throw MonitoringAPIError.serverStatus(httpResponse.statusCode)
+        }
+    }
+
     func makeSummaryRequest(baseURLText: String, token: String) throws -> URLRequest {
         let baseURL = try normalizedBaseURL(from: baseURLText)
         let trimmedToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -94,6 +125,19 @@ struct MonitoringAPIService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(trimmedToken)", forHTTPHeaderField: "Authorization")
         request.setValue("JARVIS-Dashboard/0.1", forHTTPHeaderField: "User-Agent")
+        return request
+    }
+
+    func makeSitesRequest(baseURLText: String, token: String) throws -> URLRequest {
+        let baseURL = try normalizedBaseURL(from: baseURLText)
+        let trimmedToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedToken.isEmpty else { throw MonitoringAPIError.missingToken }
+
+        let url = baseURL.appending(path: "api/v1/sites")
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(trimmedToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("JARVIS-Dashboard/0.2", forHTTPHeaderField: "User-Agent")
         return request
     }
 
@@ -155,7 +199,7 @@ struct MonitoringAPIService: Sendable {
     }
 
     func normalizedWebsiteURL(from text: String) throws -> URL {
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedText = extractedWebsiteURLText(from: text)
         guard var components = URLComponents(string: trimmedText),
               components.scheme?.lowercased() == "https",
               components.host?.isEmpty == false,
@@ -172,6 +216,19 @@ struct MonitoringAPIService: Sendable {
         if components.path == "/" { components.path = "" }
         guard let url = components.url else { throw MonitoringAPIError.invalidSite }
         return url
+    }
+
+    func extractedWebsiteURLText(from text: String) -> String {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let expression = try? NSRegularExpression(pattern: #"https://[^\s\]\)<>]+"#),
+              let match = expression.firstMatch(
+                  in: trimmedText,
+                  range: NSRange(trimmedText.startIndex..., in: trimmedText)
+              ),
+              let range = Range(match.range, in: trimmedText) else {
+            return trimmedText
+        }
+        return String(trimmedText[range])
     }
 
     func parseSummary(data: Data) throws -> MonitoringAPISummary {
@@ -207,6 +264,22 @@ struct MonitoringAPIService: Sendable {
                 platform: platform,
                 ingestToken: envelope.ingestToken
             )
+        } catch let error as MonitoringAPIError {
+            throw error
+        } catch {
+            throw MonitoringAPIError.invalidResponse
+        }
+    }
+
+    func parseSites(data: Data) throws -> [MonitoringSite] {
+        do {
+            let envelope = try JSONDecoder().decode(SitesEnvelope.self, from: data)
+            return try envelope.data.map { site in
+                guard let platform = MonitoringPlatform(rawValue: site.platform) else {
+                    throw MonitoringAPIError.invalidResponse
+                }
+                return MonitoringSite(id: site.id, name: site.name, url: site.url, platform: platform)
+            }
         } catch let error as MonitoringAPIError {
             throw error
         } catch {
@@ -262,6 +335,17 @@ private struct SiteRegistrationEnvelope: Decodable {
         case data
         case ingestToken = "ingest_token"
     }
+}
+
+private struct SitesEnvelope: Decodable {
+    struct SitePayload: Decodable {
+        let id: String
+        let name: String
+        let url: String
+        let platform: String
+    }
+
+    let data: [SitePayload]
 }
 
 private struct SummaryEnvelope: Decodable {
