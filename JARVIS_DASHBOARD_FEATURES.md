@@ -109,6 +109,7 @@ Each project can store:
 - Next action
 - Progress value for fixed projects
 - Optional local Git repository connection for ongoing clients
+- Optional monitored website URL, platform, backend site ID, and connection date
 
 ### Project statuses
 
@@ -157,6 +158,17 @@ Each project can store:
 
 Repository checks run with Git optional locks and terminal prompts disabled. JARVIS does not automatically scan folders and does not commit, pull, push, or modify a connected client repository.
 
+### Website monitoring settings
+
+- Lives inside each project's detail/settings view.
+- Registers a new HTTPS website with the JARVIS Monitoring API.
+- Supports Generic, WordPress, Laravel, Node, Static, and Custom platforms.
+- Uses a separate site-registration credential with admin scope.
+- Can remember that registration credential in macOS Keychain for future projects.
+- Stores each returned reporter token separately in Keychain under the local project ID.
+- Provides a copy action for transferring the reporter token into the website host's secret manager.
+- Registers the site only; it never installs reporter code or changes hosting settings without explicit approval.
+
 ### Project actions
 
 - Create and edit projects.
@@ -167,6 +179,7 @@ Repository checks run with Git optional locks and terminal prompts disabled. JAR
 - Show or hide archived projects.
 - Delete a project after confirmation.
 - Automatically save detail changes locally.
+- Connect a website to monitoring from its individual project settings.
 
 ---
 

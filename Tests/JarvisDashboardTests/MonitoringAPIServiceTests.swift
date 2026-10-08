@@ -41,9 +41,55 @@ struct MonitoringAPIServiceTests {
         #expect(summary.openFindings == 4)
     }
 
+    @Test func buildsAdminSiteRegistrationRequest() throws {
+        let request = try MonitoringAPIService().makeRegisterSiteRequest(
+            baseURLText: "https://api.example.com/",
+            adminToken: " admin-token ",
+            name: " Client Portal ",
+            websiteURLText: "https://client.example.com/",
+            platform: .laravel
+        )
+
+        #expect(request.url?.absoluteString == "https://api.example.com/api/v1/sites")
+        #expect(request.httpMethod == "POST")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer admin-token")
+
+        let body = try #require(request.httpBody)
+        let payload = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+        #expect(payload["name"] == "Client Portal")
+        #expect(payload["url"] == "https://client.example.com")
+        #expect(payload["platform"] == "laravel")
+    }
+
+    @Test func parsesSiteRegistrationAndOneTimeToken() throws {
+        let data = Data(#"""
+        {
+          "data": {
+            "id": "site-123",
+            "name": "Client Portal",
+            "url": "https://client.example.com",
+            "platform": "custom"
+          },
+          "ingest_token": "3|one-time-reporter-token"
+        }
+        """#.utf8)
+
+        let registration = try MonitoringAPIService().parseSiteRegistration(data: data)
+
+        #expect(registration.id == "site-123")
+        #expect(registration.platform == .custom)
+        #expect(registration.ingestToken == "3|one-time-reporter-token")
+    }
+
     @Test func rejectsInsecureBaseURL() {
         #expect(throws: MonitoringAPIError.self) {
             try MonitoringAPIService().normalizedBaseURL(from: "http://example.com")
+        }
+    }
+
+    @Test func rejectsInsecureWebsiteURL() {
+        #expect(throws: MonitoringAPIError.self) {
+            try MonitoringAPIService().normalizedWebsiteURL(from: "http://example.com")
         }
     }
 }

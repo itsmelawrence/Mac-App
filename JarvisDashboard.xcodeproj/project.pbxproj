@@ -33,6 +33,7 @@
 		AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */; };
 		ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */; };
 		B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DF1F9E077E514D300D8146 /* TodayView.swift */; };
+		B926C297CAE8CCFF614BC0D2 /* MonitoringSiteCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */; };
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
 		D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C7D173283F605CA610779F /* ProjectItem.swift */; };
 		D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E664AC10761E65E6FED7D18 /* Assets.xcassets */; };
@@ -66,6 +67,7 @@
 		2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryServiceTests.swift; sourceTree = "<group>"; };
 		2EE0303E41DC4C80F1F68571 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
 		35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDashboardApp.swift; sourceTree = "<group>"; };
+		39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringSiteCredentialStore.swift; sourceTree = "<group>"; };
 		3B1676D6679B29E4122F6E3E /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
 		3C83FF91319337AAA710E7D1 /* SplashReadinessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashReadinessTests.swift; sourceTree = "<group>"; };
 		3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPIService.swift; sourceTree = "<group>"; };
@@ -210,6 +212,7 @@
 				AD6319322836627DA4F54FAD /* LoginItemService.swift */,
 				776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */,
 				3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */,
+				39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */,
 				87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */,
 				0667036D8A5683EE9111E98D /* NewsService.swift */,
 				2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */,
@@ -359,6 +362,7 @@
 				FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */,
 				16CE5D7DDFC05390D8D22A80 /* MonitoringAPICredentialStore.swift in Sources */,
 				A035E86236F77399BA88B212 /* MonitoringAPIService.swift in Sources */,
+				B926C297CAE8CCFF614BC0D2 /* MonitoringSiteCredentialStore.swift in Sources */,
 				D8DBCAA1E7DB74F432DD485A /* NewsAPIKeyStore.swift in Sources */,
 				33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */,
 				162696049C4E2F1D8DC3D175 /* NotificationService.swift in Sources */,
@@ -443,7 +447,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.6;
+				MARKETING_VERSION = 0.1.7;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -575,7 +579,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.6;
+				MARKETING_VERSION = 0.1.7;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

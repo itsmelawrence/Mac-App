@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
@@ -318,6 +319,7 @@ private struct ProjectDetailView: View {
     @State private var repositoryError: String?
     @State private var isRefreshingRepository = false
     @State private var showingRepositoryPicker = false
+    @State private var showingMonitoringSetup = false
 
     private var snapshot: ProjectSnapshot {
         ProjectSnapshot(project: project)
@@ -423,6 +425,8 @@ private struct ProjectDetailView: View {
                     repositorySection
                 }
 
+                monitoringSection
+
                 GroupBox("Description") {
                     TextField("Project scope, context and goals", text: $project.summary, axis: .vertical)
                         .lineLimit(5...10)
@@ -450,6 +454,39 @@ private struct ProjectDetailView: View {
         }
         .task(id: project.repositoryBookmarkData) {
             await refreshRepository()
+        }
+        .sheet(isPresented: $showingMonitoringSetup) {
+            ProjectMonitoringSheet(project: project)
+        }
+    }
+
+    private var monitoringSection: some View {
+        GroupBox("Website monitoring") {
+            HStack(spacing: 14) {
+                Image(systemName: project.hasMonitoringSite ? "checkmark.shield.fill" : "waveform.path.ecg")
+                    .font(.title2)
+                    .foregroundStyle(project.hasMonitoringSite ? .green : .secondary)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(project.hasMonitoringSite ? "Connected to JARVIS" : "No monitored website")
+                        .font(.headline)
+                    Text(project.hasMonitoringSite
+                         ? "\(project.monitoringPlatform.title) · \(project.monitoringWebsiteURL)"
+                         : "Register this project's website and receive a dedicated reporter token.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Button(project.hasMonitoringSite ? "Connection Settings…" : "Connect Website…") {
+                    showingMonitoringSetup = true
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+            }
+            .padding(8)
         }
     }
 
@@ -585,6 +622,186 @@ private struct ProjectDetailView: View {
             repositorySnapshot = nil
             repositoryError = error.localizedDescription
         }
+    }
+}
+
+private struct ProjectMonitoringSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
+
+    @Bindable var project: ProjectItem
+    @State private var websiteURL: String
+    @State private var platform: MonitoringPlatform
+    @State private var adminToken = ""
+    @State private var hasStoredAdminToken = false
+    @State private var rememberAdminToken = true
+    @State private var isConnecting = false
+    @State private var statusMessage: String?
+    @State private var issuedIngestToken: String?
+
+    private let apiService = MonitoringAPIService()
+    private let adminCredentialStore = MonitoringAdminCredentialStore()
+    private let siteCredentialStore = MonitoringSiteCredentialStore()
+
+    init(project: ProjectItem) {
+        self.project = project
+        _websiteURL = State(initialValue: project.monitoringWebsiteURL)
+        _platform = State(initialValue: project.monitoringPlatform)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Website") {
+                    TextField("https://example.com", text: $websiteURL)
+                        .textContentType(.URL)
+                    Picker("Platform", selection: $platform) {
+                        ForEach(MonitoringPlatform.allCases) { platform in
+                            Text(platform.title).tag(platform)
+                        }
+                    }
+                }
+
+                if project.hasMonitoringSite {
+                    Section("Connection") {
+                        LabeledContent("Status", value: "Connected")
+                        LabeledContent("Site ID", value: project.monitoringSiteID)
+                            .textSelection(.enabled)
+                        if let connectedAt = project.monitoringConnectedAt {
+                            LabeledContent("Connected", value: connectedAt.formatted(date: .abbreviated, time: .shortened))
+                        }
+                        Button("Copy Reporter Token", systemImage: "key") {
+                            copyReporterToken()
+                        }
+                    }
+                } else {
+                    Section("Site registration") {
+                        SecureField(
+                            hasStoredAdminToken ? "Use saved site-registration token" : "Paste an admin site-registration token",
+                            text: $adminToken
+                        )
+                        .textContentType(.password)
+
+                        Toggle("Remember registration token in Keychain", isOn: $rememberAdminToken)
+
+                        Text("The registration token creates the site record. The reporter token returned by the API is stored separately for this project.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let statusMessage {
+                    Section {
+                        Label(statusMessage, systemImage: project.hasMonitoringSite ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(project.hasMonitoringSite ? .green : .orange)
+                    }
+                }
+
+                Section("Reporter setup") {
+                    Text(project.hasMonitoringSite
+                         ? "Install or configure the reporter on the website, then use Copy Reporter Token to place its dedicated token in the host's secret manager."
+                         : "Connecting registers the site only. JARVIS never installs code or changes hosting settings without your approval.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("Website Monitoring")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                }
+                if !project.hasMonitoringSite {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Connect Website") {
+                            Task { await connectWebsite() }
+                        }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(!canConnect || isConnecting)
+                    }
+                }
+            }
+            .overlay {
+                if isConnecting {
+                    ZStack {
+                        Color.black.opacity(0.12)
+                        ProgressView("Registering website…")
+                            .padding(20)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }
+        }
+        .frame(width: 620, height: 560)
+        .onAppear {
+            hasStoredAdminToken = adminCredentialStore.read() != nil
+            if project.hasMonitoringSite {
+                issuedIngestToken = siteCredentialStore.read(projectID: project.id)
+            }
+        }
+    }
+
+    private var canConnect: Bool {
+        !project.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !websiteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (hasStoredAdminToken || !adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
+    @MainActor
+    private func connectWebsite() async {
+        let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? adminCredentialStore.read()
+            : adminToken
+        guard let token, !token.isEmpty else {
+            statusMessage = MonitoringAPIError.missingToken.localizedDescription
+            return
+        }
+
+        isConnecting = true
+        defer { isConnecting = false }
+
+        do {
+            let registration = try await apiService.registerSite(
+                baseURLText: monitoringAPIBaseURL,
+                adminToken: token,
+                name: project.name,
+                websiteURLText: websiteURL,
+                platform: platform
+            )
+            try siteCredentialStore.save(registration.ingestToken, projectID: project.id)
+            if rememberAdminToken {
+                try? adminCredentialStore.save(token)
+            } else {
+                try? adminCredentialStore.delete()
+            }
+
+            project.monitoringWebsiteURL = registration.url
+            project.monitoringPlatform = registration.platform
+            project.monitoringSiteID = registration.id
+            project.monitoringConnectedAt = .now
+            project.updatedAt = .now
+            try modelContext.save()
+
+            issuedIngestToken = registration.ingestToken
+            adminToken = ""
+            hasStoredAdminToken = rememberAdminToken
+            statusMessage = "Website registered. Configure its reporter to begin sending health data."
+        } catch {
+            statusMessage = error.localizedDescription
+        }
+    }
+
+    private func copyReporterToken() {
+        let token = issuedIngestToken ?? siteCredentialStore.read(projectID: project.id)
+        guard let token else {
+            statusMessage = "The reporter token is not stored on this Mac. Rotate it before configuring a new reporter."
+            return
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(token, forType: .string)
+        statusMessage = "Reporter token copied. Paste it only into the website host's secret manager."
     }
 }
 
@@ -737,6 +954,10 @@ private struct ProjectSnapshot: Equatable {
     let tags: String
     let repositoryPath: String
     let repositoryBookmarkData: Data?
+    let monitoringWebsiteURL: String
+    let monitoringPlatform: String
+    let monitoringSiteID: String
+    let monitoringConnectedAt: Date?
 
     init(project: ProjectItem) {
         name = project.name
@@ -752,6 +973,10 @@ private struct ProjectSnapshot: Equatable {
         tags = project.tagsRawValue
         repositoryPath = project.repositoryPath
         repositoryBookmarkData = project.repositoryBookmarkData
+        monitoringWebsiteURL = project.monitoringWebsiteURL
+        monitoringPlatform = project.monitoringPlatformRawValue
+        monitoringSiteID = project.monitoringSiteID
+        monitoringConnectedAt = project.monitoringConnectedAt
     }
 }
 

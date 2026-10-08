@@ -21,6 +21,10 @@ final class ProjectItem {
     var archivedAt: Date?
     var repositoryPath: String = ""
     var repositoryBookmarkData: Data?
+    var monitoringWebsiteURL: String = ""
+    var monitoringPlatformRawValue: String = MonitoringPlatform.generic.rawValue
+    var monitoringSiteID: String = ""
+    var monitoringConnectedAt: Date?
 
     init(
         name: String,
@@ -84,6 +88,15 @@ final class ProjectItem {
         repositoryBookmarkData != nil && !repositoryPath.isEmpty
     }
 
+    var hasMonitoringSite: Bool {
+        !monitoringSiteID.isEmpty && !monitoringWebsiteURL.isEmpty
+    }
+
+    var monitoringPlatform: MonitoringPlatform {
+        get { MonitoringPlatform(rawValue: monitoringPlatformRawValue) ?? .generic }
+        set { monitoringPlatformRawValue = newValue.rawValue }
+    }
+
     var tags: [String] {
         get {
             tagsRawValue
@@ -118,6 +131,28 @@ final class ProjectItem {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
+    }
+}
+
+enum MonitoringPlatform: String, CaseIterable, Identifiable, Codable, Sendable {
+    case generic
+    case wordpress
+    case laravel
+    case node
+    case `static`
+    case custom
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .generic: "Generic"
+        case .wordpress: "WordPress"
+        case .laravel: "Laravel"
+        case .node: "Node"
+        case .static: "Static"
+        case .custom: "Custom"
+        }
     }
 }
 

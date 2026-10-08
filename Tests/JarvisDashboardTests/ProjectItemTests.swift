@@ -45,6 +45,7 @@ struct ProjectItemTests {
         #expect(copy.tags == ["WordPress", "SEO"])
         #expect(copy.status == .notStarted)
         #expect(copy.id != project.id)
+        #expect(!copy.hasMonitoringSite)
     }
 
     @Test func persistsPhaseOneFieldsInSwiftData() throws {
@@ -65,6 +66,10 @@ struct ProjectItemTests {
         )
 
         context.insert(project)
+        project.monitoringWebsiteURL = "https://example.com"
+        project.monitoringPlatform = .custom
+        project.monitoringSiteID = "site-123"
+        project.monitoringConnectedAt = dueDate
         try context.save()
 
         let verificationContext = ModelContext(container)
@@ -77,5 +82,9 @@ struct ProjectItemTests {
         #expect(stored.mode == .ongoing)
         #expect(stored.dueDate == dueDate)
         #expect(stored.tags == ["WordPress", "SEO"])
+        #expect(stored.monitoringWebsiteURL == "https://example.com")
+        #expect(stored.monitoringPlatform == .custom)
+        #expect(stored.monitoringSiteID == "site-123")
+        #expect(stored.monitoringConnectedAt == dueDate)
     }
 }

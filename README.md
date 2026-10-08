@@ -38,6 +38,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Persistent tasks and projects using SwiftData
 - Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion
 - Fixed and ongoing-client project modes, with read-only local Git repository health and activity summaries for ongoing work
+- Project-level website monitoring setup with platform selection, API registration, and per-project reporter tokens stored in Keychain
 - Intelligence centre with priority alerts, Philippine conditions, editable watchlists, operational signals, change-aware briefings, and opt-in quiet-hour notifications
 - Menu-bar command centre
 - Launch-at-login setting using `SMAppService`
@@ -46,7 +47,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Recent Philippine-region earthquake data from USGS
 - Philippine headlines from GMA News and world headlines from BBC News
 - Optional NewsAPI.org integration with the key stored in macOS Keychain
-- Secure Laravel monitoring API connection with Keychain token storage and an authenticated health test
+- Secure Laravel monitoring API connection with separate read, site-registration, and per-project reporter credentials in Keychain
 - Local notification scheduling
 
 Live providers are isolated behind service boundaries so they can be replaced or expanded without rewriting the interface. Apple-platform sync remains a later milestone.
