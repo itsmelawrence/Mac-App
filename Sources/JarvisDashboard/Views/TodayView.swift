@@ -83,30 +83,10 @@ struct TodayView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 header
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 14) {
-                        briefingCard
-                        resolveCard
-                    }
-                    VStack(spacing: 14) {
-                        briefingCard
-                        resolveCard
-                    }
-                }
-
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 14)], spacing: 14) {
-                    MetricCard(title: "Pending tasks", value: "\(pendingTasks.count)", systemImage: "checklist", tint: .blue)
-                    MetricCard(title: "Overdue", value: "\(overdueTasks.count)", systemImage: "exclamationmark.circle.fill", tint: overdueTasks.isEmpty ? .green : .red)
-                    MetricCard(title: "Active projects", value: "\(activeProjects.count)", systemImage: "square.stack.3d.up.fill", tint: .purple)
-                    MetricCard(title: "Regional alerts", value: "\(significantEarthquakes.count)", systemImage: "waveform.path.ecg", tint: .orange)
-                }
-
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 14)], spacing: 14) {
-                    focusWidget
-                    projectPulseWidget
-                    momentumWidget
-                }
+                briefingCard
+                resolveCard
+                metricsRow
+                operationalWidgets
 
                 HStack(alignment: .top, spacing: 14) {
                     taskSection
@@ -167,33 +147,44 @@ struct TodayView: View {
     }
 
     private var resolveCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+        HStack(spacing: 18) {
+            VStack(alignment: .leading, spacing: 5) {
                 Label("Daily resolve", systemImage: "quote.opening")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.cyan)
                     .textCase(.uppercase)
-                Spacer()
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { quoteOffset += 1 }
-                } label: {
-                    Image(systemName: "arrow.right")
-                }
-                .buttonStyle(.plain)
-                .help("Show another quote")
+                Text("Perspective for the day")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 155, alignment: .leading)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("“\(dailyQuote.text)”")
+                    .font(.system(.title3, design: .serif, weight: .medium))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .contentTransition(.opacity)
+                Text("— \(dailyQuote.author) · \(dailyQuote.source)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            Text("“\(dailyQuote.text)”")
-                .font(.system(.title3, design: .serif, weight: .medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .contentTransition(.opacity)
+            Spacer(minLength: 12)
 
-            Text("— \(dailyQuote.author) · \(dailyQuote.source)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { quoteOffset += 1 }
+            } label: {
+                Image(systemName: "arrow.right")
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .help("Show another quote")
         }
-        .padding(20)
-        .frame(maxWidth: 430, minHeight: 138, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
         .background(
             LinearGradient(
                 colors: [.cyan.opacity(0.14), .blue.opacity(0.05)],
@@ -205,6 +196,43 @@ struct TodayView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(.cyan.opacity(0.18), lineWidth: 1)
+        }
+    }
+
+    private var metricsRow: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) {
+                metricCards
+            }
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 2),
+                spacing: 14
+            ) {
+                metricCards
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var metricCards: some View {
+        MetricCard(title: "Pending tasks", value: "\(pendingTasks.count)", systemImage: "checklist", tint: .blue)
+        MetricCard(title: "Overdue", value: "\(overdueTasks.count)", systemImage: "exclamationmark.circle.fill", tint: overdueTasks.isEmpty ? .green : .red)
+        MetricCard(title: "Active projects", value: "\(activeProjects.count)", systemImage: "square.stack.3d.up.fill", tint: .purple)
+        MetricCard(title: "Regional alerts", value: "\(significantEarthquakes.count)", systemImage: "waveform.path.ecg", tint: .orange)
+    }
+
+    private var operationalWidgets: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 14) {
+                focusWidget
+                projectPulseWidget
+                momentumWidget
+            }
+            VStack(spacing: 14) {
+                focusWidget
+                projectPulseWidget
+                momentumWidget
+            }
         }
     }
 
@@ -400,6 +428,7 @@ private struct MetricCard: View {
                 .foregroundStyle(tint)
         }
         .padding(18)
+        .frame(minWidth: 170, maxWidth: .infinity)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
     }
 }
@@ -419,7 +448,7 @@ private struct TodayWidget<Content: View>: View {
             Spacer(minLength: 0)
         }
         .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
+        .frame(minWidth: 230, maxWidth: .infinity, minHeight: 148, alignment: .topLeading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
     }
 }
