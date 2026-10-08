@@ -22,7 +22,16 @@ It also includes a menu-bar command centre, a coordinated startup splash, launch
 
 ## 1. Today — Command Centre
 
-The Today screen provides an at-a-glance operational summary.
+The Today screen is a fixed-hierarchy command centre rather than a collection of unrelated widgets. It keeps the briefing and active work dominant, with weather, regional intelligence, monitoring health, and momentum in a consistent secondary rail.
+
+### Command interface
+
+- Opens **Ask JARVIS** from the Today header or with Command-K.
+- Processes commands locally; command text is not sent to an external AI provider.
+- Presents the current briefing and can speak it through the configured macOS voice.
+- Opens Tasks, Projects, Intelligence, weather/news signals, and Settings from plain-language commands.
+- Answers task-count and project/website-health requests using current dashboard data.
+- Provides explicit capability guidance for commands that are not yet supported.
 
 ### Daily briefing
 
@@ -34,11 +43,12 @@ The Today screen provides an at-a-glance operational summary.
 - Can be opened in a floating **Present** panel.
 - Displays a source-refresh warning while retaining any results that loaded successfully.
 
-### Dashboard metrics
+### Operational status rail
 
 - Pending tasks
 - Overdue tasks
-- Active projects
+- Active operations
+- Healthy monitored sites
 - Significant regional alerts
 
 ### Next actions
@@ -54,13 +64,14 @@ The Today screen provides an at-a-glance operational summary.
 - Displays the latest Philippine-region earthquake report.
 - Supports manual and pull-to-refresh updates.
 
-### Daily resolve and momentum widgets
+### Active operations, daily resolve, and momentum
 
 - Displays one locally curated philosophical quote each day, focused on discipline, endurance, and purposeful action.
 - Allows another quote to be shown without refreshing live data.
 - Keeps quotes local so the Today screen does not depend on another network service.
-- Highlights the highest-priority actionable task in **Focus now**.
-- Surfaces an urgent or waiting project and its next action in **Project pulse**.
+- Ranks ongoing operations by site health, status, priority, and recent activity.
+- Shows each operation's next action, open task count, and monitoring state without decorative gauges.
+- Uses green for healthy states and reserves orange/red for actionable conditions.
 - Shows overall task completion, tasks due today, and blocked-task count in **Momentum**.
 
 ---
@@ -398,14 +409,6 @@ The initial watchlist is:
 - Optionally presents a wake briefing after the configured minimum sleep duration.
 - Available thresholds are 5 minutes, 15 minutes, 30 minutes, and 1 hour.
 - Wake briefings can be disabled.
-
-### Coordinated startup splash
-
-- Uses the supplied JARVIS HTML animation in a native WebKit overlay.
-- Starts against a dark first-paint window to avoid a bright flash.
-- Keeps the dashboard loading beneath the overlay.
-- Fades only after both the splash animation and the first dashboard data attempt have completed.
-- Falls back cleanly if the splash resource cannot load.
 
 ---
 
