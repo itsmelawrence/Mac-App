@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var speechService: SpeechService
     @StateObject private var loginItemService = LoginItemService()
     @State private var notificationStatus = "Not requested"
     @State private var newsAPIKey = ""
@@ -50,6 +51,66 @@ struct SettingsView: View {
                 .disabled(!appState.showWakeBriefing)
 
                 Button("Preview briefing") { appState.requestBriefing() }
+            }
+
+            Section("JARVIS voice") {
+                Toggle("Enable text to speech", isOn: $speechService.isEnabled)
+                Toggle("Speak wake briefings automatically", isOn: $speechService.speakWakeBriefings)
+                    .disabled(!speechService.isEnabled)
+                Toggle("Speak new critical intelligence alerts", isOn: $speechService.speakCriticalAlerts)
+                    .disabled(!speechService.isEnabled)
+
+                Picker("Voice", selection: $speechService.voiceIdentifier) {
+                    Text("British English · macOS default").tag("")
+                    ForEach(speechService.availableVoices) { voice in
+                        Text("\(voice.name) · \(voice.language)").tag(voice.id)
+                    }
+                }
+                .disabled(!speechService.isEnabled)
+
+                LabeledContent("Speaking rate") {
+                    Slider(value: $speechService.rate, in: 0.35...0.62, step: 0.01)
+                        .frame(width: 220)
+                }
+                .disabled(!speechService.isEnabled)
+
+                LabeledContent("Pitch") {
+                    Slider(value: $speechService.pitch, in: 0.7...1.3, step: 0.05)
+                        .frame(width: 220)
+                }
+                .disabled(!speechService.isEnabled)
+
+                LabeledContent("Volume") {
+                    Slider(value: $speechService.volume, in: 0...1, step: 0.05)
+                        .frame(width: 220)
+                }
+                .disabled(!speechService.isEnabled)
+
+                Toggle("Respect quiet hours", isOn: $speechService.quietHoursEnabled)
+                    .disabled(!speechService.isEnabled)
+                if speechService.quietHoursEnabled {
+                    HStack {
+                        Text("Quiet hours")
+                        Picker("Start", selection: $speechService.quietStartHour) {
+                            ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
+                        }
+                        Picker("End", selection: $speechService.quietEndHour) {
+                            ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
+                        }
+                    }
+                    .disabled(!speechService.isEnabled)
+                }
+
+                HStack {
+                    Button("Preview voice") { speechService.preview() }
+                        .disabled(!speechService.isEnabled)
+                    Button("Stop") { speechService.stop() }
+                        .disabled(!speechService.isSpeaking)
+                    Spacer()
+                    Text("Speech is generated locally by macOS.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Notifications") {
@@ -163,6 +224,14 @@ struct SettingsView: View {
         } catch {
             newsAPIStatus = error.localizedDescription
         }
+    }
+
+    private func hourLabel(_ hour: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h a"
+        return formatter.string(
+            from: Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: .now) ?? .now
+        )
     }
 
     private func removeNewsAPIKey() {

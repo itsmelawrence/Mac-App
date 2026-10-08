@@ -6,6 +6,7 @@ import SwiftUI
 struct JarvisDashboardApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var wakeMonitor = WakeMonitor()
+    @StateObject private var speechService = SpeechService.shared
 
     private let modelContainer: ModelContainer
 
@@ -22,6 +23,7 @@ struct JarvisDashboardApp: App {
             RootView()
                 .environmentObject(appState)
                 .environmentObject(wakeMonitor)
+                .environmentObject(speechService)
                 .task {
                     wakeMonitor.start { sleepDuration in
                         guard appState.showWakeBriefing,
@@ -40,6 +42,7 @@ struct JarvisDashboardApp: App {
         MenuBarExtra("JARVIS", systemImage: "sparkles.rectangle.stack") {
             MenuBarView()
                 .environmentObject(appState)
+                .environmentObject(speechService)
                 .modelContainer(modelContainer)
         }
         .menuBarExtraStyle(.window)
@@ -47,6 +50,7 @@ struct JarvisDashboardApp: App {
         Settings {
             SettingsView()
                 .environmentObject(appState)
+                .environmentObject(speechService)
         }
     }
 }

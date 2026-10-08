@@ -14,6 +14,7 @@ struct IntelligenceView: View {
 
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var speechService: SpeechService
     @Query private var savedLocations: [SavedLocation]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
@@ -536,6 +537,7 @@ struct IntelligenceView: View {
                 quietEndHour: quietEndHour
             )
         }
+        speechService.speakNewCriticalAlert(from: intelligenceAlerts)
         startNewsAPIEnhancement()
     }
 

@@ -9,8 +9,11 @@ final class BriefingPanelController {
 
     func show(reason: AppState.BriefingReason, message: String? = nil) {
         panel?.close()
+        SpeechService.shared.stop()
 
-        let content = BriefingOverlayView(reason: reason, suppliedMessage: message) { [weak self] in
+        let displayMessage = Self.message(for: reason, suppliedMessage: message)
+        let content = BriefingOverlayView(message: displayMessage, speechService: .shared) { [weak self] in
+            SpeechService.shared.stop()
             self?.panel?.close()
         }
         let hostingView = NSHostingView(rootView: content)
@@ -33,15 +36,13 @@ final class BriefingPanelController {
         panel.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
         self.panel = panel
+
+        if reason == .wake {
+            SpeechService.shared.speakWakeBriefing(displayMessage)
+        }
     }
-}
 
-private struct BriefingOverlayView: View {
-    let reason: AppState.BriefingReason
-    let suppliedMessage: String?
-    let dismiss: () -> Void
-
-    private var message: String {
+    private static func message(for reason: AppState.BriefingReason, suppliedMessage: String?) -> String {
         if let suppliedMessage, !suppliedMessage.isEmpty {
             return suppliedMessage
         }
@@ -54,6 +55,12 @@ private struct BriefingOverlayView: View {
             "All systems are standing by. Open the command centre for your complete briefing."
         }
     }
+}
+
+private struct BriefingOverlayView: View {
+    let message: String
+    @ObservedObject var speechService: SpeechService
+    let dismiss: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -82,6 +89,14 @@ private struct BriefingOverlayView: View {
 
             HStack {
                 Spacer()
+                if speechService.isSpeaking {
+                    Button("Stop", systemImage: "stop.fill") { speechService.stop() }
+                } else {
+                    Button("Speak", systemImage: "speaker.wave.2.fill") {
+                        speechService.speak(message)
+                    }
+                    .disabled(!speechService.isEnabled)
+                }
                 Button("Dismiss", action: dismiss)
                     .keyboardShortcut(.cancelAction)
             }
