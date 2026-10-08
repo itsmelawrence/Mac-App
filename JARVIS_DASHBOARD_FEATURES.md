@@ -1,0 +1,495 @@
+# JARVIS Dashboard — Complete Feature Reference
+
+**Current version:** 0.1.5  
+**Platform:** macOS 14 Sonoma or newer  
+**Application type:** Native, local-first macOS productivity and intelligence dashboard
+
+## Overview
+
+JARVIS Dashboard is a single command centre for personal tasks, client projects, operational health, weather, Philippine earthquake activity, news, alerts, and briefings. It is designed to remain useful without a cloud account: personal records and preferences live on the Mac, while only live intelligence requests are sent to their respective providers.
+
+The application has five main sections:
+
+1. **Today**
+2. **Tasks**
+3. **Projects**
+4. **Intelligence**
+5. **Settings**
+
+It also includes a menu-bar command centre, a coordinated startup splash, launch-at-login support, sleep/wake monitoring, local notifications, and floating briefing panels.
+
+---
+
+## 1. Today — Command Centre
+
+The Today screen provides an at-a-glance operational summary.
+
+### Daily briefing
+
+- Generates a plain-language briefing from current dashboard data.
+- Includes pending and overdue task counts.
+- Includes active project count.
+- Includes the primary saved location's current weather when available.
+- Includes the count of significant Philippine-region earthquakes.
+- Can be opened in a floating **Present** panel.
+- Displays a source-refresh warning while retaining any results that loaded successfully.
+
+### Dashboard metrics
+
+- Pending tasks
+- Overdue tasks
+- Active projects
+- Significant regional alerts
+
+### Next actions
+
+- Displays up to five pending tasks.
+- Shows due dates and highlights overdue work.
+- Allows tasks to be completed directly from the dashboard.
+- Shows a clear empty state when the queue is complete.
+
+### Live intelligence summary
+
+- Displays current weather for the primary saved location.
+- Displays the latest Philippine-region earthquake report.
+- Supports manual and pull-to-refresh updates.
+
+---
+
+## 2. Tasks
+
+The Tasks section is a lightweight personal action manager.
+
+### Task creation
+
+- Create a task with a title.
+- Add multi-line notes.
+- Assign one of four priorities:
+  - Low
+  - Normal
+  - High
+  - Critical
+- Add an optional due date and time.
+- Schedule a local reminder for a task that has a due date, subject to macOS notification permission.
+
+### Task management
+
+- Mark tasks complete or pending.
+- Search task titles and notes.
+- Display task priority and due date.
+- Highlight overdue, incomplete tasks.
+- Delete tasks from the list.
+- Persist task data locally with SwiftData.
+
+### Menu-bar quick tasks
+
+- Create a basic task without opening the main dashboard window.
+- See the current pending-task count from the menu-bar panel.
+
+---
+
+## 3. Projects
+
+The Projects section manages both defined-scope work and long-term client relationships.
+
+### Project records
+
+Each project can store:
+
+- Project name
+- Client
+- Project type
+- Description and context
+- Status
+- Priority
+- Project mode
+- Start date
+- Due date
+- Tags
+- Next action
+- Progress value for fixed projects
+- Optional local Git repository connection for ongoing clients
+
+### Project statuses
+
+- Not Started
+- Active
+- In Review
+- On Hold
+- Completed
+- Archived
+
+### Project priorities
+
+- Low
+- Medium
+- High
+- Urgent
+
+### Fixed Project mode
+
+- Intended for work with a defined finish.
+- Displays stored completion progress.
+- Displays due-date state, including **Due Soon** and **Overdue** warnings.
+- Retains a placeholder task count for the future project-to-task relationship.
+
+### Ongoing Client mode
+
+- Replaces potentially misleading lifetime completion percentages with operational health.
+- Can connect to a local Git repository selected explicitly by the user.
+- Reads repository metadata without changing repository files.
+- Displays:
+  - Current branch
+  - Changed-file count
+  - Latest commit hash and message
+  - Time since the latest commit
+  - Commit count during the last 30 days
+  - Ahead/behind state when upstream tracking information is available
+- Supports repository refresh, replacement, and disconnection.
+
+### Repository health states
+
+- **Healthy** — latest commit was within the last 7 days.
+- **Quiet** — latest commit was 8–14 days ago.
+- **Needs Attention** — the project is overdue or its latest commit is more than 14 days old.
+- **Blocked** — the project is On Hold.
+- **Setup Needed** — no readable repository activity is available.
+
+Repository checks run with Git optional locks and terminal prompts disabled. JARVIS does not automatically scan folders and does not commit, pull, push, or modify a connected client repository.
+
+### Project actions
+
+- Create and edit projects.
+- Open a full project detail view.
+- Change status directly from a project card.
+- Duplicate a project.
+- Archive or restore a project.
+- Show or hide archived projects.
+- Delete a project after confirmation.
+- Automatically save detail changes locally.
+
+---
+
+## 4. Intelligence
+
+The Intelligence centre combines live external information with local tasks and projects. It contains five pages: **Now**, **Philippines**, **Watchlist**, **Operations**, and **Briefings**.
+
+### 4.1 Now
+
+#### Priority alerts
+
+JARVIS analyses current feeds and orders signals by severity and recency.
+
+Alert sources and conditions include:
+
+- Thunderstorms at saved locations
+- Rain probability crossing the configured threshold
+- Apparent temperature of 42°C or higher
+- Philippine-region earthquakes crossing the configured magnitude threshold
+- Philippine news headlines containing hazard subjects such as typhoons, tropical cyclones, storm signals, floods, landslides, tsunamis, volcanic activity, or earthquakes
+
+Alert severity levels are:
+
+- Information
+- Advisory
+- Warning
+- Critical
+
+Earthquakes of magnitude 6.0 or above are treated as critical signals. News-based hazard signals are advisories and must be verified against official bulletins.
+
+#### Alert policy
+
+- Adjustable earthquake threshold from magnitude 3.0 to 7.0.
+- Adjustable rain-probability threshold from 40% to 100%.
+- Optional notifications for new warning and critical signals.
+- Configurable quiet-hour start and end times.
+- Duplicate notification suppression using previously delivered alert identifiers.
+- A maximum of three new alerts is delivered per notification cycle.
+
+#### Saved locations
+
+- Manila is created automatically when no saved location exists.
+- Add locations from Philippine presets.
+- Mark any saved location as primary.
+- Remove saved locations.
+- Display current temperature, apparent temperature, conditions, and weather icon.
+
+Available presets currently include:
+
+- Baguio
+- Manila
+- Legazpi
+- Puerto Princesa
+- Cebu
+- Iloilo
+- Tacloban
+- Davao
+- Cagayan de Oro
+- Zamboanga
+
+### 4.2 Philippines
+
+#### Situation overview
+
+- Shows representative current conditions across Luzon, Visayas, and Mindanao.
+- Covers Baguio, Manila, Legazpi, Cebu, Iloilo, Davao, Cagayan de Oro, and Zamboanga.
+- Displays temperature, condition, and precipitation probability.
+
+#### Earthquake activity
+
+- Displays Philippine-region events reported during the USGS all-day feed window.
+- Shows magnitude, location, and relative occurrence time.
+- Highlights events that cross the user's threshold.
+- Links to the source detail page when available.
+- Displays up to 15 recent events.
+
+#### Philippine news
+
+- Loads Philippine headlines from the configured feed.
+- Displays source and publication time when available.
+- Opens the original article.
+- Supports read/unread, save, dismiss, and restore-dismissed controls.
+
+### 4.3 Watchlist
+
+- Accepts a comma-separated list of watched subjects.
+- Checks both Philippine and world headlines.
+- Uses whole-word matching for a single term such as `AI` to reduce false positives.
+- Uses phrase matching for multi-word subjects.
+- Deduplicates similar headlines.
+- Provides separate lists for watchlist matches and saved stories.
+- Allows switching the complete news list between **Philippines** and **World**.
+- Tracks read, saved, and dismissed state locally.
+
+The initial watchlist is:
+
+- AI
+- WordPress
+- technology
+- business
+
+### 4.4 Operations
+
+- Shows counts for overdue tasks, active projects, and repository-connected projects.
+- Lists up to ten overdue tasks with priority and due time.
+- Monitors active project status.
+- Shows repository health and branch information for ongoing clients.
+- Shows completion progress for fixed projects.
+- Highlights overdue project dates.
+
+### 4.5 Briefings
+
+- Generates a current briefing from task, project, weather, and earthquake data.
+- Opens the briefing in a floating presentation panel.
+- Records the time of the latest refresh.
+- Compares the current successful refresh with the previous baseline.
+- Reports changes in:
+  - Priority alert count
+  - Overdue task count
+  - News-story count
+- Displays totals for priority alerts, watchlist matches, and saved stories.
+
+### Intelligence refresh behaviour
+
+- Weather, regional weather, earthquake, Philippine news, and world news requests run concurrently.
+- Successful sources update even if another source fails.
+- RSS news is the core fallback and does not require an API key.
+- When a NewsAPI.org key exists, NewsAPI enrichment runs separately after the core refresh so Keychain access does not block the interface.
+- The interface retains available results and reports partial refresh failures.
+
+---
+
+## 5. News and Information Providers
+
+### Default providers
+
+- **Open-Meteo** — current temperature, apparent temperature, condition codes, and precipitation probability.
+- **USGS** — recent earthquake feed filtered to latitude 4–22 and longitude 115–130 for the Philippine region.
+- **GMA News RSS** — default Philippine breaking-news feed.
+- **BBC News RSS** — default world-news feed.
+
+### Optional NewsAPI.org integration
+
+- A NewsAPI.org key can be pasted in Settings.
+- The key is stored in macOS Keychain rather than the application database.
+- The key can be removed at any time.
+- RSS feeds remain available when no key is stored or NewsAPI enrichment is unavailable.
+
+### Safety and source boundaries
+
+- Open-Meteo data is informational; PAGASA remains the authority for official Philippine weather warnings.
+- USGS data may be preliminary; significant Philippine events should be confirmed with PHIVOLCS.
+- News-based hazard detection is a headline signal, not an official disaster instruction.
+- Evacuation, safety, and emergency decisions should be confirmed with PAGASA, PHIVOLCS, and relevant local authorities.
+
+---
+
+## 6. Briefing System
+
+- Displays briefings in a compact floating macOS panel.
+- The panel can appear over other workspaces and alongside full-screen applications.
+- Supports manual briefings from Today, Intelligence, Settings, and the menu bar.
+- Supports automatic wake briefings when the configured sleep-duration threshold is met.
+- Uses a specific wake message when no detailed dashboard briefing is supplied.
+- Can be dismissed with the button or Escape keyboard action.
+
+---
+
+## 7. Startup and Wake Behaviour
+
+### Launch at login
+
+- Optional **Launch JARVIS when I log in** setting using macOS `SMAppService`.
+- If macOS requires approval, JARVIS explains the requirement and can open the Login Items settings page.
+- This covers logging in after startup; macOS launches the application after the user session begins.
+
+### Sleep and wake
+
+- Monitors macOS sleep and wake events while JARVIS is running.
+- Records how long the Mac was asleep.
+- Optionally presents a wake briefing after the configured minimum sleep duration.
+- Available thresholds are 5 minutes, 15 minutes, 30 minutes, and 1 hour.
+- Wake briefings can be disabled.
+
+### Coordinated startup splash
+
+- Uses the supplied JARVIS HTML animation in a native WebKit overlay.
+- Starts against a dark first-paint window to avoid a bright flash.
+- Keeps the dashboard loading beneath the overlay.
+- Fades only after both the splash animation and the first dashboard data attempt have completed.
+- Falls back cleanly if the splash resource cannot load.
+
+---
+
+## 8. Menu-Bar Command Centre
+
+JARVIS remains accessible from the macOS menu bar.
+
+- Shows the pending-task count.
+- Adds a quick task.
+- Opens the main Command Centre window.
+- Presents a briefing.
+- Quits JARVIS.
+
+---
+
+## 9. Settings and Permissions
+
+### Startup
+
+- Enable or disable launch at login.
+- Open macOS Login Items settings when manual approval is required.
+
+### Wake briefing
+
+- Enable or disable wake briefings.
+- Select the minimum sleep duration.
+- Preview the briefing panel.
+
+### Notifications
+
+- Display the current macOS notification-authorisation state.
+- Request notification permission.
+- Task reminders and Intelligence alerts respect macOS notification permission.
+
+### News API
+
+- Securely save a NewsAPI.org key.
+- Report whether a key is stored.
+- Remove the stored key.
+- Continue with RSS fallback feeds without a key.
+
+### Data and privacy notice
+
+- Explains that tasks and projects are stored locally.
+- Explains that the NewsAPI.org key is stored in Keychain.
+- Notes that live services receive only the information required for their requests.
+
+---
+
+## 10. Data Storage and Privacy
+
+### Stored locally with SwiftData
+
+- Tasks
+- Projects
+- Saved weather locations
+
+### Stored in application preferences
+
+- Interface selections
+- Project archive visibility
+- Watchlist terms
+- Alert thresholds
+- Quiet hours
+- Read, saved, and dismissed news identifiers
+- Intelligence comparison baselines
+- Wake briefing preferences
+
+### Stored in macOS Keychain
+
+- NewsAPI.org API key
+
+### External requests
+
+- Saved-location coordinates are sent to Open-Meteo for weather requests.
+- Public earthquake data is requested from USGS.
+- Public news feeds are requested from GMA News and BBC News.
+- NewsAPI.org receives category requests only when an API key is configured.
+- Connected Git repositories are inspected locally.
+
+---
+
+## 11. Visual Identity and Native Experience
+
+- Native SwiftUI interface designed for macOS.
+- Letter-free JARVIS HUD application icon.
+- Dark, futuristic startup presentation.
+- Adaptive dashboard grids for varying window widths.
+- Native materials, panels, forms, menus, search, links, and keyboard shortcuts.
+- Minimum main-window size of 900 × 600 and default size of 1180 × 760.
+- Dedicated menu-bar extra.
+
+---
+
+## 12. Technical Foundation
+
+- SwiftUI for the interface.
+- SwiftData for local task, project, and location persistence.
+- AppKit for the floating briefing panel and workspace events.
+- WebKit for the startup animation.
+- URLSession with Swift concurrency for live providers.
+- UserNotifications for reminders and Intelligence alerts.
+- ServiceManagement for launch-at-login registration.
+- Security framework/Keychain for the NewsAPI.org credential.
+- Local `/usr/bin/git` commands for read-only repository inspection.
+- XcodeGen configuration for generating the Xcode project.
+- Unit coverage for briefing composition, weather mapping, news parsing, NewsAPI parsing, project behaviour, Git health, Intelligence rules, and splash readiness.
+
+---
+
+## 13. Current Product Boundaries
+
+The following distinctions are important when interpreting the dashboard:
+
+- Tasks are currently global; they are **not yet linked to individual projects**.
+- Fixed-project task totals currently display `0 / 0` as a placeholder.
+- Ongoing-client health describes recent operational activity, not percentage completion.
+- Repository intelligence reads local Git metadata only; it does not inspect GitHub issues, pull requests, CI, deployments, or client communications.
+- Launch at login occurs after macOS login, not before a user session exists.
+- Wake detection works while JARVIS remains running.
+- Weather, earthquake, and news features require an internet connection for fresh data.
+- There is currently no cross-device sync, Apple Reminders import, Calendar integration, or cloud account.
+- Alerts are decision-support signals and do not replace official emergency advisories.
+
+---
+
+## 14. Installation Artifact
+
+The current distributable build is:
+
+`dist/JARVIS-Dashboard-0.1.5.zip`
+
+The installed application is expected at:
+
+`/Applications/JARVIS Dashboard.app`
