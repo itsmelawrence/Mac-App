@@ -399,10 +399,18 @@ JARVIS remains accessible from the macOS menu bar.
 - Remove the stored key.
 - Continue with RSS fallback feeds without a key.
 
+### Monitoring API
+
+- Configure the Laravel Cloud API base URL.
+- Store the bearer token in macOS Keychain.
+- Test authenticated access against the live monitoring summary.
+- Report site, incident, and security-finding totals on a successful test.
+- Remove or replace the stored token.
+
 ### Data and privacy notice
 
 - Explains that tasks and projects are stored locally.
-- Explains that the NewsAPI.org key is stored in Keychain.
+- Explains that NewsAPI.org and monitoring API credentials are stored in Keychain.
 - Notes that live services receive only the information required for their requests.
 
 ---
@@ -425,10 +433,12 @@ JARVIS remains accessible from the macOS menu bar.
 - Read, saved, and dismissed news identifiers
 - Intelligence comparison baselines
 - Wake briefing preferences
+- Monitoring API base URL
 
 ### Stored in macOS Keychain
 
 - NewsAPI.org API key
+- Laravel monitoring API bearer token
 
 ### External requests
 
@@ -437,6 +447,7 @@ JARVIS remains accessible from the macOS menu bar.
 - Public news feeds are requested from GMA News and BBC News.
 - NewsAPI.org receives category requests only when an API key is configured.
 - Connected Git repositories are inspected locally.
+- The configured Laravel monitoring API receives an authenticated summary request when the connection is tested.
 
 ---
 
@@ -461,7 +472,7 @@ JARVIS remains accessible from the macOS menu bar.
 - URLSession with Swift concurrency for live providers.
 - UserNotifications for reminders and Intelligence alerts.
 - ServiceManagement for launch-at-login registration.
-- Security framework/Keychain for the NewsAPI.org credential.
+- Security framework/Keychain for NewsAPI.org and monitoring API credentials.
 - Local `/usr/bin/git` commands for read-only repository inspection.
 - XcodeGen configuration for generating the Xcode project.
 - Unit coverage for briefing composition, weather mapping, news parsing, NewsAPI parsing, project behaviour, Git health, Intelligence rules, and splash readiness.
@@ -488,7 +499,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.1.5.zip`
+`dist/JARVIS-Dashboard-0.1.6.zip`
 
 The installed application is expected at:
 

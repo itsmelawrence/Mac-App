@@ -7,8 +7,14 @@ struct SettingsView: View {
     @State private var newsAPIKey = ""
     @State private var hasStoredNewsAPIKey = false
     @State private var newsAPIStatus: String?
+    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
+    @State private var monitoringAPIToken = ""
+    @State private var hasStoredMonitoringAPIToken = false
+    @State private var monitoringConnectionState = MonitoringConnectionState.notTested
 
     private let newsAPIKeyStore = NewsAPIKeyStore()
+    private let monitoringCredentialStore = MonitoringAPICredentialStore()
+    private let monitoringAPIService = MonitoringAPIService()
 
     var body: some View {
         Form {
@@ -86,19 +92,57 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Monitoring API") {
+                TextField("API URL", text: $monitoringAPIBaseURL)
+                    .textContentType(.URL)
+
+                SecureField(
+                    hasStoredMonitoringAPIToken ? "Paste a replacement token" : "Paste your read token",
+                    text: $monitoringAPIToken
+                )
+                .textContentType(.password)
+
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(monitoringConnectionState.colour)
+                        .frame(width: 8, height: 8)
+                    Text(monitoringConnectionState.message)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+
+                HStack {
+                    Text(hasStoredMonitoringAPIToken ? "Token stored securely in macOS Keychain." : "No monitoring token stored.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if hasStoredMonitoringAPIToken {
+                        Button("Remove Token", role: .destructive) { removeMonitoringAPIToken() }
+                    }
+                    Button("Save") { saveMonitoringAPISettings() }
+                        .disabled(!canSaveMonitoringAPISettings)
+                    Button("Test Connection") {
+                        Task { await testMonitoringAPIConnection() }
+                    }
+                    .disabled(!canTestMonitoringAPIConnection || monitoringConnectionState.isTesting)
+                }
+            }
+
             Section("Data and privacy") {
-                Text("Tasks and projects are stored locally. The NewsAPI.org key is stored in macOS Keychain. Live services receive only the information required for their requests.")
+                Text("Tasks and projects are stored locally. NewsAPI.org and monitoring API credentials are stored in macOS Keychain. Live services receive only the information required for their requests.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .padding(16)
-        .frame(minWidth: 560, minHeight: 440)
+        .frame(minWidth: 620, minHeight: 600)
         .navigationTitle("Settings")
         .onAppear {
             loginItemService.refresh()
             hasStoredNewsAPIKey = newsAPIKeyStore.read() != nil
+            hasStoredMonitoringAPIToken = monitoringCredentialStore.read() != nil
         }
         .task { await refreshNotificationStatus() }
     }
@@ -125,6 +169,63 @@ struct SettingsView: View {
         }
     }
 
+    private var canSaveMonitoringAPISettings: Bool {
+        !monitoringAPIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (hasStoredMonitoringAPIToken || !monitoringAPIToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
+    private var canTestMonitoringAPIConnection: Bool {
+        !monitoringAPIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (hasStoredMonitoringAPIToken || !monitoringAPIToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
+    private func saveMonitoringAPISettings() {
+        do {
+            let normalizedURL = try monitoringAPIService.normalizedBaseURL(from: monitoringAPIBaseURL)
+            let enteredToken = monitoringAPIToken.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !enteredToken.isEmpty {
+                try monitoringCredentialStore.save(enteredToken)
+                monitoringAPIToken = ""
+                hasStoredMonitoringAPIToken = true
+            }
+            monitoringAPIBaseURL = normalizedURL.absoluteString
+            monitoringConnectionState = .saved
+        } catch {
+            monitoringConnectionState = .failed(error.localizedDescription)
+        }
+    }
+
+    private func removeMonitoringAPIToken() {
+        do {
+            try monitoringCredentialStore.delete()
+            monitoringAPIToken = ""
+            hasStoredMonitoringAPIToken = false
+            monitoringConnectionState = .notConfigured
+        } catch {
+            monitoringConnectionState = .failed(error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    private func testMonitoringAPIConnection() async {
+        let enteredToken = monitoringAPIToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let token = enteredToken.isEmpty ? monitoringCredentialStore.read() : enteredToken else {
+            monitoringConnectionState = .failed(MonitoringAPIError.missingToken.localizedDescription)
+            return
+        }
+
+        monitoringConnectionState = .testing
+        do {
+            let summary = try await monitoringAPIService.summary(
+                baseURLText: monitoringAPIBaseURL,
+                token: token
+            )
+            monitoringConnectionState = .connected(summary)
+        } catch {
+            monitoringConnectionState = .failed(error.localizedDescription)
+        }
+    }
+
     @MainActor
     private func refreshNotificationStatus() async {
         switch await NotificationService().authorizationStatus() {
@@ -136,6 +237,50 @@ struct SettingsView: View {
             notificationStatus = "Not requested"
         @unknown default:
             notificationStatus = "Unknown"
+        }
+    }
+}
+
+private enum MonitoringConnectionState {
+    case notTested
+    case notConfigured
+    case saved
+    case testing
+    case connected(MonitoringAPISummary)
+    case failed(String)
+
+    var isTesting: Bool {
+        if case .testing = self { return true }
+        return false
+    }
+
+    var colour: Color {
+        switch self {
+        case .connected:
+            .green
+        case .failed:
+            .red
+        case .testing:
+            .blue
+        case .notTested, .notConfigured, .saved:
+            .secondary
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .notTested:
+            "Connection not tested."
+        case .notConfigured:
+            "Monitoring API is not configured."
+        case .saved:
+            "Settings saved. Test the connection when ready."
+        case .testing:
+            "Testing secure connection…"
+        case let .connected(summary):
+            "Connected — \(summary.sites) sites, \(summary.openIncidents) open incidents, \(summary.openFindings) open findings."
+        case let .failed(message):
+            message
         }
     }
 }

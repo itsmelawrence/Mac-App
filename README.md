@@ -46,10 +46,11 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Recent Philippine-region earthquake data from USGS
 - Philippine headlines from GMA News and world headlines from BBC News
 - Optional NewsAPI.org integration with the key stored in macOS Keychain
+- Secure Laravel monitoring API connection with Keychain token storage and an authenticated health test
 - Local notification scheduling
 
 Live providers are isolated behind service boundaries so they can be replaced or expanded without rewriting the interface. Apple-platform sync remains a later milestone.
 
 ## Data and permissions
 
-Tasks, projects, locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Launch at login and notifications are opt-in settings controlled from within the application.
+Tasks, projects, locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Monitoring API tokens are stored in macOS Keychain and sent only to the configured HTTPS endpoint. Launch at login and notifications are opt-in settings controlled from within the application.
