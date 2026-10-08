@@ -72,6 +72,27 @@ struct MonitoringAPIServiceTests {
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer read-token")
     }
 
+    @Test func buildsAdminSiteUpdateRequest() throws {
+        let request = try MonitoringAPIService().makeUpdateSiteRequest(
+            baseURLText: "https://api.example.com/",
+            adminToken: " admin-token ",
+            siteID: " site-123 ",
+            name: " Skeema Digital Co. ",
+            websiteURLText: "[https://skeemadigitalco.com/](https://skeemadigitalco.com/)",
+            platform: .wordpress
+        )
+
+        #expect(request.url?.absoluteString == "https://api.example.com/api/v1/sites/site-123")
+        #expect(request.httpMethod == "PATCH")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer admin-token")
+
+        let body = try #require(request.httpBody)
+        let payload = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+        #expect(payload["name"] == "Skeema Digital Co.")
+        #expect(payload["url"] == "https://skeemadigitalco.com")
+        #expect(payload["platform"] == "wordpress")
+    }
+
     @Test func parsesSiteRegistrationAndOneTimeToken() throws {
         let data = Data(#"""
         {

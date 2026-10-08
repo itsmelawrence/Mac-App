@@ -201,6 +201,41 @@ struct MonitoringAPIService: Sendable {
         }
     }
 
+    func updateSite(
+        baseURLText: String,
+        adminToken: String,
+        siteID: String,
+        name: String,
+        websiteURLText: String,
+        platform: MonitoringPlatform
+    ) async throws -> MonitoringSite {
+        let request = try makeUpdateSiteRequest(
+            baseURLText: baseURLText,
+            adminToken: adminToken,
+            siteID: siteID,
+            name: name,
+            websiteURLText: websiteURLText,
+            platform: platform
+        )
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw MonitoringAPIError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200..<300:
+            return try parseSite(data: data)
+        case 401:
+            throw MonitoringAPIError.unauthorised
+        case 403:
+            throw MonitoringAPIError.adminRequired
+        case 422:
+            throw MonitoringAPIError.invalidSite
+        default:
+            throw MonitoringAPIError.serverStatus(httpResponse.statusCode)
+        }
+    }
+
     func existingSite(
         baseURLText: String,
         readToken: String,
@@ -317,6 +352,42 @@ struct MonitoringAPIService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(trimmedToken)", forHTTPHeaderField: "Authorization")
         request.setValue("JARVIS-Dashboard/0.2", forHTTPHeaderField: "User-Agent")
+        return request
+    }
+
+    func makeUpdateSiteRequest(
+        baseURLText: String,
+        adminToken: String,
+        siteID: String,
+        name: String,
+        websiteURLText: String,
+        platform: MonitoringPlatform
+    ) throws -> URLRequest {
+        let baseURL = try normalizedBaseURL(from: baseURLText)
+        let trimmedToken = adminToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSiteID = siteID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedToken.isEmpty else { throw MonitoringAPIError.missingToken }
+        guard !trimmedSiteID.isEmpty, !trimmedName.isEmpty else { throw MonitoringAPIError.invalidSite }
+
+        let websiteURL = try normalizedWebsiteURL(from: websiteURLText)
+        let body: [String: String] = [
+            "name": trimmedName,
+            "url": websiteURL.absoluteString,
+            "platform": platform.rawValue
+        ]
+
+        var request = URLRequest(
+            url: baseURL.appending(path: "api/v1/sites/\(trimmedSiteID)"),
+            cachePolicy: .reloadIgnoringLocalCacheData,
+            timeoutInterval: 15
+        )
+        request.httpMethod = "PATCH"
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(trimmedToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("JARVIS-Dashboard/0.4", forHTTPHeaderField: "User-Agent")
         return request
     }
 

@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.1.5  
+**Current version:** 0.1.10
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
 
@@ -169,6 +169,8 @@ Repository checks run with Git optional locks and terminal prompts disabled. JAR
 - Can remember that registration credential in macOS Keychain for future projects.
 - Stores each returned reporter token separately in Keychain under the local project ID.
 - Provides a copy action for transferring the reporter token into the website host's secret manager.
+- Allows an existing monitored website's URL and platform to be corrected through project Connection Settings.
+- Updates the same backend site record so its Site ID, reporter token, snapshots, incidents, and history remain intact.
 - Registers the site only; it never installs reporter code or changes hosting settings without explicit approval.
 
 ### Site health and Security & Maintenance
@@ -186,7 +188,7 @@ Repository checks run with Git optional locks and terminal prompts disabled. JAR
   - Explainable score deductions
   - Incident history
 - Animates the gauge needle unless Reduce Motion is enabled.
-- Keeps monitoring read-only: the Mac app reads the backend and does not contact or alter client sites.
+- Keeps health collection read-only: the Mac app reads the backend and does not contact or alter client sites. Explicit registration and settings changes update only the JARVIS Monitoring API record.
 
 ### Project actions
 
@@ -199,6 +201,7 @@ Repository checks run with Git optional locks and terminal prompts disabled. JAR
 - Delete a project after confirmation.
 - Automatically save detail changes locally.
 - Connect a website to monitoring from its individual project settings.
+- Correct a connected website's URL without creating a duplicate monitoring identity.
 
 ---
 
@@ -470,7 +473,9 @@ JARVIS remains accessible from the macOS menu bar.
 ### Stored in macOS Keychain
 
 - NewsAPI.org API key
-- Laravel monitoring API bearer token
+- Laravel monitoring API read token
+- Laravel monitoring API site-registration token
+- Dedicated reporter tokens stored separately per connected project
 
 ### External requests
 

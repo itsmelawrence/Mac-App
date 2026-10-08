@@ -1295,6 +1295,20 @@ private struct ProjectMonitoringSheet: View {
                             copyReporterToken()
                         }
                     }
+
+                    Section("Administrative access") {
+                        SecureField(
+                            hasStoredAdminToken ? "Use saved site-registration token" : "Paste an admin site-registration token",
+                            text: $adminToken
+                        )
+                        .textContentType(.password)
+
+                        Toggle("Remember registration token in Keychain", isOn: $rememberAdminToken)
+
+                        Text("Required only when saving changes to the monitored website. The existing Site ID, reporter token, and monitoring history will be preserved.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 } else {
                     Section("Site registration") {
                         SecureField(
@@ -1345,7 +1359,15 @@ private struct ProjectMonitoringSheet: View {
                             Task { await connectWebsite() }
                         }
                         .keyboardShortcut(.defaultAction)
-                        .disabled(!canConnect || isConnecting)
+                            .disabled(!canConnect || isConnecting)
+                    }
+                } else {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save Changes") {
+                            Task { await saveChanges() }
+                        }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(!canSaveChanges || isConnecting)
                     }
                 }
             }
@@ -1375,6 +1397,13 @@ private struct ProjectMonitoringSheet: View {
             && (readCredentialStore.read() != nil
                 || hasStoredAdminToken
                 || !adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
+    private var canSaveChanges: Bool {
+        project.hasMonitoringSite
+            && !project.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !websiteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (hasStoredAdminToken || !adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
     @MainActor
@@ -1448,6 +1477,49 @@ private struct ProjectMonitoringSheet: View {
         project.monitoringConnectedAt = .now
         project.updatedAt = .now
         try modelContext.save()
+    }
+
+    @MainActor
+    private func saveChanges() async {
+        let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? adminCredentialStore.read()
+            : adminToken
+        guard let token, !token.isEmpty else {
+            statusMessage = "Paste an admin site-registration token to save monitoring changes."
+            return
+        }
+
+        isConnecting = true
+        defer { isConnecting = false }
+
+        do {
+            let updatedSite = try await apiService.updateSite(
+                baseURLText: monitoringAPIBaseURL,
+                adminToken: token,
+                siteID: project.monitoringSiteID,
+                name: project.name,
+                websiteURLText: websiteURL,
+                platform: platform
+            )
+
+            if rememberAdminToken {
+                try adminCredentialStore.save(token)
+            } else {
+                try? adminCredentialStore.delete()
+            }
+
+            websiteURL = updatedSite.url
+            project.monitoringWebsiteURL = updatedSite.url
+            project.monitoringPlatform = updatedSite.platform
+            project.updatedAt = .now
+            try modelContext.save()
+
+            adminToken = ""
+            hasStoredAdminToken = rememberAdminToken
+            statusMessage = "Monitoring settings updated. Existing history and reporter access were preserved."
+        } catch {
+            statusMessage = error.localizedDescription
+        }
     }
 
     private func copyReporterToken() {
