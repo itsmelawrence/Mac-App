@@ -16,13 +16,6 @@ final class AppState: ObservableObject {
 
     @Published var selection: SidebarDestination? = .today
     @Published private(set) var briefingRequest: BriefingRequest?
-    @Published private(set) var isDashboardReady = false
-    @Published private(set) var isSplashAnimationFinished = false
-    @Published private(set) var isSplashVisible = true
-
-    var canDismissSplash: Bool {
-        isSplashVisible && isDashboardReady && isSplashAnimationFinished
-    }
 
     @Published var showWakeBriefing: Bool {
         didSet { UserDefaults.standard.set(showWakeBriefing, forKey: Keys.showWakeBriefing) }
@@ -45,18 +38,6 @@ final class AppState: ObservableObject {
     func consumeBriefingRequest(_ request: BriefingRequest) {
         guard briefingRequest?.id == request.id else { return }
         briefingRequest = nil
-    }
-
-    func markDashboardReady() {
-        isDashboardReady = true
-    }
-
-    func markSplashAnimationFinished() {
-        isSplashAnimationFinished = true
-    }
-
-    func completeSplash() {
-        isSplashVisible = false
     }
 
     private enum Keys {

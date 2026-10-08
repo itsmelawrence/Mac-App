@@ -14,10 +14,10 @@ final class BriefingPanelController {
             self?.panel?.close()
         }
         let hostingView = NSHostingView(rootView: content)
-        let size = NSSize(width: 520, height: 250)
+        let size = NSSize(width: 640, height: 360)
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -27,6 +27,7 @@ final class BriefingPanelController {
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
+        panel.minSize = NSSize(width: 520, height: 300)
         panel.contentView = hostingView
         panel.center()
         panel.makeKeyAndOrderFront(nil)
@@ -69,11 +70,15 @@ private struct BriefingOverlayView: View {
                 Spacer()
             }
 
-            Text(message)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-
-            Spacer()
+            ScrollView(.vertical) {
+                Text(message)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             HStack {
                 Spacer()
