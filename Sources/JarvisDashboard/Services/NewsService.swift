@@ -9,7 +9,7 @@ struct NewsArticle: Identifiable, Sendable {
 }
 
 struct NewsSource: Identifiable, Hashable, Sendable {
-    enum Category: String, CaseIterable, Identifiable {
+    enum Category: String, CaseIterable, Identifiable, Hashable {
         case philippines = "Philippines"
         case world = "World"
 
