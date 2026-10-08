@@ -8,20 +8,49 @@ struct ProjectsView: View {
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
 
     @AppStorage("projects.showArchived") private var showArchived = false
+    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
     @State private var showingNewProject = false
     @State private var editingProject: ProjectItem?
     @State private var selectedProject: ProjectItem?
+    @State private var selectedDetailSection = ProjectDetailSection.overview
     @State private var projectPendingDeletion: ProjectItem?
+    @State private var monitoringSites: [String: MonitoringSite] = [:]
+    @State private var monitoringError: String?
+    @State private var isRefreshingMonitoring = false
+    @State private var needsAttentionOnly = false
+    @State private var sortBySiteHealth = false
+
+    private let monitoringService = MonitoringAPIService()
+    private let monitoringCredentialStore = MonitoringAPICredentialStore()
 
     private var visibleProjects: [ProjectItem] {
-        projects.filter { showArchived || !$0.isArchived }
+        let filtered = projects.filter { project in
+            guard showArchived || !project.isArchived else { return false }
+            guard needsAttentionOnly else { return true }
+            return MonitoringHealth.evaluate(site: site(for: project), connected: project.hasMonitoringSite).needsAttention
+        }
+        guard sortBySiteHealth else { return filtered }
+        return filtered.sorted {
+            let lhs = MonitoringHealth.evaluate(site: site(for: $0), connected: $0.hasMonitoringSite)
+            let rhs = MonitoringHealth.evaluate(site: site(for: $1), connected: $1.hasMonitoringSite)
+            if lhs.sortRank != rhs.sortRank { return lhs.sortRank < rhs.sortRank }
+            return $0.updatedAt > $1.updatedAt
+        }
     }
 
     var body: some View {
         Group {
             if let selectedProject {
-                ProjectDetailView(project: selectedProject) {
+                ProjectDetailView(
+                    project: selectedProject,
+                    selectedSection: $selectedDetailSection,
+                    monitoringSite: site(for: selectedProject),
+                    monitoringError: monitoringError,
+                    isRefreshingMonitoring: isRefreshingMonitoring,
+                    onRefreshMonitoring: { Task { await refreshMonitoring() } }
+                ) {
                     self.selectedProject = nil
+                    selectedDetailSection = .overview
                 }
             } else {
                 projectGrid
@@ -54,6 +83,14 @@ struct ProjectsView: View {
         } message: {
             Text("This permanently removes the project from this Mac. This action cannot be undone.")
         }
+        .task {
+            await refreshMonitoring()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(15 * 60))
+                guard !Task.isCancelled else { break }
+                await refreshMonitoring()
+            }
+        }
     }
 
     @ViewBuilder
@@ -79,21 +116,94 @@ struct ProjectsView: View {
             }
         } else {
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 310), spacing: 16)], spacing: 16) {
-                    ForEach(visibleProjects) { project in
-                        ProjectCard(
-                            project: project,
-                            onOpen: { selectedProject = project },
-                            onEdit: { editingProject = project },
-                            onDuplicate: { duplicate(project) },
-                            onArchive: { archive(project) },
-                            onDelete: { projectPendingDeletion = project }
-                        )
+                VStack(alignment: .leading, spacing: 18) {
+                    monitoringFleetHeader
+
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 480), spacing: 16)], spacing: 16) {
+                        ForEach(visibleProjects) { project in
+                            ProjectCard(
+                                project: project,
+                                monitoringSite: site(for: project),
+                                onOpen: {
+                                    selectedDetailSection = .overview
+                                    selectedProject = project
+                                },
+                                onOpenSecurity: {
+                                    selectedDetailSection = .security
+                                    selectedProject = project
+                                },
+                                onEdit: { editingProject = project },
+                                onDuplicate: { duplicate(project) },
+                                onArchive: { archive(project) },
+                                onDelete: { projectPendingDeletion = project }
+                            )
+                        }
                     }
                 }
                 .padding(24)
             }
         }
+    }
+
+    private var monitoringFleetHeader: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(fleetSummaryColour)
+                .frame(width: 9, height: 9)
+            Text(fleetSummaryText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            if let monitoringError {
+                Label("Offline · cached project links shown", systemImage: "wifi.slash")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .help(monitoringError)
+            }
+
+            Spacer()
+
+            Toggle("Needs attention", isOn: $needsAttentionOnly)
+                .toggleStyle(.button)
+                .buttonStyle(.bordered)
+
+            Toggle("Sort: Site health", isOn: $sortBySiteHealth)
+                .toggleStyle(.button)
+                .buttonStyle(.bordered)
+
+            Button {
+                Task { await refreshMonitoring() }
+            } label: {
+                Label("Refresh monitoring", systemImage: "arrow.clockwise")
+            }
+            .labelStyle(.iconOnly)
+            .disabled(isRefreshingMonitoring)
+            .help("Refresh monitoring data")
+        }
+        .controlSize(.small)
+    }
+
+    private var fleetSummaryText: String {
+        let connectedProjects = projects.filter { $0.hasMonitoringSite }
+        let health = connectedProjects.map { MonitoringHealth.evaluate(site: site(for: $0), connected: true) }
+        let healthy = health.filter { $0.state == .healthy }.count
+        let attention = health.filter { $0.state == .needsAttention || $0.state == .stale }.count
+        let critical = health.filter { $0.state == .critical || $0.state == .down }.count
+        let pending = health.filter { $0.state == .awaitingChecks }.count
+        guard !connectedProjects.isEmpty else { return "No monitored sites connected" }
+        var parts = ["\(connectedProjects.count) site\(connectedProjects.count == 1 ? "" : "s")", "\(healthy) healthy"]
+        if attention > 0 { parts.append("\(attention) need attention") }
+        if critical > 0 { parts.append("\(critical) critical") }
+        if pending > 0 { parts.append("\(pending) awaiting checks") }
+        return parts.joined(separator: " · ")
+    }
+
+    private var fleetSummaryColour: Color {
+        let states = projects.filter(\.hasMonitoringSite).map { MonitoringHealth.evaluate(site: site(for: $0), connected: true).state }
+        if states.contains(.down) || states.contains(.critical) { return .red }
+        if states.contains(.needsAttention) || states.contains(.stale) { return .orange }
+        if states.contains(.healthy) { return .green }
+        return .secondary
     }
 
     @ToolbarContentBuilder
@@ -102,6 +212,8 @@ struct ProjectsView: View {
             ToolbarItemGroup {
                 Menu {
                     Toggle("Show Archived", isOn: $showArchived)
+                    Toggle("Needs Attention", isOn: $needsAttentionOnly)
+                    Toggle("Sort by Site Health", isOn: $sortBySiteHealth)
                 } label: {
                     Label("Project filters", systemImage: "line.3.horizontal.decrease.circle")
                 }
@@ -126,13 +238,64 @@ struct ProjectsView: View {
         project.updatedAt = .now
         try? modelContext.save()
     }
+
+    private func site(for project: ProjectItem) -> MonitoringSite? {
+        guard !project.monitoringSiteID.isEmpty else { return nil }
+        return monitoringSites[project.monitoringSiteID]
+    }
+
+    @MainActor
+    private func refreshMonitoring() async {
+        guard !isRefreshingMonitoring else { return }
+        guard let token = monitoringCredentialStore.read() else {
+            monitoringError = "Add a monitoring read token in Settings."
+            return
+        }
+        isRefreshingMonitoring = true
+        defer { isRefreshingMonitoring = false }
+        do {
+            let summaries = try await monitoringService.sites(baseURLText: monitoringAPIBaseURL, readToken: token)
+            var detailed: [String: MonitoringSite] = [:]
+            try await withThrowingTaskGroup(of: MonitoringSite.self) { group in
+                for summary in summaries {
+                    group.addTask {
+                        try await monitoringService.site(
+                            baseURLText: monitoringAPIBaseURL,
+                            readToken: token,
+                            siteID: summary.id
+                        )
+                    }
+                }
+                for try await site in group { detailed[site.id] = site }
+            }
+            monitoringSites = detailed
+            monitoringError = nil
+        } catch {
+            monitoringError = error.localizedDescription
+        }
+    }
+}
+
+private enum ProjectDetailSection: String, CaseIterable, Identifiable {
+    case overview
+    case security
+
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .overview: "Overview"
+        case .security: "Security & Maintenance"
+        }
+    }
 }
 
 private struct ProjectCard: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var project: ProjectItem
+    let monitoringSite: MonitoringSite?
 
     let onOpen: () -> Void
+    let onOpenSecurity: () -> Void
     let onEdit: () -> Void
     let onDuplicate: () -> Void
     let onArchive: () -> Void
@@ -201,6 +364,13 @@ private struct ProjectCard: View {
             if let dueDate = project.dueDate {
                 DueDateBadge(date: dueDate, status: project.status)
             }
+
+            SiteHealthPanel(
+                health: MonitoringHealth.evaluate(site: monitoringSite, connected: project.hasMonitoringSite),
+                site: monitoringSite,
+                isConnected: project.hasMonitoringSite,
+                onOpenSecurity: onOpenSecurity
+            )
 
             if project.mode == .ongoing {
                 ongoingActivity
@@ -312,6 +482,11 @@ private struct ProjectCard: View {
 private struct ProjectDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var project: ProjectItem
+    @Binding var selectedSection: ProjectDetailSection
+    let monitoringSite: MonitoringSite?
+    let monitoringError: String?
+    let isRefreshingMonitoring: Bool
+    let onRefreshMonitoring: () -> Void
     let onBack: () -> Void
 
     @State private var savedAt: Date?
@@ -334,7 +509,16 @@ private struct ProjectDetailView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
 
-                VStack(alignment: .leading, spacing: 10) {
+                Picker("Project section", selection: $selectedSection) {
+                    ForEach(ProjectDetailSection.allCases) { section in
+                        Text(section.title).tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 460)
+
+                if selectedSection == .overview {
+                    VStack(alignment: .leading, spacing: 10) {
                     TextField("Project name", text: $project.name)
                         .textFieldStyle(.plain)
                         .font(.largeTitle.bold())
@@ -368,10 +552,10 @@ private struct ProjectDetailView: View {
                                 .help("Last saved \(savedAt.formatted(date: .omitted, time: .shortened))")
                         }
                     }
-                }
+                    }
 
-                if project.mode == .ongoing {
-                    HStack(spacing: 16) {
+                    if project.mode == .ongoing {
+                        HStack(spacing: 16) {
                         MetricCard(
                             title: "Health",
                             value: RepositoryHealth.evaluate(
@@ -383,17 +567,17 @@ private struct ProjectDetailView: View {
                         )
                         MetricCard(title: "Branch", value: repositorySnapshot?.branch ?? "Not connected", systemImage: "arrow.triangle.branch")
                         MetricCard(title: "Commits · 30d", value: "\(repositorySnapshot?.commitsInLast30Days ?? 0)", systemImage: "point.3.connected.trianglepath.dotted")
+                        }
+                    } else {
+                        HStack(spacing: 16) {
+                            MetricCard(title: "Progress", value: project.progress.formatted(.percent.precision(.fractionLength(0))), systemImage: "chart.line.uptrend.xyaxis")
+                            MetricCard(title: "Tasks", value: "0 / 0", systemImage: "checklist")
+                            MetricCard(title: "Priority", value: project.priority.title, systemImage: "flag.fill")
+                        }
                     }
-                } else {
-                    HStack(spacing: 16) {
-                        MetricCard(title: "Progress", value: project.progress.formatted(.percent.precision(.fractionLength(0))), systemImage: "chart.line.uptrend.xyaxis")
-                        MetricCard(title: "Tasks", value: "0 / 0", systemImage: "checklist")
-                        MetricCard(title: "Priority", value: project.priority.title, systemImage: "flag.fill")
-                    }
-                }
 
-                GroupBox("Project details") {
-                    VStack(alignment: .leading, spacing: 16) {
+                    GroupBox("Project details") {
+                        VStack(alignment: .leading, spacing: 16) {
                         LabeledContent("Type") {
                             TextField("Website Build", text: $project.type)
                                 .frame(maxWidth: 360)
@@ -417,28 +601,38 @@ private struct ProjectDetailView: View {
                             TextField("WordPress, Retainer", text: $project.tagsRawValue)
                                 .frame(maxWidth: 360)
                         }
+                        }
+                        .padding(8)
                     }
-                    .padding(8)
-                }
 
-                if project.mode == .ongoing {
-                    repositorySection
-                }
+                    if project.mode == .ongoing {
+                        repositorySection
+                    }
 
-                monitoringSection
+                    monitoringSection
 
-                GroupBox("Description") {
-                    TextField("Project scope, context and goals", text: $project.summary, axis: .vertical)
-                        .lineLimit(5...10)
-                        .textFieldStyle(.plain)
-                        .padding(8)
-                }
+                    GroupBox("Description") {
+                        TextField("Project scope, context and goals", text: $project.summary, axis: .vertical)
+                            .lineLimit(5...10)
+                            .textFieldStyle(.plain)
+                            .padding(8)
+                    }
 
-                GroupBox("Next action") {
-                    TextField("What should happen next?", text: $project.nextAction, axis: .vertical)
-                        .lineLimit(2...5)
-                        .textFieldStyle(.plain)
-                        .padding(8)
+                    GroupBox("Next action") {
+                        TextField("What should happen next?", text: $project.nextAction, axis: .vertical)
+                            .lineLimit(2...5)
+                            .textFieldStyle(.plain)
+                            .padding(8)
+                    }
+                } else {
+                    SecurityMaintenanceView(
+                        project: project,
+                        site: monitoringSite,
+                        apiError: monitoringError,
+                        isRefreshing: isRefreshingMonitoring,
+                        onRefresh: onRefreshMonitoring,
+                        onConfigure: { showingMonitoringSetup = true }
+                    )
                 }
             }
             .padding(24)
@@ -621,6 +815,431 @@ private struct ProjectDetailView: View {
         } catch {
             repositorySnapshot = nil
             repositoryError = error.localizedDescription
+        }
+    }
+}
+
+private struct SiteHealthPanel: View {
+    let health: MonitoringHealth
+    let site: MonitoringSite?
+    let isConnected: Bool
+    let onOpenSecurity: () -> Void
+
+    private var updateCount: Int { site?.latestSnapshot?.pendingUpdateCount ?? 0 }
+    private var findingCount: Int { site?.openFindingsCount ?? 0 }
+
+    var body: some View {
+        HStack(spacing: 18) {
+            SiteHealthGauge(health: health, compact: true)
+                .frame(width: 112, height: 72)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("SITE HEALTH")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(.secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(health.score.map(String.init) ?? "—")
+                        .font(.title.bold())
+                        .foregroundStyle(.primary)
+                    Text(health.label)
+                        .font(.headline)
+                        .foregroundStyle(health.colour)
+                }
+
+                if isConnected {
+                    Text("\(updateCount) updates · \(findingCount) vulnerabilit\(findingCount == 1 ? "y" : "ies")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(lastObservedText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Connect this project to its monitored website")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Button(action: onOpenSecurity) {
+                Text(isConnected ? "Security ›" : "Connect site")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.white.opacity(0.035))
+        }
+    }
+
+    private var lastObservedText: String {
+        guard let date = health.lastObservedAt else { return "No completed outside check yet" }
+        return "Checked \(date.formatted(.relative(presentation: .named)))"
+    }
+}
+
+private struct SiteHealthGauge: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let health: MonitoringHealth
+    var compact = false
+    @State private var displayedScore = 0.0
+
+    var body: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height - (compact ? 7 : 10))
+            let radius = min(size.width * 0.40, size.height - (compact ? 12 : 18))
+            let lineWidth = compact ? 7.0 : 10.0
+
+            drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 0...49, colour: .red)
+            drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 50...79, colour: .orange)
+            drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 80...100, colour: Color(red: 0.24, green: 0.81, blue: 0.56))
+
+            guard health.score != nil else { return }
+            let radians = .pi + (.pi * displayedScore / 100)
+            let needleLength = radius * 0.72
+            let end = CGPoint(
+                x: center.x + cos(radians) * needleLength,
+                y: center.y + sin(radians) * needleLength
+            )
+            var needle = Path()
+            needle.move(to: center)
+            needle.addLine(to: end)
+            context.stroke(needle, with: .color(.white.opacity(0.95)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            context.fill(Path(ellipseIn: CGRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10)), with: .color(.white))
+        }
+        .opacity(health.state == .stale ? 0.5 : 1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+        .onAppear { animateNeedle() }
+        .onChange(of: health.score) { _, _ in animateNeedle() }
+    }
+
+    private func drawBand(
+        context: inout GraphicsContext,
+        center: CGPoint,
+        radius: Double,
+        lineWidth: Double,
+        range: ClosedRange<Int>,
+        colour: Color
+    ) {
+        let start = 180 + (180 * Double(range.lowerBound) / 100)
+        let end = 180 + (180 * Double(range.upperBound + 1) / 100)
+        let isActive: Bool
+        if let score = health.score {
+            isActive = range.contains(score)
+        } else {
+            isActive = false
+        }
+        var path = Path()
+        path.addArc(
+            center: center,
+            radius: radius,
+            startAngle: .degrees(start),
+            endAngle: .degrees(end),
+            clockwise: false
+        )
+        context.stroke(
+            path,
+            with: .color(colour.opacity(isActive ? 1 : 0.35)),
+            style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt)
+        )
+    }
+
+    private var accessibilityText: String {
+        if let score = health.score {
+            return "Site health \(score) of 100, \(health.label.lowercased())"
+        }
+        return "Site health \(health.label.lowercased())"
+    }
+
+    private func animateNeedle() {
+        let target = Double(health.score ?? 0)
+        if reduceMotion {
+            displayedScore = target
+        } else {
+            displayedScore = 0
+            withAnimation(.easeOut(duration: 0.75)) { displayedScore = target }
+        }
+    }
+}
+
+private struct SecurityMaintenanceView: View {
+    let project: ProjectItem
+    let site: MonitoringSite?
+    let apiError: String?
+    let isRefreshing: Bool
+    let onRefresh: () -> Void
+    let onConfigure: () -> Void
+
+    private var health: MonitoringHealth {
+        MonitoringHealth.evaluate(site: site, connected: project.hasMonitoringSite)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            securityHeader
+
+            if let apiError {
+                Label("Monitoring API unavailable · showing the last available project connection", systemImage: "wifi.slash")
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                    .help(apiError)
+            }
+
+            if let site {
+                vulnerabilitySection(site)
+                updatesSection(site)
+                applicationHealthSection(site)
+                environmentSection(site)
+                scoreBreakdownSection
+                historySection(site)
+            } else {
+                ContentUnavailableView {
+                    Label(project.hasMonitoringSite ? "Monitoring data unavailable" : "Site not connected", systemImage: "waveform.path.ecg")
+                } description: {
+                    Text(project.hasMonitoringSite
+                         ? "Refresh the API connection or review its settings. JARVIS will not substitute a fake healthy state."
+                         : "Connect this project to a monitored website to display security and maintenance data.")
+                } actions: {
+                    Button("Connection Settings…", action: onConfigure)
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                }
+                .frame(maxWidth: .infinity, minHeight: 240)
+            }
+        }
+    }
+
+    private var securityHeader: some View {
+        GroupBox {
+            HStack(spacing: 22) {
+                SiteHealthGauge(health: health)
+                    .frame(width: 170, height: 105)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("SITE HEALTH")
+                        .font(.caption.weight(.semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(health.score.map(String.init) ?? "—")
+                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                        Text(health.label)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(health.colour)
+                    }
+                    if let observed = health.lastObservedAt {
+                        Text("Last observed \(observed.formatted(.relative(presentation: .named)))")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Waiting for the first completed outside check")
+                            .foregroundStyle(.secondary)
+                    }
+                    if let site {
+                        Text("Sources: public reachability · reporter · dependency inventory")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .help(site.url)
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 10) {
+                    Button("Refresh now", systemImage: "arrow.clockwise", action: onRefresh)
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        .disabled(isRefreshing)
+                    Button("Connection Settings…", action: onConfigure)
+                }
+            }
+            .padding(10)
+        }
+    }
+
+    private func vulnerabilitySection(_ site: MonitoringSite) -> some View {
+        GroupBox("Vulnerabilities") {
+            VStack(alignment: .leading, spacing: 10) {
+                let open = site.findings.filter { $0.status == "open" }
+                if open.isEmpty {
+                    Label(
+                        site.openFindingsCount == 0 ? "No open vulnerabilities reported" : "Finding details have not loaded",
+                        systemImage: site.openFindingsCount == 0 ? "checkmark.shield.fill" : "exclamationmark.triangle.fill"
+                    )
+                    .foregroundStyle(site.openFindingsCount == 0 ? .green : .orange)
+                } else {
+                    ForEach(open.sorted { severityRank($0.severity) < severityRank($1.severity) }) { finding in
+                        HStack(alignment: .top, spacing: 10) {
+                            Text(finding.severity.uppercased())
+                                .font(.caption2.bold())
+                                .foregroundStyle(severityColour(finding.severity))
+                                .frame(width: 62, alignment: .leading)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(finding.title).font(.headline)
+                                Text("\(finding.componentType.capitalized) · \(finding.slug)" + (finding.fixedIn.map { " · Fixed in \($0)" } ?? ""))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if let urlText = finding.referenceURL, let url = URL(string: urlText) {
+                                Link("Reference", destination: url)
+                            }
+                        }
+                        if finding.id != open.last?.id { Divider() }
+                    }
+                }
+            }
+            .padding(8)
+        }
+    }
+
+    private func updatesSection(_ site: MonitoringSite) -> some View {
+        GroupBox("Updates") {
+            VStack(alignment: .leading, spacing: 10) {
+                let updates = site.latestSnapshot?.components.filter { $0.updateAvailable == true } ?? []
+                if updates.isEmpty {
+                    Label("No component updates reported", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    ForEach(updates) { component in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(component.name).font(.headline)
+                                Text(component.ecosystem.capitalized).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text(component.version).monospaced().foregroundStyle(.secondary)
+                            Image(systemName: "arrow.right")
+                            Text(component.latestVersion ?? "Update available").monospaced()
+                        }
+                    }
+                }
+                if let notCovered = site.latestSnapshot?.notCovered, !notCovered.isEmpty {
+                    Label("Not covered: \(notCovered.joined(separator: ", "))", systemImage: "questionmark.shield")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(8)
+        }
+    }
+
+    private func applicationHealthSection(_ site: MonitoringSite) -> some View {
+        GroupBox(site.platform == .wordpress ? "WordPress Site Health" : "Application health") {
+            VStack(alignment: .leading, spacing: 10) {
+                let checks = site.latestSnapshot?.siteHealth ?? []
+                if checks.isEmpty {
+                    Text("No application health checks reported.").foregroundStyle(.secondary)
+                } else {
+                    ForEach(checks) { check in
+                        HStack {
+                            Image(systemName: check.status.lowercased() == "pass" ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                                .foregroundStyle(check.status.lowercased() == "pass" ? .green : .orange)
+                            Text(check.label)
+                            Spacer()
+                            Text(check.message ?? check.status.capitalized)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .padding(8)
+        }
+    }
+
+    private func environmentSection(_ site: MonitoringSite) -> some View {
+        GroupBox("Environment") {
+            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
+                environmentRow("Status", site.status.rawValue.capitalized)
+                environmentRow("HTTP", site.lastStatusCode.map(String.init) ?? "Awaiting check")
+                environmentRow("Response", site.lastResponseMilliseconds.map { "\($0) ms" } ?? "Awaiting check")
+                environmentRow("Uptime · 30 d", site.uptime30DayPercent.map { String(format: "%.2f%%", $0) } ?? "Not enough history")
+                environmentRow("PHP", site.latestSnapshot?.phpVersion ?? "Not reported")
+                environmentRow("SSL expiry", site.sslExpiresAt?.formatted(date: .abbreviated, time: .omitted) ?? "Awaiting check")
+                environmentRow("Last heartbeat", site.lastHeartbeatAt?.formatted(.relative(presentation: .named)) ?? "Never")
+                environmentRow("Application", site.latestSnapshot?.applicationName ?? site.name)
+                environmentRow("Deployment", site.latestSnapshot?.applicationVersion ?? "Not reported")
+            }
+            .padding(8)
+        }
+    }
+
+    private var scoreBreakdownSection: some View {
+        GroupBox("Score breakdown") {
+            VStack(alignment: .leading, spacing: 10) {
+                if health.state == .awaitingChecks {
+                    Text("A score will appear after the backend completes its first public reachability check.")
+                        .foregroundStyle(.secondary)
+                } else if health.deductions.isEmpty {
+                    Label("No deductions", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    ForEach(health.deductions) { deduction in
+                        HStack {
+                            Text(deduction.reason)
+                            Spacer()
+                            Text("−\(deduction.points)").foregroundStyle(.orange).monospacedDigit()
+                        }
+                    }
+                }
+            }
+            .padding(8)
+        }
+    }
+
+    private func historySection(_ site: MonitoringSite) -> some View {
+        GroupBox("Incident history") {
+            VStack(alignment: .leading, spacing: 10) {
+                if site.incidents.isEmpty {
+                    Text("No incidents recorded.").foregroundStyle(.secondary)
+                } else {
+                    ForEach(site.incidents) { incident in
+                        HStack {
+                            Label(incident.type.replacingOccurrences(of: "_", with: " ").capitalized, systemImage: incident.endedAt == nil ? "exclamationmark.triangle.fill" : "checkmark.circle")
+                            Spacer()
+                            if let started = incident.startedAt {
+                                Text(started.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(.secondary)
+                            }
+                            Text(incident.endedAt == nil ? "Open" : "Recovered")
+                                .foregroundStyle(incident.endedAt == nil ? .red : .green)
+                        }
+                    }
+                }
+            }
+            .padding(8)
+        }
+    }
+
+    private func environmentRow(_ label: String, _ value: String) -> some View {
+        GridRow {
+            Text(label).foregroundStyle(.secondary)
+            Text(value).textSelection(.enabled)
+        }
+    }
+
+    private func severityRank(_ severity: String) -> Int {
+        switch severity.lowercased() {
+        case "critical": 0
+        case "high": 1
+        case "medium": 2
+        default: 3
+        }
+    }
+
+    private func severityColour(_ severity: String) -> Color {
+        switch severity.lowercased() {
+        case "critical": .red
+        case "high": .orange
+        case "medium": .yellow
+        default: .secondary
         }
     }
 }

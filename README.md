@@ -39,6 +39,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion
 - Fixed and ongoing-client project modes, with read-only local Git repository health and activity summaries for ongoing work
 - Project-level website monitoring setup with platform selection, API registration, and per-project reporter tokens stored in Keychain
+- Live monitoring fleet summary, health sorting/filtering, explainable site-health gauges, and per-project Security & Maintenance details
 - Intelligence centre with priority alerts, Philippine conditions, editable watchlists, operational signals, change-aware briefings, and opt-in quiet-hour notifications
 - Menu-bar command centre
 - Launch-at-login setting using `SMAppService`

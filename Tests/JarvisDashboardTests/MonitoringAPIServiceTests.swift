@@ -118,6 +118,65 @@ struct MonitoringAPIServiceTests {
         ])
     }
 
+    @Test func parsesDetailedMonitoringSite() throws {
+        let data = Data(#"""
+        {
+          "data": {
+            "id": "site-123",
+            "name": "Portfolio",
+            "url": "https://portfolio.example.com",
+            "platform": "laravel",
+            "status": "up",
+            "last_check_at": "2026-10-08T10:00:00.000000Z",
+            "last_status_code": 200,
+            "last_response_ms": 341,
+            "last_heartbeat_at": "2026-10-08T10:04:00.000000Z",
+            "uptime_30d_percent": 99.98,
+            "open_incidents_count": 0,
+            "open_findings_count": 1,
+            "latest_snapshot": {
+              "checked_at": "2026-10-08T10:04:00.000000Z",
+              "php_version": "8.4.0",
+              "php_supported": true,
+              "pending_update_count": 1,
+              "components": [{
+                "ecosystem": "composer",
+                "name": "laravel/framework",
+                "version": "12.0.0",
+                "latest_version": "12.1.0",
+                "update_available": true,
+                "direct": true,
+                "development": false
+              }],
+              "not_covered": ["dependency_latest_versions"],
+              "site_health": [{"key":"database","label":"Database","status":"pass","message":null}],
+              "application": {"name":"portfolio","version":"abc123","environment":"production"}
+            },
+            "incidents": [],
+            "findings": [{
+              "id":"finding-1",
+              "component_type":"package",
+              "slug":"vendor/package",
+              "title":"Example advisory",
+              "severity":"high",
+              "fixed_in":"2.0.0",
+              "status":"open",
+              "reference_url":"https://example.com/advisory"
+            }]
+          }
+        }
+        """#.utf8)
+
+        let site = try MonitoringAPIService().parseSite(data: data)
+
+        #expect(site.status == .up)
+        #expect(site.lastStatusCode == 200)
+        #expect(site.lastResponseMilliseconds == 341)
+        #expect(site.latestSnapshot?.components.first?.updateAvailable == true)
+        #expect(site.findings.first?.severity == "high")
+        #expect(site.uptime30DayPercent == 99.98)
+    }
+
     @Test func acceptsMarkdownWebsiteLink() throws {
         let url = try MonitoringAPIService().normalizedWebsiteURL(
             from: "[https://lawrenceeemadeit.laravel.cloud/](https://lawrenceeemadeit.laravel.cloud/)"

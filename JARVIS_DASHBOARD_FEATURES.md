@@ -162,12 +162,31 @@ Repository checks run with Git optional locks and terminal prompts disabled. JAR
 
 - Lives inside each project's detail/settings view.
 - Registers a new HTTPS website with the JARVIS Monitoring API.
+- Accepts plain HTTPS URLs and Markdown-formatted links copied from chat or documentation.
+- Attaches an already registered website through the saved read-only API connection instead of creating a duplicate.
 - Supports Generic, WordPress, Laravel, Node, Static, and Custom platforms.
 - Uses a separate site-registration credential with admin scope.
 - Can remember that registration credential in macOS Keychain for future projects.
 - Stores each returned reporter token separately in Keychain under the local project ID.
 - Provides a copy action for transferring the reporter token into the website host's secret manager.
 - Registers the site only; it never installs reporter code or changes hosting settings without explicit approval.
+
+### Site health and Security & Maintenance
+
+- Fetches the monitoring fleet on entry, every 15 minutes while Projects remains active, and on manual refresh.
+- Shows fleet totals and working **Needs attention** and **Sort: Site health** controls.
+- Adds a semicircular site-health gauge to every project card without replacing delivery progress or repository health.
+- Scores only when the backend has completed an outside reachability check; unknown, stale, offline, maintenance and disconnected states remain explicit and never masquerade as healthy.
+- Uses the specified 100-point deductions for vulnerabilities, updates, unsupported PHP, expiring SSL, missing heartbeats and failed application health checks.
+- Opens a dedicated **Security & Maintenance** project section containing:
+  - Open vulnerabilities and reference links
+  - Component updates and uncovered inventory
+  - Reporter application/database/scheduler health checks
+  - Environment, response, uptime, SSL and heartbeat data
+  - Explainable score deductions
+  - Incident history
+- Animates the gauge needle unless Reduce Motion is enabled.
+- Keeps monitoring read-only: the Mac app reads the backend and does not contact or alter client sites.
 
 ### Project actions
 
