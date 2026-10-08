@@ -10,6 +10,7 @@ final class ProjectItem {
     var summary: String
     var statusRawValue: String
     var priorityRawValue: String = ProjectPriority.medium.rawValue
+    var modeRawValue: String = ProjectMode.fixed.rawValue
     var progress: Double
     var nextAction: String
     var startDate: Date?
@@ -18,6 +19,8 @@ final class ProjectItem {
     var createdAt: Date = Date.now
     var updatedAt: Date
     var archivedAt: Date?
+    var repositoryPath: String = ""
+    var repositoryBookmarkData: Data?
 
     init(
         name: String,
@@ -26,6 +29,7 @@ final class ProjectItem {
         summary: String = "",
         status: ProjectStatus = .active,
         priority: ProjectPriority = .medium,
+        mode: ProjectMode = .fixed,
         progress: Double = 0,
         nextAction: String = "",
         startDate: Date? = nil,
@@ -41,6 +45,7 @@ final class ProjectItem {
         self.summary = summary
         self.statusRawValue = status.rawValue
         self.priorityRawValue = priority.rawValue
+        self.modeRawValue = mode.rawValue
         self.progress = progress
         self.nextAction = nextAction
         self.startDate = startDate
@@ -70,6 +75,15 @@ final class ProjectItem {
         set { priorityRawValue = newValue.rawValue }
     }
 
+    var mode: ProjectMode {
+        get { ProjectMode(rawValue: modeRawValue) ?? .fixed }
+        set { modeRawValue = newValue.rawValue }
+    }
+
+    var hasRepository: Bool {
+        repositoryBookmarkData != nil && !repositoryPath.isEmpty
+    }
+
     var tags: [String] {
         get {
             tagsRawValue
@@ -90,6 +104,7 @@ final class ProjectItem {
             summary: summary,
             status: status == .archived ? .notStarted : status,
             priority: priority,
+            mode: mode,
             progress: progress,
             nextAction: nextAction,
             startDate: startDate,
@@ -136,4 +151,25 @@ enum ProjectPriority: String, CaseIterable, Identifiable {
 
     var id: Self { self }
     var title: String { rawValue.capitalized }
+}
+
+enum ProjectMode: String, CaseIterable, Identifiable {
+    case fixed
+    case ongoing
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .fixed: "Fixed Project"
+        case .ongoing: "Ongoing Client"
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .fixed: "Progress is measured toward a defined finish."
+        case .ongoing: "Health and recent activity replace lifetime completion."
+        }
+    }
 }

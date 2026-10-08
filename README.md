@@ -37,6 +37,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Today dashboard with generated briefing
 - Persistent tasks and projects using SwiftData
 - Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion
+- Fixed and ongoing-client project modes, with read-only local Git repository health and activity summaries for ongoing work
 - Menu-bar command centre
 - Launch-at-login setting using `SMAppService`
 - Sleep/wake monitoring and configurable wake briefings

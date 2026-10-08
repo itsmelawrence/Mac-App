@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ProjectsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -136,6 +137,9 @@ private struct ProjectCard: View {
     let onArchive: () -> Void
     let onDelete: () -> Void
 
+    @State private var repositorySnapshot: RepositorySnapshot?
+    @State private var repositoryError: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
@@ -197,17 +201,21 @@ private struct ProjectCard: View {
                 DueDateBadge(date: dueDate, status: project.status)
             }
 
-            ProgressView(value: project.progress)
-                .tint(.orange)
-            HStack {
-                Text("Progress")
-                Text("0/0 tasks")
-                    .foregroundStyle(.tertiary)
-                Spacer()
-                Text(project.progress, format: .percent.precision(.fractionLength(0)))
+            if project.mode == .ongoing {
+                ongoingActivity
+            } else {
+                ProgressView(value: project.progress)
+                    .tint(.orange)
+                HStack {
+                    Text("Progress")
+                    Text("0/0 tasks")
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                    Text(project.progress, format: .percent.precision(.fractionLength(0)))
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
 
             if !project.nextAction.isEmpty {
                 VStack(alignment: .leading, spacing: 3) {
@@ -228,6 +236,75 @@ private struct ProjectCard: View {
         .onTapGesture(perform: onOpen)
         .accessibilityElement(children: .contain)
         .accessibilityHint("Open project details")
+        .task(id: project.repositoryBookmarkData) {
+            await refreshRepository()
+        }
+    }
+
+    private var ongoingActivity: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                RepositoryHealthBadge(
+                    health: RepositoryHealth.evaluate(
+                        status: project.status,
+                        dueDate: project.dueDate,
+                        snapshot: repositorySnapshot
+                    )
+                )
+                Spacer()
+                Text("ONGOING CLIENT")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.orange)
+            }
+
+            if let repositorySnapshot {
+                HStack(spacing: 12) {
+                    Label(repositorySnapshot.branch, systemImage: "arrow.triangle.branch")
+                    Label("\(repositorySnapshot.dirtyFileCount) changed", systemImage: "pencil.and.list.clipboard")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                HStack {
+                    Text(repositorySnapshot.lastCommitMessage)
+                        .lineLimit(1)
+                    Spacer()
+                    if let date = repositorySnapshot.lastCommitDate {
+                        Text(date, style: .relative)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .font(.caption)
+            } else {
+                Label(
+                    repositoryError ?? "Connect a local repository in project details",
+                    systemImage: project.hasRepository ? "exclamationmark.triangle" : "folder.badge.plus"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+            }
+        }
+    }
+
+    private func refreshRepository() async {
+        guard project.mode == .ongoing, let bookmark = project.repositoryBookmarkData else {
+            repositorySnapshot = nil
+            repositoryError = nil
+            return
+        }
+        do {
+            let inspection = try await GitRepositoryService.inspect(bookmarkData: bookmark)
+            repositorySnapshot = inspection.snapshot
+            repositoryError = nil
+            if let refreshed = inspection.refreshedBookmarkData {
+                project.repositoryBookmarkData = refreshed
+                try? modelContext.save()
+            }
+        } catch {
+            repositorySnapshot = nil
+            repositoryError = error.localizedDescription
+        }
     }
 }
 
@@ -237,6 +314,10 @@ private struct ProjectDetailView: View {
     let onBack: () -> Void
 
     @State private var savedAt: Date?
+    @State private var repositorySnapshot: RepositorySnapshot?
+    @State private var repositoryError: String?
+    @State private var isRefreshingRepository = false
+    @State private var showingRepositoryPicker = false
 
     private var snapshot: ProjectSnapshot {
         ProjectSnapshot(project: project)
@@ -272,6 +353,11 @@ private struct ProjectDetailView: View {
                                 Text(priority.title).tag(priority)
                             }
                         }
+                        Picker("Mode", selection: $project.mode) {
+                            ForEach(ProjectMode.allCases) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }
                         Spacer()
                         if let savedAt {
                             Label("Saved", systemImage: "checkmark.circle")
@@ -282,10 +368,26 @@ private struct ProjectDetailView: View {
                     }
                 }
 
-                HStack(spacing: 16) {
-                    MetricCard(title: "Progress", value: project.progress.formatted(.percent.precision(.fractionLength(0))), systemImage: "chart.line.uptrend.xyaxis")
-                    MetricCard(title: "Tasks", value: "0 / 0", systemImage: "checklist")
-                    MetricCard(title: "Priority", value: project.priority.title, systemImage: "flag.fill")
+                if project.mode == .ongoing {
+                    HStack(spacing: 16) {
+                        MetricCard(
+                            title: "Health",
+                            value: RepositoryHealth.evaluate(
+                                status: project.status,
+                                dueDate: project.dueDate,
+                                snapshot: repositorySnapshot
+                            ).title,
+                            systemImage: "heart.text.square"
+                        )
+                        MetricCard(title: "Branch", value: repositorySnapshot?.branch ?? "Not connected", systemImage: "arrow.triangle.branch")
+                        MetricCard(title: "Commits · 30d", value: "\(repositorySnapshot?.commitsInLast30Days ?? 0)", systemImage: "point.3.connected.trianglepath.dotted")
+                    }
+                } else {
+                    HStack(spacing: 16) {
+                        MetricCard(title: "Progress", value: project.progress.formatted(.percent.precision(.fractionLength(0))), systemImage: "chart.line.uptrend.xyaxis")
+                        MetricCard(title: "Tasks", value: "0 / 0", systemImage: "checklist")
+                        MetricCard(title: "Priority", value: project.priority.title, systemImage: "flag.fill")
+                    }
                 }
 
                 GroupBox("Project details") {
@@ -293,6 +395,19 @@ private struct ProjectDetailView: View {
                         LabeledContent("Type") {
                             TextField("Website Build", text: $project.type)
                                 .frame(maxWidth: 360)
+                        }
+                        LabeledContent("Project mode") {
+                            VStack(alignment: .trailing, spacing: 3) {
+                                Picker("Project mode", selection: $project.mode) {
+                                    ForEach(ProjectMode.allCases) { mode in
+                                        Text(mode.title).tag(mode)
+                                    }
+                                }
+                                .labelsHidden()
+                                Text(project.mode.explanation)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         OptionalDateEditor(label: "Start date", date: $project.startDate)
                         OptionalDateEditor(label: "Due date", date: $project.dueDate)
@@ -302,6 +417,10 @@ private struct ProjectDetailView: View {
                         }
                     }
                     .padding(8)
+                }
+
+                if project.mode == .ongoing {
+                    repositorySection
                 }
 
                 GroupBox("Description") {
@@ -322,12 +441,150 @@ private struct ProjectDetailView: View {
             .frame(maxWidth: 980, alignment: .leading)
         }
         .onChange(of: snapshot) { _, _ in persistChanges() }
+        .fileImporter(
+            isPresented: $showingRepositoryPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            connectRepository(from: result)
+        }
+        .task(id: project.repositoryBookmarkData) {
+            await refreshRepository()
+        }
+    }
+
+    private var repositorySection: some View {
+        GroupBox("Local repository") {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(project.hasRepository ? project.repositoryPath : "No repository connected")
+                            .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text("Read-only local Git metadata. JARVIS never modifies repository files.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if project.hasRepository {
+                        Button("Disconnect", role: .destructive) { disconnectRepository() }
+                    }
+                    Button(project.hasRepository ? "Choose Another…" : "Connect Repository…") {
+                        showingRepositoryPicker = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                }
+
+                if isRefreshingRepository {
+                    ProgressView("Reading repository…")
+                        .controlSize(.small)
+                } else if let repositoryError {
+                    Label(repositoryError, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                } else if let repositorySnapshot {
+                    Divider()
+                    Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
+                        GridRow {
+                            Text("Health").foregroundStyle(.secondary)
+                            RepositoryHealthBadge(
+                                health: RepositoryHealth.evaluate(
+                                    status: project.status,
+                                    dueDate: project.dueDate,
+                                    snapshot: repositorySnapshot
+                                )
+                            )
+                        }
+                        GridRow {
+                            Text("Branch").foregroundStyle(.secondary)
+                            Text(repositorySnapshot.branch).textSelection(.enabled)
+                        }
+                        GridRow {
+                            Text("Working tree").foregroundStyle(.secondary)
+                            Text(repositorySnapshot.dirtyFileCount == 0
+                                 ? "Clean"
+                                 : "\(repositorySnapshot.dirtyFileCount) changed file\(repositorySnapshot.dirtyFileCount == 1 ? "" : "s")")
+                        }
+                        GridRow {
+                            Text("Last commit").foregroundStyle(.secondary)
+                            HStack {
+                                Text(repositorySnapshot.lastCommitHash).monospaced()
+                                Text(repositorySnapshot.lastCommitMessage).lineLimit(1)
+                                if let date = repositorySnapshot.lastCommitDate {
+                                    Text(date, style: .relative).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        GridRow {
+                            Text("Recent activity").foregroundStyle(.secondary)
+                            Text("\(repositorySnapshot.commitsInLast30Days) commits in the last 30 days")
+                        }
+                        if repositorySnapshot.aheadCount > 0 || repositorySnapshot.behindCount > 0 {
+                            GridRow {
+                                Text("Remote state").foregroundStyle(.secondary)
+                                Text("Ahead \(repositorySnapshot.aheadCount) · Behind \(repositorySnapshot.behindCount)")
+                            }
+                        }
+                    }
+
+                    Button("Refresh Repository", systemImage: "arrow.clockwise") {
+                        Task { await refreshRepository() }
+                    }
+                }
+            }
+            .padding(8)
+        }
     }
 
     private func persistChanges() {
         project.updatedAt = .now
         try? modelContext.save()
         savedAt = .now
+    }
+
+    private func connectRepository(from result: Result<[URL], Error>) {
+        do {
+            guard let url = try result.get().first else { return }
+            project.repositoryBookmarkData = try GitRepositoryService.bookmark(for: url)
+            project.repositoryPath = url.path
+            project.updatedAt = .now
+            try modelContext.save()
+            Task { await refreshRepository() }
+        } catch {
+            repositoryError = error.localizedDescription
+        }
+    }
+
+    private func disconnectRepository() {
+        project.repositoryBookmarkData = nil
+        project.repositoryPath = ""
+        repositorySnapshot = nil
+        repositoryError = nil
+        project.updatedAt = .now
+        try? modelContext.save()
+    }
+
+    private func refreshRepository() async {
+        guard let bookmark = project.repositoryBookmarkData else {
+            repositorySnapshot = nil
+            repositoryError = nil
+            return
+        }
+        isRefreshingRepository = true
+        defer { isRefreshingRepository = false }
+        do {
+            let inspection = try await GitRepositoryService.inspect(bookmarkData: bookmark)
+            repositorySnapshot = inspection.snapshot
+            repositoryError = nil
+            if let refreshed = inspection.refreshedBookmarkData {
+                project.repositoryBookmarkData = refreshed
+                try? modelContext.save()
+            }
+        } catch {
+            repositorySnapshot = nil
+            repositoryError = error.localizedDescription
+        }
     }
 }
 
@@ -358,6 +615,11 @@ private struct ProjectEditorSheet: View {
                     Picker("Priority", selection: $draft.priority) {
                         ForEach(ProjectPriority.allCases) { priority in
                             Text(priority.title).tag(priority)
+                        }
+                    }
+                    Picker("Project mode", selection: $draft.mode) {
+                        ForEach(ProjectMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
                         }
                     }
                 }
@@ -409,6 +671,7 @@ private struct ProjectDraft {
     var type = ""
     var status = ProjectStatus.active
     var priority = ProjectPriority.medium
+    var mode = ProjectMode.fixed
     var startDate: Date?
     var dueDate: Date?
     var summary = ""
@@ -421,6 +684,7 @@ private struct ProjectDraft {
         type = project.type
         status = project.status
         priority = project.priority
+        mode = project.mode
         startDate = project.startDate
         dueDate = project.dueDate
         summary = project.summary
@@ -437,6 +701,7 @@ private struct ProjectDraft {
             summary: summary,
             status: status,
             priority: priority,
+            mode: mode,
             startDate: startDate,
             dueDate: dueDate,
             tags: tagsText.split(separator: ",").map(String.init)
@@ -450,6 +715,7 @@ private struct ProjectDraft {
         project.summary = summary
         project.status = status
         project.priority = priority
+        project.mode = mode
         project.startDate = startDate
         project.dueDate = dueDate
         project.tagsRawValue = tagsText
@@ -463,11 +729,14 @@ private struct ProjectSnapshot: Equatable {
     let type: String
     let status: String
     let priority: String
+    let mode: String
     let startDate: Date?
     let dueDate: Date?
     let summary: String
     let nextAction: String
     let tags: String
+    let repositoryPath: String
+    let repositoryBookmarkData: Data?
 
     init(project: ProjectItem) {
         name = project.name
@@ -475,11 +744,14 @@ private struct ProjectSnapshot: Equatable {
         type = project.type
         status = project.statusRawValue
         priority = project.priorityRawValue
+        mode = project.modeRawValue
         startDate = project.startDate
         dueDate = project.dueDate
         summary = project.summary
         nextAction = project.nextAction
         tags = project.tagsRawValue
+        repositoryPath = project.repositoryPath
+        repositoryBookmarkData = project.repositoryBookmarkData
     }
 }
 
@@ -518,6 +790,39 @@ private struct PriorityBadge: View {
             .padding(.vertical, 4)
             .foregroundStyle(priority == .urgent ? .red : .secondary)
             .background(.quaternary, in: Capsule())
+    }
+}
+
+private struct RepositoryHealthBadge: View {
+    let health: RepositoryHealth
+
+    private var color: Color {
+        switch health {
+        case .healthy: .green
+        case .quiet: .yellow
+        case .attention: .orange
+        case .blocked: .red
+        case .setupNeeded: .secondary
+        }
+    }
+
+    private var systemImage: String {
+        switch health {
+        case .healthy: "checkmark.circle.fill"
+        case .quiet: "moon.zzz.fill"
+        case .attention: "exclamationmark.triangle.fill"
+        case .blocked: "xmark.octagon.fill"
+        case .setupNeeded: "link.badge.plus"
+        }
+    }
+
+    var body: some View {
+        Label(health.title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.12), in: Capsule())
     }
 }
 

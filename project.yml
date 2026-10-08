@@ -14,7 +14,7 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
-    MARKETING_VERSION: "0.1.3"
+    MARKETING_VERSION: "0.1.4"
     CURRENT_PROJECT_VERSION: "1"
 
 targets:
@@ -38,18 +38,12 @@ targets:
         NSHumanReadableCopyright: Copyright © 2026 Skeema Digital. All rights reserved.
         NSSupportsAutomaticTermination: false
         NSSupportsSuddenTermination: true
-    entitlements:
-      path: Supporting/JarvisDashboard.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.security.network.client: true
     settings:
       base:
         PRODUCT_NAME: JarvisDashboard
         PRODUCT_BUNDLE_IDENTIFIER: com.skeemadigital.jarvisdashboard
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Supporting/Info.plist
-        CODE_SIGN_ENTITLEMENTS: Supporting/JarvisDashboard.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
     scheme:

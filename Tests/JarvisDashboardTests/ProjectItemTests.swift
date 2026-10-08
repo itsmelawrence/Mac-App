@@ -59,6 +59,7 @@ struct ProjectItemTests {
             summary: "Rebuild the client website.",
             status: .inReview,
             priority: .high,
+            mode: .ongoing,
             dueDate: dueDate,
             tags: ["WordPress", "SEO"]
         )
@@ -73,6 +74,7 @@ struct ProjectItemTests {
         #expect(stored.type == "Website Build")
         #expect(stored.status == .inReview)
         #expect(stored.priority == .high)
+        #expect(stored.mode == .ongoing)
         #expect(stored.dueDate == dueDate)
         #expect(stored.tags == ["WordPress", "SEO"])
     }
