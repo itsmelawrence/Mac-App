@@ -10,6 +10,16 @@ struct IntelligenceView: View {
         case briefings = "Briefings"
 
         var id: Self { self }
+
+        var systemImage: String {
+            switch self {
+            case .now: "radar"
+            case .philippines: "map.fill"
+            case .watchlist: "scope"
+            case .operations: "waveform.path.ecg.rectangle"
+            case .briefings: "sparkles"
+            }
+        }
     }
 
     @Environment(\.modelContext) private var modelContext
@@ -137,18 +147,29 @@ struct IntelligenceView: View {
         )
     }
 
+    private var significantEarthquakes: [EarthquakeEvent] {
+        earthquakes.filter { $0.magnitude >= earthquakeThreshold }
+    }
+
+    private var criticalAlertCount: Int {
+        intelligenceAlerts.count { $0.severity == .critical }
+    }
+
+    private var warningAlertCount: Int {
+        intelligenceAlerts.count { $0.severity == .warning }
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Picker("Intelligence section", selection: selectedPage) {
-                    ForEach(Page.allCases) { page in Text(page.rawValue).tag(page) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+            VStack(alignment: .leading, spacing: 18) {
+                intelligenceHeader
+                intelligenceStatusRail
+                pageNavigation
 
                 if let errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
+                        .padding(.horizontal, 2)
                 }
 
                 switch selectedPage.wrappedValue {
@@ -161,6 +182,7 @@ struct IntelligenceView: View {
             }
             .padding(28)
         }
+        .background(intelligenceBackground)
         .navigationTitle("Intelligence")
         .toolbar {
             Menu {
@@ -170,10 +192,6 @@ struct IntelligenceView: View {
             } label: {
                 Label("Intelligence actions", systemImage: "ellipsis.circle")
             }
-            Button { Task { await refresh() } } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
-            }
-            .disabled(isLoading)
         }
         .sheet(isPresented: $showingLocationPicker) {
             AddLocationView(existingNames: Set(savedLocations.map(\.name))) { preset in
@@ -203,14 +221,111 @@ struct IntelligenceView: View {
         }
     }
 
+    private var intelligenceBackground: some View {
+        LinearGradient(
+            colors: [Color(red: 0.012, green: 0.028, blue: 0.052), Color(nsColor: .windowBackgroundColor)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+
+    private var intelligenceHeader: some View {
+        HStack(alignment: .center, spacing: 18) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Intelligence Matrix")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                Text("Live situational awareness across regions, operations, and watchlists.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(intelligenceAlerts.isEmpty ? Color.green : Color.orange)
+                    .frame(width: 7, height: 7)
+                Text(intelligenceAlerts.isEmpty
+                     ? "No priority threats"
+                     : "\(intelligenceAlerts.count) priority signal\(intelligenceAlerts.count == 1 ? "" : "s")")
+                    .font(.subheadline.weight(.medium))
+            }
+            .foregroundStyle(intelligenceAlerts.isEmpty ? Color.secondary : Color.orange)
+            Button { Task { await refresh() } } label: {
+                Label(isLoading ? "Analysing" : "Refresh Intel", systemImage: isLoading ? "hourglass" : "arrow.clockwise")
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 5)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.cyan)
+            .disabled(isLoading)
+        }
+    }
+
+    private var intelligenceStatusRail: some View {
+        HStack(spacing: 0) {
+            IntelligenceRailMetric(title: "Priority signals", value: intelligenceAlerts.count, tint: intelligenceAlerts.isEmpty ? .green : .orange)
+            IntelligenceRailDivider()
+            IntelligenceRailMetric(title: "Regional events", value: significantEarthquakes.count, tint: significantEarthquakes.isEmpty ? .secondary : .orange)
+            IntelligenceRailDivider()
+            IntelligenceRailMetric(title: "Watchlist matches", value: watchlistStories.count, tint: .cyan)
+            IntelligenceRailDivider()
+            IntelligenceRailMetric(title: "Overdue ops", value: overdueTasks.count, tint: overdueTasks.isEmpty ? .secondary : .red)
+            IntelligenceRailDivider()
+            IntelligenceRailMetric(title: "Sources loaded", value: loadedSourceCount, tint: loadedSourceCount == 5 ? .green : .secondary)
+        }
+        .padding(.vertical, 14)
+        .intelligenceSurface(cornerRadius: 14)
+    }
+
+    private var loadedSourceCount: Int {
+        if lastRefreshedAt != nil && errorMessage == nil { return 5 }
+        return [
+            !savedWeather.isEmpty,
+            !regionalWeather.isEmpty,
+            !earthquakes.isEmpty,
+            newsByCategory[.philippines] != nil,
+            newsByCategory[.world] != nil
+        ].count(where: { $0 })
+    }
+
+    private var pageNavigation: some View {
+        HStack(spacing: 6) {
+            ForEach(Page.allCases) { page in
+                Button { selectedPage.wrappedValue = page } label: {
+                    Label(page.rawValue, systemImage: page.systemImage)
+                        .font(.subheadline.weight(selectedPage.wrappedValue == page ? .semibold : .regular))
+                        .foregroundStyle(selectedPage.wrappedValue == page ? Color.cyan : Color.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(
+                            selectedPage.wrappedValue == page ? Color.cyan.opacity(0.11) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 9)
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(5)
+        .intelligenceSurface(cornerRadius: 12)
+    }
+
     private var nowPage: some View {
-        Group {
-            DashboardSection(title: "Priority alerts", systemImage: "exclamationmark.shield.fill") {
+        VStack(spacing: 16) {
+            HStack(alignment: .top, spacing: 16) {
+                DashboardSection(title: "Priority signal feed", systemImage: "exclamationmark.shield.fill") {
                 if isLoading && intelligenceAlerts.isEmpty {
                     ProgressView("Analyzing live sources…").controlSize(.small)
                 } else if intelligenceAlerts.isEmpty {
-                    Label("No current signals cross your alert thresholds", systemImage: "checkmark.shield.fill")
-                        .foregroundStyle(.green)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("No current signals cross your alert thresholds", systemImage: "checkmark.shield.fill")
+                            .font(.headline)
+                            .foregroundStyle(.green)
+                        Text("Weather, seismic, and Philippine news sources remain under observation.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
                 } else {
                     VStack(spacing: 0) {
                         ForEach(intelligenceAlerts.prefix(10)) { alert in
@@ -219,44 +334,98 @@ struct IntelligenceView: View {
                         }
                     }
                 }
-
-                DisclosureGroup("Alert policy") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Earthquake threshold")
-                            Slider(value: $earthquakeThreshold, in: 3...7, step: 0.5)
-                            Text("M\(earthquakeThreshold, specifier: "%.1f")").monospacedDigit().frame(width: 42)
-                        }
-                        HStack {
-                            Text("Rain threshold")
-                            Slider(value: Binding(
-                                get: { Double(rainThreshold) },
-                                set: { rainThreshold = Int($0) }
-                            ), in: 40...100, step: 5)
-                            Text("\(rainThreshold)%").monospacedDigit().frame(width: 42)
-                        }
-                        Toggle("Notify me about new warning and critical signals", isOn: $notificationsEnabled)
-                        if notificationsEnabled {
-                            HStack {
-                                Text("Quiet hours")
-                                Picker("Start", selection: $quietStartHour) {
-                                    ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
-                                }
-                                Picker("End", selection: $quietEndHour) {
-                                    ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
-                                }
-                            }
-                        }
-                        Text("Weather signals use forecast data; disaster and evacuation decisions must be confirmed with PAGASA, PHIVOLCS, and local authorities.")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding(.top, 10)
                 }
-            }
+                .frame(maxWidth: .infinity)
 
+                situationPanel.frame(width: 300)
+            }
             savedLocationsSection
         }
+    }
+
+    private var situationPanel: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Situation brief", systemImage: "dot.radiowaves.left.and.right")
+                .font(.headline)
+
+            if let weather = primaryWeather {
+                HStack(spacing: 12) {
+                    Image(systemName: weather.systemImage)
+                        .font(.system(size: 27))
+                        .foregroundStyle(.cyan)
+                        .frame(width: 36)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(Int(weather.temperature.rounded()))°C · \(weather.condition)")
+                            .font(.subheadline.weight(.semibold))
+                        Text(weather.locationName).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                Label("Weather awaiting refresh", systemImage: "cloud")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+
+            Divider().opacity(0.5)
+
+            SituationLine(label: "Critical", value: criticalAlertCount, tint: .red)
+            SituationLine(label: "Warnings", value: warningAlertCount, tint: .orange)
+            SituationLine(label: "Regional events", value: significantEarthquakes.count, tint: .yellow)
+            SituationLine(label: "Overdue operations", value: overdueTasks.count, tint: .red)
+
+            Divider().opacity(0.5)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("CHANGE DETECTION")
+                    .font(.caption2.weight(.bold)).tracking(1).foregroundStyle(.secondary)
+                Text(changeSummary.sentence)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            DisclosureGroup("Alert policy") {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text("Earthquake")
+                            Spacer()
+                            Text("M\(earthquakeThreshold, specifier: "%.1f")").monospacedDigit()
+                        }
+                        Slider(value: $earthquakeThreshold, in: 3...7, step: 0.5)
+                    }
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text("Rain probability")
+                            Spacer()
+                            Text("\(rainThreshold)%").monospacedDigit()
+                        }
+                        Slider(value: Binding(
+                            get: { Double(rainThreshold) },
+                            set: { rainThreshold = Int($0) }
+                        ), in: 40...100, step: 5)
+                    }
+                    Toggle("Critical notifications", isOn: $notificationsEnabled)
+                    if notificationsEnabled {
+                        HStack {
+                            Picker("Quiet from", selection: $quietStartHour) {
+                                ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
+                            }
+                            Picker("until", selection: $quietEndHour) {
+                                ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 8)
+            }
+            .font(.caption)
+
+            Text("Confirm emergency decisions with PAGASA, PHIVOLCS, and local authorities.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(18)
+        .intelligenceSurface(cornerRadius: 14, highlighted: true)
     }
 
     private var philippinesPage: some View {
@@ -663,6 +832,57 @@ private struct IntelligenceMetricCard: View {
         .padding(16)
         .frame(maxWidth: .infinity)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+private struct IntelligenceRailMetric: View {
+    let title: String
+    let value: Int
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("\(value)")
+                .font(.title2.monospacedDigit().weight(.bold))
+                .foregroundStyle(tint)
+            Text(title).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 18)
+    }
+}
+
+private struct IntelligenceRailDivider: View {
+    var body: some View { Divider().frame(height: 34) }
+}
+
+private struct SituationLine: View {
+    let label: String
+    let value: Int
+    let tint: Color
+
+    var body: some View {
+        HStack {
+            Text(label).foregroundStyle(.secondary)
+            Spacer()
+            Text("\(value)")
+                .font(.subheadline.monospacedDigit().weight(.semibold))
+                .foregroundStyle(value > 0 ? tint : Color.secondary)
+        }
+        .font(.subheadline)
+    }
+}
+
+private extension View {
+    func intelligenceSurface(cornerRadius: CGFloat, highlighted: Bool = false) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(highlighted ? 0.72 : 0.58))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(highlighted ? Color.cyan.opacity(0.30) : Color.white.opacity(0.07), lineWidth: 1)
+                )
+        )
     }
 }
 

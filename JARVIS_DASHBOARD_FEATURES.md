@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.1.17
+**Current version:** 0.1.18
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
 
@@ -241,6 +241,14 @@ Repository checks run with Git optional locks and terminal prompts disabled. JAR
 ## 4. Intelligence
 
 The Intelligence centre combines live external information with local tasks and projects. It contains five pages: **Now**, **Philippines**, **Watchlist**, **Operations**, and **Briefings**.
+
+### Intelligence matrix layout
+
+- Presents a persistent status rail for priority signals, regional events, watchlist matches, overdue operations, and loaded sources.
+- Uses a dedicated navigation strip for **Now**, **Philippines**, **Watchlist**, **Operations**, and **Briefings**.
+- Places the priority signal feed beside a compact situation brief instead of mixing every source into one card grid.
+- Shows critical and warning counts, primary-location weather, change detection, and alert thresholds in one stable analysis column.
+- Keeps live refresh prominent while retaining available results when individual providers fail.
 
 ### 4.1 Now
 
