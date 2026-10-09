@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.1.13
+**Current version:** 0.1.17
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
 
@@ -78,7 +78,16 @@ The Today screen is a fixed-hierarchy command centre rather than a collection of
 
 ## 2. Tasks
 
-The Tasks section is a lightweight personal action manager.
+The Tasks section is an operational mission queue rather than a passive checklist.
+
+### Mission control layout
+
+- Surfaces the highest-priority actionable task as **Priority now**.
+- Shows live counts for open, due-today, overdue, blocked, and completed work.
+- Filters the queue by operational state and individual project.
+- Searches task titles, notes, blocking reasons, and linked project names.
+- Displays completion momentum without allowing completed work to dominate the active queue.
+- Uses restrained urgency colours so overdue and blocked work is immediately visible.
 
 ### Task creation
 

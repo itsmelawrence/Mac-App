@@ -12,6 +12,7 @@
 		1A4CD816842A7BCCF2A25F6B /* JarvisCommandEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3894B477148C693086708ABB /* JarvisCommandEngine.swift */; };
 		1B654DCF44418E45064FC3C9 /* SpeechServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 463546401670CFBB95386BFC /* SpeechServiceTests.swift */; };
 		1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D3E361632FD5BDFF57EAED /* TaskItem.swift */; };
+		21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */; };
 		302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */; };
 		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
 		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
@@ -32,6 +33,7 @@
 		9CC54BFA367BF803357360B3 /* MonitoringHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AECC040E2CE1B8AD502271 /* MonitoringHealth.swift */; };
 		A035E86236F77399BA88B212 /* MonitoringAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */; };
 		A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */; };
+		A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */; };
 		A9ADE8ED59F0E10599D961EF /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE0303E41DC4C80F1F68571 /* TasksView.swift */; };
 		AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */; };
 		ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */; };
@@ -77,6 +79,7 @@
 		3894B477148C693086708ABB /* JarvisCommandEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisCommandEngine.swift; sourceTree = "<group>"; };
 		39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringSiteCredentialStore.swift; sourceTree = "<group>"; };
 		3B1676D6679B29E4122F6E3E /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
+		3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueEngineTests.swift; sourceTree = "<group>"; };
 		3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPIService.swift; sourceTree = "<group>"; };
 		463546401670CFBB95386BFC /* SpeechServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechServiceTests.swift; sourceTree = "<group>"; };
 		498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryService.swift; sourceTree = "<group>"; };
@@ -100,6 +103,7 @@
 		C0C7D173283F605CA610779F /* ProjectItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectItem.swift; sourceTree = "<group>"; };
 		C39902BB88D836CA9896FAE1 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceNotificationService.swift; sourceTree = "<group>"; };
+		D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueEngine.swift; sourceTree = "<group>"; };
 		D418DFEB339CA429E99244AE /* MonitoringHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringHealthTests.swift; sourceTree = "<group>"; };
 		D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceView.swift; sourceTree = "<group>"; };
 		DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsServiceTests.swift; sourceTree = "<group>"; };
@@ -171,6 +175,7 @@
 				DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */,
 				10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */,
 				463546401670CFBB95386BFC /* SpeechServiceTests.swift */,
+				3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */,
 				73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */,
 			);
 			path = JarvisDashboardTests;
@@ -231,6 +236,7 @@
 				0667036D8A5683EE9111E98D /* NewsService.swift */,
 				2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */,
 				A962457DF4DD94ED621844A8 /* SpeechService.swift */,
+				D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */,
 				9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */,
 				E946B3F227D267E00F6D9C73 /* WeatherService.swift */,
 			);
@@ -350,6 +356,7 @@
 				DBA2EB3D421963F5B225E7EC /* NewsServiceTests.swift in Sources */,
 				302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */,
 				1B654DCF44418E45064FC3C9 /* SpeechServiceTests.swift in Sources */,
+				21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */,
 				526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -385,6 +392,7 @@
 				E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */,
 				C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */,
 				1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */,
+				A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */,
 				A9ADE8ED59F0E10599D961EF /* TasksView.swift in Sources */,
 				B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */,
 				F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */,
@@ -459,7 +467,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.16;
+				MARKETING_VERSION = 0.1.17;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -591,7 +599,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.16;
+				MARKETING_VERSION = 0.1.17;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
