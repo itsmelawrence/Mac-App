@@ -1,6 +1,7 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.1.18
+**Current version:** 0.2.0
+
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
 
@@ -477,8 +478,11 @@ JARVIS remains accessible from the macOS menu bar.
 
 ### Data and privacy notice
 
+- Exports and restores a versioned JSON backup of tasks, projects, saved locations, and non-secret preferences.
+- Previews new, updated, and skipped records before Merge or confirmed Replace.
+- Creates daily and pre-migration backups, retains the configured number, and supports a user-chosen folder.
 - Explains that tasks and projects are stored locally.
-- Explains that NewsAPI.org and monitoring API credentials are stored in Keychain.
+- Explains that NewsAPI.org and monitoring API credentials are stored in Keychain and excluded from every backup.
 - Notes that live services receive only the information required for their requests.
 
 ---
@@ -568,7 +572,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.1.18.zip`
+`dist/JARVIS-Dashboard-0.2.0.zip`
 
 The installed application is expected at:
 

@@ -16,12 +16,14 @@
 		302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */; };
 		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
 		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
+		343108046F415B870B70645F /* JarvisDataSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */; };
 		39FD65A8C15F0D3D9989C601 /* MotivationalQuoteServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F41B209EF204B77186B9DFC /* MotivationalQuoteServiceTests.swift */; };
 		3AF3EC2ECB722AD98AFCF877 /* MonitoringAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D8AECA276ED2E7DCE563AE /* MonitoringAPIServiceTests.swift */; };
 		3EEA784EBF63F8D872D731CA /* GitRepositoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */; };
 		40885B1ADEBE3753843F8A54 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E946B3F227D267E00F6D9C73 /* WeatherService.swift */; };
 		4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6319322836627DA4F54FAD /* LoginItemService.swift */; };
 		4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */; };
+		50479114E93D90F40F989C23 /* JarvisBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F58FE3B6B29601D526900C /* JarvisBackupService.swift */; };
 		51A37F652CB4E6DFB044CB05 /* MotivationalQuoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED09AD3EE3606647297A1CE /* MotivationalQuoteService.swift */; };
 		526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */; };
 		721999F6EF250D7B692A3EDF /* BriefingComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */; };
@@ -40,6 +42,7 @@
 		B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DF1F9E077E514D300D8146 /* TodayView.swift */; };
 		B926C297CAE8CCFF614BC0D2 /* MonitoringSiteCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */; };
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
+		BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */; };
 		C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A962457DF4DD94ED621844A8 /* SpeechService.swift */; };
 		D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C7D173283F605CA610779F /* ProjectItem.swift */; };
 		D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E664AC10761E65E6FED7D18 /* Assets.xcassets */; };
@@ -51,6 +54,7 @@
 		E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */; };
 		E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */; };
 		EDCFF725B6A12152431016B4 /* MonitoringHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D418DFEB339CA429E99244AE /* MonitoringHealthTests.swift */; };
+		EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */; };
 		F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */; };
 		FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */; };
 /* End PBXBuildFile section */
@@ -81,8 +85,11 @@
 		3B1676D6679B29E4122F6E3E /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
 		3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueEngineTests.swift; sourceTree = "<group>"; };
 		3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPIService.swift; sourceTree = "<group>"; };
+		3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupServiceTests.swift; sourceTree = "<group>"; };
+		42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDataSchema.swift; sourceTree = "<group>"; };
 		463546401670CFBB95386BFC /* SpeechServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechServiceTests.swift; sourceTree = "<group>"; };
 		498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryService.swift; sourceTree = "<group>"; };
+		54F58FE3B6B29601D526900C /* JarvisBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupService.swift; sourceTree = "<group>"; };
 		5F41B209EF204B77186B9DFC /* MotivationalQuoteServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteServiceTests.swift; sourceTree = "<group>"; };
 		629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisCommandEngineTests.swift; sourceTree = "<group>"; };
 		661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceEngineTests.swift; sourceTree = "<group>"; };
@@ -97,6 +104,7 @@
 		9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposerTests.swift; sourceTree = "<group>"; };
 		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
 		A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarthquakeService.swift; sourceTree = "<group>"; };
+		A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSettingsView.swift; sourceTree = "<group>"; };
 		A962457DF4DD94ED621844A8 /* SpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechService.swift; sourceTree = "<group>"; };
 		AD6319322836627DA4F54FAD /* LoginItemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemService.swift; sourceTree = "<group>"; };
 		B4D8AECA276ED2E7DCE563AE /* MonitoringAPIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPIServiceTests.swift; sourceTree = "<group>"; };
@@ -120,6 +128,7 @@
 		1F2C4CD0712B7E3362C7D688 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */,
 				E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */,
 				D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */,
 				6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */,
@@ -167,6 +176,7 @@
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
 				2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */,
 				661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */,
+				3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */,
 				629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */,
 				B4D8AECA276ED2E7DCE563AE /* MonitoringAPIServiceTests.swift */,
 				D418DFEB339CA429E99244AE /* MonitoringHealthTests.swift */,
@@ -225,7 +235,9 @@
 				498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */,
 				F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */,
 				C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */,
+				54F58FE3B6B29601D526900C /* JarvisBackupService.swift */,
 				3894B477148C693086708ABB /* JarvisCommandEngine.swift */,
+				42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */,
 				AD6319322836627DA4F54FAD /* LoginItemService.swift */,
 				776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */,
 				3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */,
@@ -348,6 +360,7 @@
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
 				AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */,
 				DDAE33EEC8D1C276092B865E /* IntelligenceEngineTests.swift in Sources */,
+				BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */,
 				9B014AA708572162BF677B1F /* JarvisCommandEngineTests.swift in Sources */,
 				3AF3EC2ECB722AD98AFCF877 /* MonitoringAPIServiceTests.swift in Sources */,
 				EDCFF725B6A12152431016B4 /* MonitoringHealthTests.swift in Sources */,
@@ -366,6 +379,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */,
+				EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */,
 				721999F6EF250D7B692A3EDF /* BriefingComposer.swift in Sources */,
 				A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */,
 				E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */,
@@ -373,8 +387,10 @@
 				E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */,
 				E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */,
 				8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */,
+				50479114E93D90F40F989C23 /* JarvisBackupService.swift in Sources */,
 				1A4CD816842A7BCCF2A25F6B /* JarvisCommandEngine.swift in Sources */,
 				4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */,
+				343108046F415B870B70645F /* JarvisDataSchema.swift in Sources */,
 				4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */,
 				FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */,
 				16CE5D7DDFC05390D8D22A80 /* MonitoringAPICredentialStore.swift in Sources */,
@@ -467,7 +483,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -599,7 +615,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.18;
+				MARKETING_VERSION = 0.2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

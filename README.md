@@ -41,6 +41,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Native SwiftUI macOS application
 - Command-centre Today dashboard with live operational hierarchy, monitoring health, fixed-grid intelligence, and a local Ask JARVIS console
 - Persistent Tasks Mission Queue and project operations using SwiftData
+- Versioned local-data schema with daily backups, secret-free JSON export, previewed merge/replace restore, and configurable rotation
 - Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion
 - Fixed and ongoing-client project modes, with read-only local Git repository health and activity summaries for ongoing work
 - Project-level website monitoring setup with platform selection, API registration, editable site details, and per-project reporter tokens stored in Keychain

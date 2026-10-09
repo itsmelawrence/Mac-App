@@ -197,8 +197,12 @@ struct SettingsView: View {
                 Link("Open Laravel Cloud", destination: URL(string: "https://cloud.laravel.com")!)
             }
 
+            Section("Data, backup and restore") {
+                BackupSettingsView()
+            }
+
             Section("Data and privacy") {
-                Text("Tasks and projects are stored locally. NewsAPI.org and monitoring API credentials are stored in macOS Keychain. Live services receive only the information required for their requests.")
+                Text("Tasks, projects, locations, and backups are stored locally. NewsAPI.org and monitoring API credentials are stored in macOS Keychain and excluded from backups and exports. Live services receive only the information required for their requests.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

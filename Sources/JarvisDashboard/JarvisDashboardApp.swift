@@ -7,12 +7,14 @@ struct JarvisDashboardApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var wakeMonitor = WakeMonitor()
     @StateObject private var speechService = SpeechService.shared
+    @StateObject private var backupCoordinator = BackupCoordinator()
 
     private let modelContainer: ModelContainer
 
     init() {
         do {
-            modelContainer = try ModelContainer(for: TaskItem.self, ProjectItem.self, SavedLocation.self)
+            try MigrationSafetyBackup.createIfNeeded(targetVersion: "1.0.0")
+            modelContainer = try JarvisDataStore.makeContainer()
         } catch {
             fatalError("Unable to create the JARVIS data store: \(error.localizedDescription)")
         }
@@ -24,6 +26,7 @@ struct JarvisDashboardApp: App {
                 .environmentObject(appState)
                 .environmentObject(wakeMonitor)
                 .environmentObject(speechService)
+                .environmentObject(backupCoordinator)
                 .task {
                     wakeMonitor.start { sleepDuration in
                         guard appState.showWakeBriefing,
@@ -51,6 +54,7 @@ struct JarvisDashboardApp: App {
             SettingsView()
                 .environmentObject(appState)
                 .environmentObject(speechService)
+                .modelContainer(modelContainer)
         }
     }
 }

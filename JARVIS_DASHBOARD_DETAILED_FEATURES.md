@@ -1,6 +1,7 @@
 # JARVIS Dashboard — Detailed Product and Feature Specification
 
-**Current release:** 0.1.18  
+**Current release:** 0.2.0
+
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first productivity, operations, and intelligence dashboard  
 **Bundle identifier:** `com.skeemadigital.jarvisdashboard`
@@ -24,7 +25,7 @@ The primary window uses a native macOS sidebar with five destinations:
 - **Tasks** — operational mission queue
 - **Projects** — project, repository, and website operations
 - **Intelligence** — regional, news, and operational intelligence
-- **Settings** — startup, voice, notifications, API credentials, and privacy
+- **Settings** — startup, voice, notifications, API credentials, backup, restore, and privacy
 
 The application also includes:
 
@@ -655,6 +656,20 @@ The application does not contain or distribute the copyrighted cinematic JARVIS 
 - Reports site, incident, and security-finding totals after a successful test.
 - Replaces or removes the saved token.
 
+### Data, backup, and restore
+
+- Exports tasks, projects, saved locations, and an explicit allow-list of non-secret preferences to a versioned JSON backup.
+- Shows new, updated, and skipped record counts before importing.
+- Merges by stable identifiers without creating duplicates.
+- Replaces all local records only after the user types `REPLACE` and JARVIS creates a safety backup.
+- Rejects malformed files and backups from a newer schema without changing local data.
+- Creates an automatic snapshot when due and checks again every six hours while the app remains open.
+- Creates a raw store backup before opening a newly versioned SwiftData schema.
+- Uses Application Support by default or a user-chosen backup folder.
+- Retains the newest configured number of snapshots; the default is 14.
+- Shows the last backup time and provides Back Up Now, Choose Folder, Reveal in Finder, and guided Restore controls.
+- Explains that Keychain credentials are excluded and must be entered again on a new Mac.
+
 ### Cost guard and privacy
 
 - Links to Laravel Cloud billing controls.
@@ -670,6 +685,7 @@ Stored locally:
 - Tasks
 - Projects
 - Saved weather locations
+- A formal versioned schema and migration plan protect future model changes.
 
 ### Application preferences
 
@@ -694,6 +710,15 @@ Stored securely:
 - Monitoring read token
 - Monitoring site-registration/admin token
 - Per-project reporter tokens
+
+### Versioned backups
+
+- Backup schema version, application version, and export timestamp
+- Every persisted task and project field, including task-to-project identifiers
+- Saved locations and non-secret preferences
+- Repository bookmarks for same-Mac recovery; macOS may require repository access to be granted again on another Mac
+- No NewsAPI key, monitoring token, site-registration token, or reporter token
+- Automatic rotation to the configured retention count
 
 ### External request boundaries
 
@@ -746,6 +771,7 @@ Current automated coverage includes:
 - Monitoring request construction and response parsing
 - Monitoring-health scoring
 - Speech settings logic
+- Backup round trips, secret exclusion, validation, idempotent merge, replace safeguards, rotation, and migration from the 0.1.18 unversioned store
 
 ## 18. Product Boundaries
 
@@ -768,7 +794,7 @@ The planned iOS application can reuse the Laravel Monitoring API later, but it i
 
 Current distributable archive:
 
-`dist/JARVIS-Dashboard-0.1.18.zip`
+`dist/JARVIS-Dashboard-0.2.0.zip`
 
 Installed application location:
 
