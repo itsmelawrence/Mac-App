@@ -4,7 +4,12 @@ A local-first macOS command centre for tasks, projects, briefings, weather, news
 
 The application icon uses the letter-free JARVIS HUD artwork in `Supporting/Brand/JarvisIconMaster.png`; the complete macOS icon set is generated under `Supporting/Assets.xcassets`.
 
-At launch, the supplied self-contained HTML animation runs as a native full-window WebKit overlay while the dashboard refreshes beneath it. The overlay fades only after both the 3.8-second animation and the first dashboard data attempt have completed.
+JARVIS opens directly into the native dashboard. The earlier full-window startup animation was intentionally removed so launch remains immediate and unobtrusive.
+
+Documentation:
+
+- [Detailed product and feature specification](JARVIS_DASHBOARD_DETAILED_FEATURES.md)
+- [Complete feature reference](JARVIS_DASHBOARD_FEATURES.md)
 
 ## Requirements
 
@@ -35,12 +40,13 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 
 - Native SwiftUI macOS application
 - Command-centre Today dashboard with live operational hierarchy, monitoring health, fixed-grid intelligence, and a local Ask JARVIS console
-- Persistent tasks and projects using SwiftData
+- Persistent Tasks Mission Queue and project operations using SwiftData
 - Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion
 - Fixed and ongoing-client project modes, with read-only local Git repository health and activity summaries for ongoing work
 - Project-level website monitoring setup with platform selection, API registration, editable site details, and per-project reporter tokens stored in Keychain
 - Live monitoring fleet summary, health sorting/filtering, explainable site-health gauges, and per-project Security & Maintenance details
-- Intelligence centre with priority alerts, Philippine conditions, editable watchlists, operational signals, change-aware briefings, and opt-in quiet-hour notifications
+- Intelligence Matrix with priority alerts, Philippine conditions, editable watchlists, operational signals, change-aware briefings, and opt-in quiet-hour notifications
+- Local configurable JARVIS text-to-speech using installed macOS voices
 - Menu-bar command centre
 - Launch-at-login setting using `SMAppService`
 - Sleep/wake monitoring and configurable wake briefings

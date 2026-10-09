@@ -16,7 +16,7 @@ The application has five main sections:
 4. **Intelligence**
 5. **Settings**
 
-It also includes a menu-bar command centre, a coordinated startup splash, launch-at-login support, sleep/wake monitoring, local notifications, and floating briefing panels.
+It also includes a menu-bar command centre, launch-at-login support, sleep/wake monitoring, local notifications, local text-to-speech, and floating briefing panels.
 
 ---
 
@@ -525,8 +525,8 @@ JARVIS remains accessible from the macOS menu bar.
 
 - Native SwiftUI interface designed for macOS.
 - Letter-free JARVIS HUD application icon.
-- Dark, futuristic startup presentation.
-- Adaptive dashboard grids for varying window widths.
+- Dark command-centre visual system with stable screen hierarchies.
+- Responsive native layouts for varying window widths.
 - Native materials, panels, forms, menus, search, links, and keyboard shortcuts.
 - Minimum main-window size of 900 × 600 and default size of 1180 × 760.
 - Dedicated menu-bar extra.
@@ -538,14 +538,14 @@ JARVIS remains accessible from the macOS menu bar.
 - SwiftUI for the interface.
 - SwiftData for local task, project, and location persistence.
 - AppKit for the floating briefing panel and workspace events.
-- WebKit for the startup animation.
+- AVFoundation and macOS speech synthesis for local text-to-speech.
 - URLSession with Swift concurrency for live providers.
 - UserNotifications for reminders and Intelligence alerts.
 - ServiceManagement for launch-at-login registration.
 - Security framework/Keychain for NewsAPI.org and monitoring API credentials.
 - Local `/usr/bin/git` commands for read-only repository inspection.
 - XcodeGen configuration for generating the Xcode project.
-- Unit coverage for briefing composition, weather mapping, news parsing, NewsAPI parsing, project behaviour, Git health, Intelligence rules, and splash readiness.
+- Unit coverage for briefing composition, task prioritisation, weather mapping, news parsing, NewsAPI parsing, project behaviour, Git health, monitoring health, Intelligence rules, and speech preferences.
 
 ---
 
@@ -568,7 +568,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.1.13.zip`
+`dist/JARVIS-Dashboard-0.1.18.zip`
 
 The installed application is expected at:
 
