@@ -33,9 +33,9 @@ struct JarvisCommandEngineTests {
         #expect(result.response.contains("2 overdue"))
     }
 
-    @Test func monitoringCommandRoutesToProjectsWithHealth() {
+    @Test func monitoringCommandReportsHealthWithoutLeavingConsole() {
         let result = JarvisCommandEngine.execute("How are my websites?", context: context)
-        #expect(result.destination == .projects)
+        #expect(result.destination == nil)
         #expect(result.response.contains("JAK Pest Control Services"))
         #expect(result.response.contains("awaiting checks"))
     }
@@ -50,7 +50,7 @@ struct JarvisCommandEngineTests {
 
     @Test func nextActionUsesTaskName() {
         let result = JarvisCommandEngine.execute("What should I work on?", context: context)
-        #expect(result.destination == .tasks)
+        #expect(result.destination == nil)
         #expect(result.response.contains("Review JAK proposal"))
     }
 
@@ -73,7 +73,7 @@ struct JarvisCommandEngineTests {
         )
         let result = JarvisCommandEngine.execute("Are my sites healthy?", context: unavailable)
         #expect(result.response.contains("cannot confirm"))
-        #expect(result.destination == .settings)
+        #expect(result.destination == nil)
     }
 
     @Test func maintenanceIsNotReportedHealthy() {

@@ -45,30 +45,30 @@ enum JarvisCommandEngine {
             if context.maintenanceSites > 0 { items.append("\(context.maintenanceSites) \(plural("site", context.maintenanceSites)) in maintenance") }
             if context.monitoredSites > 0 && !context.monitoringAvailable { items.append("monitoring data is unavailable") }
             let message = items.isEmpty ? "Nothing currently requires attention in the available dashboard data." : "Attention required: \(items.joined(separator: "; "))."
-            return result(message, destination: .today)
+            return result(message)
         }
         if contains(input, ["what should i work on", "what should i do", "next task", "next action", "my priority", "focus now"]) {
-            if let task = context.priorityTask { return result("Your next actionable task is “\(task)”.", destination: .tasks) }
-            if let blocked = context.blockedTaskNames.first { return result("No unblocked task is ready. “\(blocked)” is blocked; review its blocker in Tasks.", destination: .tasks) }
-            return result("Your task queue is clear. No next action is recorded.", destination: .tasks)
+            if let task = context.priorityTask { return result("Your next actionable task is “\(task)”.") }
+            if let blocked = context.blockedTaskNames.first { return result("No unblocked task is ready. “\(blocked)” is blocked; review its blocker in Tasks.") }
+            return result("Your task queue is clear. No next action is recorded.")
         }
         if contains(input, ["blocked", "blockers", "stuck"]) {
-            return result(namedSummary(context.blockedTaskNames, empty: "No blocked tasks are recorded.", prefix: "Blocked tasks"), destination: .tasks)
+            return result(namedSummary(context.blockedTaskNames, empty: "No blocked tasks are recorded.", prefix: "Blocked tasks"))
         }
         if contains(input, ["waiting on client", "waiting clients", "clients are waiting", "waiting projects"]) {
-            return result(namedSummary(context.waitingProjectNames, empty: "No projects are marked waiting on a client.", prefix: "Waiting on clients"), destination: .projects)
+            return result(namedSummary(context.waitingProjectNames, empty: "No projects are marked waiting on a client.", prefix: "Waiting on clients"))
         }
         if contains(input, ["weather", "temperature", "rain"]) {
             return result(context.weatherReport ?? "Weather data is unavailable. Refresh Today and try again.")
         }
         if contains(input, ["site health", "sites healthy", "websites healthy", "sites down", "which sites", "how are my websites", "how are my sites", "monitoring status"]) {
-            guard context.monitoredSites > 0 else { return result("No monitored websites are connected.", destination: .projects) }
-            guard context.monitoringAvailable else { return result("Monitoring data is unavailable. I cannot confirm whether your websites are healthy. Check the API connection in Settings.", destination: .settings) }
+            guard context.monitoredSites > 0 else { return result("No monitored websites are connected.") }
+            guard context.monitoringAvailable else { return result("Monitoring data is unavailable. I cannot confirm whether your websites are healthy. Check the API connection in Settings.") }
             var parts: [String] = []
             if !context.unhealthySiteNames.isEmpty { parts.append(namedSummary(context.unhealthySiteNames, empty: "", prefix: "Needs attention")) }
             if context.unverifiedSites > 0 { parts.append("\(context.unverifiedSites) \(plural("site", context.unverifiedSites)) awaiting checks.") }
             if context.maintenanceSites > 0 { parts.append("\(context.maintenanceSites) \(plural("site", context.maintenanceSites)) in maintenance.") }
-            return result(parts.isEmpty ? "All \(context.monitoredSites) monitored websites are healthy." : parts.joined(separator: " "), destination: .projects)
+            return result(parts.isEmpty ? "All \(context.monitoredSites) monitored websites are healthy." : parts.joined(separator: " "))
         }
         if contains(input, ["task", "to-do", "todo", "overdue"]) {
             let response = context.overdueTasks > 0

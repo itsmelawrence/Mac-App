@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Detailed Product and Feature Specification
 
-**Current release:** 0.2.0
+**Current release:** 0.2.1
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first productivity, operations, and intelligence dashboard  
@@ -797,7 +797,7 @@ The planned iOS application can reuse the Laravel Monitoring API later, but it i
 
 Current distributable archive:
 
-`dist/JARVIS-Dashboard-0.2.0.zip`
+`dist/JARVIS-Dashboard-0.2.1.zip`
 
 Installed application location:
 

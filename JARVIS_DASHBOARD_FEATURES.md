@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.2.0
+**Current version:** 0.2.1
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
@@ -574,7 +574,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.2.0.zip`
+`dist/JARVIS-Dashboard-0.2.1.zip`
 
 The installed application is expected at:
 
