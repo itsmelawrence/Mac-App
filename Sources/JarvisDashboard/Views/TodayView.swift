@@ -10,8 +10,10 @@ struct TodayView: View {
 
     @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
     @State private var weather: WeatherSnapshot?
+    @State private var hasFreshWeather = false
     @State private var earthquakes: [EarthquakeEvent] = []
     @State private var monitoringSites: [String: MonitoringSite] = [:]
+    @State private var hasLoadedMonitoring = false
     @State private var isRefreshing = false
     @State private var refreshError: String?
     @State private var monitoringError: String?
@@ -86,13 +88,33 @@ struct TodayView: View {
         )
     }
     private var commandContext: JarvisCommandContext {
-        JarvisCommandContext(
+        let unhealthy = monitoredProjects.filter {
+            let state = monitoringHealth(for: $0).state
+            return state == .down || state == .critical || state == .needsAttention
+        }
+        let unverified = monitoredProjects.filter {
+            let state = monitoringHealth(for: $0).state
+            return state == .stale || state == .awaitingChecks
+        }
+        let maintenance = monitoredProjects.filter { monitoringHealth(for: $0).state == .maintenance }
+        let weatherReport = (hasFreshWeather ? weather : nil).map {
+            "In \($0.locationName), it is \(Int($0.temperature.rounded()))°C and \($0.condition.lowercased()). Rain probability is \($0.precipitationProbability)%."
+        }
+        return JarvisCommandContext(
             briefing: briefing,
             pendingTasks: pendingTasks.count,
             overdueTasks: overdueTasks.count,
             activeProjects: operationalProjects.count,
             monitoredSites: monitoredProjects.count,
-            unhealthySites: unhealthySiteCount
+            unhealthySites: unhealthy.count,
+            unverifiedSites: unverified.count,
+            maintenanceSites: maintenance.count,
+            monitoringAvailable: hasLoadedMonitoring,
+            priorityTask: TaskQueueEngine.focusTask(from: pendingTasks.filter { !$0.isBlocked })?.title,
+            blockedTaskNames: TaskQueueEngine.sorted(blockedTasks).map(\.title),
+            waitingProjectNames: waitingProjects.map(\.name),
+            unhealthySiteNames: unhealthy.map(\.name),
+            weatherReport: weatherReport
         )
     }
 
@@ -367,6 +389,8 @@ struct TodayView: View {
         async let monitoringRequest: [MonitoringSite]? = refreshMonitoringSites()
         let (newWeather, newEarthquakes, newMonitoringSites) = await (weatherRequest, earthquakeRequest, monitoringRequest)
 
+        hasFreshWeather = newWeather != nil
+        hasLoadedMonitoring = newMonitoringSites != nil
         if let newWeather { weather = newWeather }
         if let newEarthquakes { earthquakes = newEarthquakes }
         if let newMonitoringSites {
@@ -526,7 +550,7 @@ private struct JarvisCommandConsole: View {
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             HStack(spacing: 10) {
-                TextField("Ask for a briefing or open a system…", text: $command)
+                TextField("Ask what needs attention or for your next task…", text: $command)
                     .textFieldStyle(.roundedBorder).focused($commandFocused).onSubmit(executeCommand)
                 Button("Execute", action: executeCommand)
                     .buttonStyle(.borderedProminent).tint(.cyan)
@@ -537,12 +561,12 @@ private struct JarvisCommandConsole: View {
                 .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
                 .textSelection(.enabled)
             HStack(spacing: 8) {
-                ForEach(["Brief me", "Show tasks", "Project status", "Open intelligence"], id: \.self) { suggestion in
+                ForEach(["Brief me", "What needs attention?", "What should I work on?", "Are my sites healthy?"], id: \.self) { suggestion in
                     Button(suggestion) { command = suggestion; executeCommand() }
                         .buttonStyle(.bordered).controlSize(.small)
                 }
             }
-            Text("Commands are processed locally. JARVIS currently handles briefings, navigation, task counts, project status, monitoring, intelligence, weather, news, and voice settings.")
+            Text("Commands are processed locally from dashboard data. Ask for help to see supported phrases. No request is sent to an LLM.")
                 .font(.caption2).foregroundStyle(.tertiary)
         }
         .padding(26)
@@ -555,7 +579,7 @@ private struct JarvisCommandConsole: View {
         let result = JarvisCommandEngine.execute(command, context: context)
         response = result.response
         onResult(result)
-        if result.destination != nil && !result.shouldSpeak {
+        if result.response.contains("Opening") && result.destination != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { dismiss() }
         }
     }

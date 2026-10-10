@@ -57,6 +57,9 @@ Today is the main overview rather than a miscellaneous widget board. It uses a f
 - Speaks the briefing when requested.
 - Routes the user to Tasks, Projects, Intelligence, weather/news information, or Settings.
 - Answers supported questions about task counts, active projects, and monitored-site health.
+- Names the next actionable task, blocked tasks, and projects waiting on clients.
+- Summarises attention items and distinguishes unhealthy sites from sites awaiting checks or unavailable monitoring data.
+- Reports the most recently refreshed weather for the primary location, or states when a fresh report is unavailable.
 - Explains currently supported capabilities when a request is not understood.
 
 ### 3.3 Daily briefing

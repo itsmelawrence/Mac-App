@@ -32,6 +32,8 @@ The Today screen is a fixed-hierarchy command centre rather than a collection of
 - Presents the current briefing and can speak it through the configured macOS voice.
 - Opens Tasks, Projects, Intelligence, weather/news signals, and Settings from plain-language commands.
 - Answers task-count and project/website-health requests using current dashboard data.
+- Identifies attention items, the next actionable task, blocked tasks, and projects waiting on clients.
+- Reports observed weather and refuses to label sites healthy when monitoring checks are unavailable.
 - Provides explicit capability guidance for commands that are not yet supported.
 
 ### Daily briefing
