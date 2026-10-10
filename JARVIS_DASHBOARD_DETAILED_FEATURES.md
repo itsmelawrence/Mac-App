@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Detailed Product and Feature Specification
 
-**Current release:** 0.2.1
+**Current release:** 0.2.2
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first productivity, operations, and intelligence dashboard  
@@ -60,6 +60,9 @@ Today is the main overview rather than a miscellaneous widget board. It uses a f
 - Names the next actionable task, blocked tasks, and projects waiting on clients.
 - Summarises attention items and distinguishes unhealthy sites from sites awaiting checks or unavailable monitoring data.
 - Reports the most recently refreshed weather for the primary location, or states when a fresh report is unavailable.
+- Answers questions about a named project with a structured card covering project status, site health, last check, task counts, next action, data sources, and update time.
+- Asks for a more specific project name when multiple projects match; never invents a project or a monitoring result.
+- Keeps the answer visible until the user selects **View project** to open that project's detail screen.
 - Explains currently supported capabilities when a request is not understood.
 
 ### 3.3 Daily briefing
@@ -797,7 +800,7 @@ The planned iOS application can reuse the Laravel Monitoring API later, but it i
 
 Current distributable archive:
 
-`dist/JARVIS-Dashboard-0.2.1.zip`
+`dist/JARVIS-Dashboard-0.2.2.zip`
 
 Installed application location:
 

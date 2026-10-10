@@ -114,7 +114,38 @@ struct TodayView: View {
             blockedTaskNames: TaskQueueEngine.sorted(blockedTasks).map(\.title),
             waitingProjectNames: waitingProjects.map(\.name),
             unhealthySiteNames: unhealthy.map(\.name),
-            weatherReport: weatherReport
+            weatherReport: weatherReport,
+            projects: projects.map { project in
+                let projectTasks = tasks.filter { $0.projectID == project.id && !$0.isCompleted }
+                let site = hasLoadedMonitoring ? monitoringSite(for: project) : nil
+                let siteHealth: String
+                let monitoringSource: String
+                if !project.hasMonitoringSite {
+                    siteHealth = "Not connected"
+                    monitoringSource = "no monitored site"
+                } else if !hasLoadedMonitoring {
+                    siteHealth = "Unavailable — monitoring could not be refreshed"
+                    monitoringSource = "monitoring unavailable"
+                } else {
+                    siteHealth = site.map { MonitoringHealth.evaluate(site: $0, connected: true).label }
+                        ?? "Unavailable — site was not returned by Monitoring API"
+                    monitoringSource = "Monitoring API"
+                }
+                return JarvisProjectBrief(
+                    id: project.id,
+                    name: project.name,
+                    client: project.client,
+                    status: project.status.title,
+                    updatedAt: project.updatedAt,
+                    nextAction: project.nextAction,
+                    openTasks: projectTasks.count,
+                    overdueTasks: projectTasks.count { ($0.dueDate ?? .distantFuture) < .now },
+                    blockedTasks: projectTasks.count(where: \.isBlocked),
+                    siteHealth: siteHealth,
+                    siteCheckedAt: site?.lastCheckAt,
+                    monitoringSource: monitoringSource
+                )
+            }
         )
     }
 
@@ -137,10 +168,17 @@ struct TodayView: View {
         .task { await refreshCommandCentre() }
         .refreshable { await refreshCommandCentre() }
         .sheet(isPresented: $showingCommandConsole) {
-            JarvisCommandConsole(context: commandContext) { result in
-                if let destination = result.destination { appState.selection = destination }
-                if result.shouldSpeak { speechService.speak(result.response) }
-            }
+            JarvisCommandConsole(
+                context: commandContext,
+                onResult: { result in
+                    if let destination = result.destination { appState.selection = destination }
+                    if result.shouldSpeak { speechService.speak(result.response) }
+                },
+                onOpenProject: { projectID in
+                    showingCommandConsole = false
+                    appState.openProject(projectID)
+                }
+            )
         }
     }
 
@@ -538,8 +576,10 @@ private struct JarvisCommandConsole: View {
     @FocusState private var commandFocused: Bool
     @State private var command = ""
     @State private var response = "Awaiting your command, Sir."
+    @State private var lastResult: JarvisCommandResult?
     let context: JarvisCommandContext
     let onResult: (JarvisCommandResult) -> Void
+    let onOpenProject: (UUID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -550,21 +590,63 @@ private struct JarvisCommandConsole: View {
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             HStack(spacing: 10) {
-                TextField("Ask what needs attention or for your next task…", text: $command)
+                TextField("Ask about a project or your next task…", text: $command)
                     .textFieldStyle(.roundedBorder).focused($commandFocused).onSubmit(executeCommand)
                 Button("Execute", action: executeCommand)
                     .buttonStyle(.borderedProminent).tint(.cyan)
                     .disabled(command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            Text(response)
-                .font(.title3).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
-                .textSelection(.enabled)
-            HStack(spacing: 8) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Label(lastResult?.card?.title ?? "JARVIS RESPONSE", systemImage: "sparkles.rectangle.stack")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.cyan)
+                        Spacer()
+                        if let card = lastResult?.card {
+                            Text(card.status).font(.caption.weight(.semibold))
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(.cyan.opacity(0.12), in: Capsule())
+                        }
+                    }
+                    Text(response).font(.subheadline).textSelection(.enabled)
+                    if let card = lastResult?.card {
+                        Divider()
+                        ForEach(card.facts, id: \.self) { fact in
+                            Text(fact).font(.subheadline).textSelection(.enabled)
+                        }
+                        HStack {
+                            Text(card.source).font(.caption).foregroundStyle(.secondary)
+                            Spacer()
+                            if let projectID = card.projectID {
+                                Button("View project", systemImage: "arrow.up.right.square") {
+                                    onOpenProject(projectID)
+                                }
+                                .buttonStyle(.borderedProminent).tint(.cyan)
+                            }
+                        }
+                    } else {
+                        Text("Source: local dashboard snapshot")
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+            }
+            .frame(maxWidth: .infinity, minHeight: 120, maxHeight: 340)
+            .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(["Brief me", "What needs attention?", "What should I work on?", "Are my sites healthy?"], id: \.self) { suggestion in
                     Button(suggestion) { command = suggestion; executeCommand() }
                         .buttonStyle(.bordered).controlSize(.small)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                Button("Ask about a project…") {
+                    command = "How is "
+                    commandFocused = true
+                }
+                .buttonStyle(.bordered).controlSize(.small)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             Text("Commands are processed locally from dashboard data. Ask for help to see supported phrases. No request is sent to an LLM.")
                 .font(.caption2).foregroundStyle(.tertiary)
@@ -578,6 +660,7 @@ private struct JarvisCommandConsole: View {
     private func executeCommand() {
         let result = JarvisCommandEngine.execute(command, context: context)
         response = result.response
+        lastResult = result
         onResult(result)
         if result.response.contains("Opening") && result.destination != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { dismiss() }

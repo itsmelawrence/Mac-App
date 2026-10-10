@@ -15,12 +15,37 @@ struct JarvisCommandContext: Equatable, Sendable {
     let waitingProjectNames: [String]
     let unhealthySiteNames: [String]
     let weatherReport: String?
+    let projects: [JarvisProjectBrief]
+}
+
+struct JarvisProjectBrief: Equatable, Sendable {
+    let id: UUID
+    let name: String
+    let client: String
+    let status: String
+    let updatedAt: Date
+    let nextAction: String
+    let openTasks: Int
+    let overdueTasks: Int
+    let blockedTasks: Int
+    let siteHealth: String
+    let siteCheckedAt: Date?
+    let monitoringSource: String
+}
+
+struct JarvisResponseCard: Equatable, Sendable {
+    let title: String
+    let status: String
+    let facts: [String]
+    let source: String
+    let projectID: UUID?
 }
 
 struct JarvisCommandResult: Equatable, Sendable {
     let response: String
     let destination: SidebarDestination?
     let shouldSpeak: Bool
+    let card: JarvisResponseCard?
 }
 
 enum JarvisCommandEngine {
@@ -30,7 +55,7 @@ enum JarvisCommandEngine {
         guard !input.isEmpty else { return result("Awaiting your command, Sir.") }
 
         if contains(input, ["help", "what can you do", "commands"]) {
-            return result("Try: Brief me; What needs attention?; What should I work on?; Show blocked tasks; Which clients are waiting?; Are my sites healthy?; What's the weather? You can also open Tasks, Projects, Intelligence, or Settings.")
+            return result("Try: Brief me; How is [project name]?; What needs attention?; What should I work on?; Show blocked tasks; Which clients are waiting?; Are my sites healthy?; What's the weather? You can also open Tasks, Projects, Intelligence, or Settings.")
         }
         if contains(input, ["briefing", "brief me", "status report", "situation report"]) {
             return result(context.briefing, destination: .today, speak: true)
@@ -70,6 +95,12 @@ enum JarvisCommandEngine {
             if context.maintenanceSites > 0 { parts.append("\(context.maintenanceSites) \(plural("site", context.maintenanceSites)) in maintenance.") }
             return result(parts.isEmpty ? "All \(context.monitoredSites) monitored websites are healthy." : parts.joined(separator: " "))
         }
+        if let projectAnswer = projectAnswer(for: input, projects: context.projects) {
+            return projectAnswer
+        }
+        if contains(input, ["how is ", "tell me about ", "status of ", "update on ", "what's happening with ", "what is happening with "]) {
+            return result("I could not match that to a saved project. Try its full name or a distinctive word from the name.")
+        }
         if contains(input, ["task", "to-do", "todo", "overdue"]) {
             let response = context.overdueTasks > 0
                 ? "You have \(context.pendingTasks) open tasks, including \(context.overdueTasks) overdue. Opening the task queue."
@@ -91,8 +122,62 @@ enum JarvisCommandEngine {
         return result("I can brief you, identify work needing attention, suggest your next task, report site health and weather, or open a dashboard section. Say “help” for examples. Broader conversational control awaits the local model.")
     }
 
-    private static func result(_ response: String, destination: SidebarDestination? = nil, speak: Bool = false) -> JarvisCommandResult {
-        JarvisCommandResult(response: response, destination: destination, shouldSpeak: speak)
+    private static func result(
+        _ response: String,
+        destination: SidebarDestination? = nil,
+        speak: Bool = false,
+        card: JarvisResponseCard? = nil
+    ) -> JarvisCommandResult {
+        JarvisCommandResult(response: response, destination: destination, shouldSpeak: speak, card: card)
+    }
+
+    private static func projectAnswer(for input: String, projects: [JarvisProjectBrief]) -> JarvisCommandResult? {
+        let inputWords = Set(words(in: input))
+        let candidates: [(project: JarvisProjectBrief, score: Int)] = projects.compactMap { project in
+            let nameWords = meaningfulWords(in: project.name)
+            let clientWords = meaningfulWords(in: project.client)
+            let nameMatches = nameWords.filter { inputWords.contains($0) }.count
+            let clientMatches = clientWords.filter { inputWords.contains($0) }.count
+            let score = max(nameMatches, clientMatches)
+            return score > 0 ? (project, score) : nil
+        }
+        guard let highest = candidates.map(\.score).max() else { return nil }
+        let matches = candidates.filter { $0.score == highest }.map(\.project)
+        guard matches.count == 1, let project = matches.first else {
+            let names = matches.map(\.name).sorted().joined(separator: ", ")
+            return result("I found more than one matching project: \(names). Please use a more specific name.")
+        }
+
+        let taskFact = "Tasks: \(project.openTasks) open, \(project.overdueTasks) overdue, \(project.blockedTasks) blocked"
+        let siteFact = "Site: \(project.siteHealth)" + (project.siteCheckedAt.map {
+            " · checked \($0.formatted(date: .abbreviated, time: .shortened))"
+        } ?? "")
+        let nextAction = project.nextAction.trimmingCharacters(in: .whitespacesAndNewlines)
+        let facts = [
+            "Project: \(project.status)" + (project.client.isEmpty ? "" : " · \(project.client)"),
+            siteFact,
+            taskFact,
+            "Next action: \(nextAction.isEmpty ? "Not recorded" : nextAction)",
+            "Project updated: \(project.updatedAt.formatted(date: .abbreviated, time: .shortened))"
+        ]
+        let source = "Local project and tasks · \(project.monitoringSource)"
+        let card = JarvisResponseCard(
+            title: project.name,
+            status: project.status,
+            facts: facts,
+            source: source,
+            projectID: project.id
+        )
+        return result("Here is the latest available information for \(project.name).", card: card)
+    }
+
+    private static func words(in text: String) -> [String] {
+        text.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
+    }
+
+    private static func meaningfulWords(in text: String) -> [String] {
+        let ignored: Set<String> = ["the", "and", "for", "my", "site", "website", "project", "services", "digital", "company", "co", "app"]
+        return words(in: text).filter { $0.count >= 3 && !ignored.contains($0) }
     }
 
     private static func contains(_ input: String, _ phrases: [String]) -> Bool { phrases.contains { input.contains($0) } }

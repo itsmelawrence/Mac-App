@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import JarvisDashboard
 
@@ -16,7 +17,21 @@ struct JarvisCommandEngineTests {
         blockedTaskNames: ["Await client assets"],
         waitingProjectNames: ["Skeema Digital Co."],
         unhealthySiteNames: ["JAK Pest Control Services"],
-        weatherReport: "In Manila, it is 28°C and partly cloudy. Rain probability is 20%."
+        weatherReport: "In Manila, it is 28°C and partly cloudy. Rain probability is 20%.",
+        projects: [JarvisProjectBrief(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            name: "JAK Pest Control Services",
+            client: "JAK Pest Control",
+            status: "Active",
+            updatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            nextAction: "Review mobile menu",
+            openTasks: 2,
+            overdueTasks: 1,
+            blockedTasks: 1,
+            siteHealth: "Healthy",
+            siteCheckedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            monitoringSource: "Monitoring API"
+        )]
     )
 
     @Test func briefingCommandReturnsSpokenBriefing() {
@@ -69,7 +84,8 @@ struct JarvisCommandEngineTests {
         let unavailable = JarvisCommandContext(
             briefing: "Ready", pendingTasks: 0, overdueTasks: 0, activeProjects: 1,
             monitoredSites: 2, unhealthySites: 0, unverifiedSites: 2, maintenanceSites: 0, monitoringAvailable: false,
-            priorityTask: nil, blockedTaskNames: [], waitingProjectNames: [], unhealthySiteNames: [], weatherReport: nil
+            priorityTask: nil, blockedTaskNames: [], waitingProjectNames: [], unhealthySiteNames: [], weatherReport: nil,
+            projects: []
         )
         let result = JarvisCommandEngine.execute("Are my sites healthy?", context: unavailable)
         #expect(result.response.contains("cannot confirm"))
@@ -80,7 +96,8 @@ struct JarvisCommandEngineTests {
         let maintenance = JarvisCommandContext(
             briefing: "Ready", pendingTasks: 0, overdueTasks: 0, activeProjects: 1,
             monitoredSites: 1, unhealthySites: 0, unverifiedSites: 0, maintenanceSites: 1, monitoringAvailable: true,
-            priorityTask: nil, blockedTaskNames: [], waitingProjectNames: [], unhealthySiteNames: [], weatherReport: nil
+            priorityTask: nil, blockedTaskNames: [], waitingProjectNames: [], unhealthySiteNames: [], weatherReport: nil,
+            projects: []
         )
         let result = JarvisCommandEngine.execute("Are my sites healthy?", context: maintenance)
         #expect(result.response.contains("in maintenance"))
@@ -92,5 +109,42 @@ struct JarvisCommandEngineTests {
         #expect(result.destination == nil)
         #expect(!result.shouldSpeak)
         #expect(result.response.contains("Say “help”"))
+    }
+
+    @Test func namedProjectQuestionReturnsSourcedCard() {
+        let result = JarvisCommandEngine.execute("How is JAK?", context: context)
+        #expect(result.card?.title == "JAK Pest Control Services")
+        #expect(result.card?.facts.contains("Next action: Review mobile menu") == true)
+        #expect(result.card?.facts.contains("Tasks: 2 open, 1 overdue, 1 blocked") == true)
+        #expect(result.card?.source.contains("Monitoring API") == true)
+        #expect(result.card?.projectID == context.projects[0].id)
+        #expect(result.destination == nil)
+    }
+
+    @Test func unknownProjectQuestionDoesNotInventAnAnswer() {
+        let result = JarvisCommandEngine.execute("How is Orbital Dynamics?", context: context)
+        #expect(result.card == nil)
+        #expect(result.response.contains("could not match"))
+    }
+
+    @Test func ambiguousProjectNameRequiresClarification() {
+        let second = JarvisProjectBrief(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            name: "JAK Booking Portal", client: "", status: "Active",
+            updatedAt: .now, nextAction: "", openTasks: 0, overdueTasks: 0, blockedTasks: 0,
+            siteHealth: "Not connected", siteCheckedAt: nil, monitoringSource: "no monitored site"
+        )
+        let ambiguous = JarvisCommandContext(
+            briefing: context.briefing, pendingTasks: context.pendingTasks, overdueTasks: context.overdueTasks,
+            activeProjects: context.activeProjects, monitoredSites: context.monitoredSites, unhealthySites: context.unhealthySites,
+            unverifiedSites: context.unverifiedSites, maintenanceSites: context.maintenanceSites,
+            monitoringAvailable: context.monitoringAvailable, priorityTask: context.priorityTask,
+            blockedTaskNames: context.blockedTaskNames, waitingProjectNames: context.waitingProjectNames,
+            unhealthySiteNames: context.unhealthySiteNames, weatherReport: context.weatherReport,
+            projects: context.projects + [second]
+        )
+        let result = JarvisCommandEngine.execute("How is JAK?", context: ambiguous)
+        #expect(result.card == nil)
+        #expect(result.response.contains("more than one"))
     }
 }

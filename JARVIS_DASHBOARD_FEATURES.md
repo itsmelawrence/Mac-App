@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.2.1
+**Current version:** 0.2.2
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
@@ -34,6 +34,7 @@ The Today screen is a fixed-hierarchy command centre rather than a collection of
 - Answers task-count and project/website-health requests using current dashboard data.
 - Identifies attention items, the next actionable task, blocked tasks, and projects waiting on clients.
 - Reports observed weather and refuses to label sites healthy when monitoring checks are unavailable.
+- Answers named-project questions in a sourced response card with status, site check, task counts, next action, and a **View project** action.
 - Provides explicit capability guidance for commands that are not yet supported.
 
 ### Daily briefing
@@ -574,7 +575,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.2.1.zip`
+`dist/JARVIS-Dashboard-0.2.2.zip`
 
 The installed application is expected at:
 

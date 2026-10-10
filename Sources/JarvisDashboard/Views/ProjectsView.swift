@@ -4,6 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ProjectsView: View {
+    @EnvironmentObject private var appState: AppState
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
@@ -93,6 +94,16 @@ struct ProjectsView: View {
                 await refreshMonitoring()
             }
         }
+        .onAppear { openRequestedProjectIfNeeded() }
+        .onChange(of: appState.requestedProjectID) { _, _ in openRequestedProjectIfNeeded() }
+    }
+
+    private func openRequestedProjectIfNeeded() {
+        guard let projectID = appState.requestedProjectID,
+              let project = projects.first(where: { $0.id == projectID }) else { return }
+        selectedDetailSection = .overview
+        selectedProject = project
+        appState.consumeProjectRequest(projectID)
     }
 
     @ViewBuilder

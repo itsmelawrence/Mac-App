@@ -15,6 +15,7 @@ final class AppState: ObservableObject {
     }
 
     @Published var selection: SidebarDestination? = .today
+    @Published private(set) var requestedProjectID: UUID?
     @Published private(set) var briefingRequest: BriefingRequest?
 
     @Published var showWakeBriefing: Bool {
@@ -38,6 +39,16 @@ final class AppState: ObservableObject {
     func consumeBriefingRequest(_ request: BriefingRequest) {
         guard briefingRequest?.id == request.id else { return }
         briefingRequest = nil
+    }
+
+    func openProject(_ projectID: UUID) {
+        requestedProjectID = projectID
+        selection = .projects
+    }
+
+    func consumeProjectRequest(_ projectID: UUID) {
+        guard requestedProjectID == projectID else { return }
+        requestedProjectID = nil
     }
 
     private enum Keys {
