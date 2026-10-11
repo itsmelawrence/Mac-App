@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.2.2
+**Current version:** 0.2.3
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
@@ -309,6 +309,13 @@ Available presets currently include:
 
 ### 4.2 Philippines
 
+#### Weather map
+
+- Native interactive map centred on the Philippines with 16 representative forecast locations.
+- Seven selectable sampled-point layers: temperature, rain chance, rainfall, wind, cloud cover, humidity, and sea-level pressure.
+- Hourly timeline across seven forecast days, with location details, the next 24 hours, and daily summaries.
+- Forecast samples are not continuous raster overlays or live radar. Open-Meteo is credited; PAGASA remains the authority for official warnings.
+
 #### Situation overview
 
 - Shows representative current conditions across Luzon, Visayas, and Mindanao.
@@ -575,7 +582,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.2.2.zip`
+`dist/JARVIS-Dashboard-0.2.3.zip`
 
 The installed application is expected at:
 

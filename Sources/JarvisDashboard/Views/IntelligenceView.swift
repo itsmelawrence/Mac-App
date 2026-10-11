@@ -430,6 +430,7 @@ struct IntelligenceView: View {
 
     private var philippinesPage: some View {
         Group {
+            PhilippineWeatherMapView()
             regionalForecastSection
             earthquakeSection
             newsSection(title: "Philippines news", articles: newsByCategory[.philippines] ?? [])

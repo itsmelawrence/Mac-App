@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Detailed Product and Feature Specification
 
-**Current release:** 0.2.2
+**Current release:** 0.2.3
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first productivity, operations, and intelligence dashboard  
@@ -515,6 +515,9 @@ Preset locations include Baguio, Manila, Legazpi, Puerto Princesa, Cebu, Iloilo,
 
 ### 9.6 Philippines
 
+- Native MapKit view with 16 sampled Philippine forecast locations and seven selectable forecast layers.
+- Seven days of hourly forecast navigation, next-24-hour detail, and seven daily summaries for a selected location.
+- Sampled values are explicitly distinguished from continuous map tiles, radar, and official weather warnings.
 - Displays representative conditions across Luzon, Visayas, and Mindanao.
 - Includes temperature, condition, and precipitation probability.
 - Lists recent Philippine-region earthquakes.
@@ -800,7 +803,7 @@ The planned iOS application can reuse the Laravel Monitoring API later, but it i
 
 Current distributable archive:
 
-`dist/JARVIS-Dashboard-0.2.2.zip`
+`dist/JARVIS-Dashboard-0.2.3.zip`
 
 Installed application location:
 
