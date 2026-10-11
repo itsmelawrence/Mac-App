@@ -50,6 +50,7 @@
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
 		BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */; };
 		C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A962457DF4DD94ED621844A8 /* SpeechService.swift */; };
+		D39B539A085FAF1AD89EF0D0 /* WeatherLabelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */; };
 		D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C7D173283F605CA610779F /* ProjectItem.swift */; };
 		D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E664AC10761E65E6FED7D18 /* Assets.xcassets */; };
 		D8DBCAA1E7DB74F432DD485A /* NewsAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */; };
@@ -58,6 +59,7 @@
 		E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */; };
 		E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */; };
 		E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */; };
+		E3738D08057098463AF945BD /* WeatherLabelPlacementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */; };
 		E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */; };
 		EDCFF725B6A12152431016B4 /* MonitoringHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D418DFEB339CA429E99244AE /* MonitoringHealthTests.swift */; };
 		EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */; };
@@ -112,6 +114,7 @@
 		929151532C0ADDCF47913F8B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposerTests.swift; sourceTree = "<group>"; };
 		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
+		9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLabelPlacement.swift; sourceTree = "<group>"; };
 		A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarthquakeService.swift; sourceTree = "<group>"; };
 		A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSettingsView.swift; sourceTree = "<group>"; };
 		A962457DF4DD94ED621844A8 /* SpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechService.swift; sourceTree = "<group>"; };
@@ -127,6 +130,7 @@
 		DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsServiceTests.swift; sourceTree = "<group>"; };
 		E0D3E361632FD5BDFF57EAED /* TaskItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskItem.swift; sourceTree = "<group>"; };
 		E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingPanelController.swift; sourceTree = "<group>"; };
+		E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLabelPlacementTests.swift; sourceTree = "<group>"; };
 		E946B3F227D267E00F6D9C73 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		F05985254777A183A84A7C45 /* PhilippineForecastServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastServiceTests.swift; sourceTree = "<group>"; };
 		F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceEngine.swift; sourceTree = "<group>"; };
@@ -202,6 +206,7 @@
 				463546401670CFBB95386BFC /* SpeechServiceTests.swift */,
 				3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */,
 				F52E7EC04FF96A1A6A102393 /* WeatherBeaconModelTests.swift */,
+				E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */,
 				73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */,
 			);
 			path = JarvisDashboardTests;
@@ -268,6 +273,7 @@
 				D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */,
 				9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */,
 				80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */,
+				9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */,
 				E946B3F227D267E00F6D9C73 /* WeatherService.swift */,
 			);
 			path = Services;
@@ -391,6 +397,7 @@
 				1B654DCF44418E45064FC3C9 /* SpeechServiceTests.swift in Sources */,
 				21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */,
 				04F44315BC6B217B17D49E29 /* WeatherBeaconModelTests.swift in Sources */,
+				E3738D08057098463AF945BD /* WeatherLabelPlacementTests.swift in Sources */,
 				526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -436,6 +443,7 @@
 				B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */,
 				F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */,
 				4BCD012D6BC045A651C3C090 /* WeatherBeaconModel.swift in Sources */,
+				D39B539A085FAF1AD89EF0D0 /* WeatherLabelPlacement.swift in Sources */,
 				40885B1ADEBE3753843F8A54 /* WeatherService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -486,7 +494,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -507,7 +515,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -624,7 +632,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -639,7 +647,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

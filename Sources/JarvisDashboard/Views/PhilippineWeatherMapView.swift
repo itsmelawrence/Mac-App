@@ -1,5 +1,15 @@
+import AppKit
 import MapKit
 import SwiftUI
+
+private enum WeatherMapLabelSize {
+    static func measure(_ text: String) -> CGSize {
+        let textSize = (text as NSString).size(withAttributes: [
+            .font: NSFont.systemFont(ofSize: 12, weight: .semibold)
+        ])
+        return CGSize(width: ceil(textSize.width) + 18, height: ceil(textSize.height) + 10)
+    }
+}
 
 private enum WeatherMapLayer: String, CaseIterable, Identifiable {
     case temperature = "Temperature"
@@ -46,6 +56,11 @@ private enum WeatherMapLayer: String, CaseIterable, Identifiable {
         }
     }
 
+    func label(_ hour: PhilippineForecastHour?) -> String {
+        guard let hour else { return "—" }
+        return label(hour)
+    }
+
     func tint(_ hour: PhilippineForecastHour) -> Color {
         guard let value = value(hour) else { return .gray }
         switch self {
@@ -81,8 +96,11 @@ private struct WeatherBeacon: View {
     let hour: PhilippineForecastHour?
     let isSelected: Bool
     let isHovered: Bool
+    let labelSide: WeatherLabelSide?
+    let labelText: String
     let action: () -> Void
     let hovering: (Bool) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var condition: WeatherPointCondition {
         WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation)
@@ -97,32 +115,51 @@ private struct WeatherBeacon: View {
             ZStack {
                 if isSelected {
                     Circle().stroke(Color.cyan.opacity(0.65), lineWidth: 2)
-                        .frame(width: 54, height: 54)
+                        .frame(width: 44, height: 44)
                 }
                 Circle()
                     .fill(Color(red: 0.03, green: 0.07, blue: 0.12).opacity(0.92))
-                    .frame(width: 42, height: 42)
+                    .frame(width: 38, height: 38)
                 if let chance = hour?.rainChance {
                     Circle()
                         .trim(from: 0, to: min(1, max(0, CGFloat(chance) / 100)))
                         .stroke(rainBandColor(band), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 36, height: 36)
                 } else {
                     Circle()
                         .stroke(.gray, style: StrokeStyle(lineWidth: 2.5, dash: [3, 3]))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 36, height: 36)
                 }
                 Image(systemName: condition.systemImage)
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(condition.isThunderstorm ? Color.orange : Color(red: 0.91, green: 0.95, blue: 0.98))
                     .symbolRenderingMode(.hierarchical)
             }
-            .frame(width: 56, height: 56)
-            .scaleEffect(isHovered ? 1.10 : 1)
+            .frame(width: 44, height: 44)
+            .scaleEffect(isHovered ? 1.08 : 1)
             .shadow(color: .black.opacity(0.5), radius: 5)
         }
         .buttonStyle(.plain)
+        .overlay {
+            if let labelSide {
+                let labelSize = WeatherMapLabelSize.measure(labelText)
+                let rect = labelSide.rect(around: .zero, labelSize: labelSize)
+                Text(labelText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .monospacedDigit()
+                    .fixedSize()
+                    .foregroundStyle(Color(red: 0.91, green: 0.95, blue: 0.98))
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(Color(red: 0.03, green: 0.07, blue: 0.11).opacity(0.92), in: Capsule())
+                    .overlay(Capsule().stroke(Color(red: 0.12, green: 0.2, blue: 0.28)))
+                    .offset(x: rect.midX, y: rect.midY)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                    .transition(.opacity)
+            }
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: labelSide)
         .onHover(perform: hovering)
         .accessibilityLabel("\(name): \(condition.title), \(hour?.rainChance.map { "\($0)% chance of rain" } ?? "rain chance unavailable")")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -141,7 +178,9 @@ struct PhilippineWeatherMapView: View {
     @State private var selectedTimeIndex = 0
     @State private var selectedLocationID: String?
     @State private var hoveredLocationID: String?
-    @State private var cameraRevision = 0
+    @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var labelSides: [String: WeatherLabelSide] = [:]
+    @State private var lastLabelSpan: CLLocationDegrees?
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var loadedAt: Date?
@@ -160,7 +199,7 @@ struct PhilippineWeatherMapView: View {
         DashboardSection(title: "Philippines weather map", systemImage: "map.fill") {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
-                    Picker("Layer", selection: $layer) {
+                    Picker("Detail metric", selection: $layer) {
                         ForEach(WeatherMapLayer.allCases) { layer in
                             Label(layer.rawValue, systemImage: layer.symbol).tag(layer)
                         }
@@ -169,6 +208,10 @@ struct PhilippineWeatherMapView: View {
                     Toggle("More labels", isOn: $allLabels)
                         .toggleStyle(.switch)
                         .controlSize(.small)
+                    Button { cameraPosition = .rect(Self.fittedRect(for: forecasts)) } label: {
+                        Label("Reset view", systemImage: "scope")
+                    }
+                    .disabled(forecasts.isEmpty)
                     Spacer()
                     if let loadedAt {
                         Text("Updated \(loadedAt, style: .relative)")
@@ -196,12 +239,12 @@ struct PhilippineWeatherMapView: View {
                 } else {
                     ViewThatFits(in: .horizontal) {
                         HStack(alignment: .top, spacing: 14) {
-                            map.frame(width: 520, height: 650)
-                            locationDetail.frame(width: 440)
+                            map.frame(minWidth: 440, maxWidth: .infinity).frame(height: 720)
+                            locationDetail.frame(width: 400, height: 720)
                         }
                         VStack(spacing: 14) {
-                            map.frame(height: 580)
-                            locationDetail
+                            map.frame(height: 680)
+                            locationDetail.frame(height: 620)
                         }
                     }
                     timelineControls
@@ -215,132 +258,111 @@ struct PhilippineWeatherMapView: View {
     }
 
     private var map: some View {
-        let region = MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 12.6, longitude: 121.6),
-            span: MKCoordinateSpan(latitudeDelta: 15.4, longitudeDelta: 11.2)
-        )
         return MapReader { proxy in
-            Map(initialPosition: .region(region), bounds: MapCameraBounds(
-                centerCoordinateBounds: region,
-                minimumDistance: 70_000,
-                maximumDistance: 2_700_000
-            )) {
-                ForEach(forecasts) { forecast in
-                    Annotation("", coordinate: CLLocationCoordinate2D(
-                        latitude: forecast.location.latitude,
-                        longitude: forecast.location.longitude
-                    )) {
-                        WeatherBeacon(
-                            name: forecast.location.name,
-                            hour: forecast.hours.indices.contains(selectedTimeIndex) ? forecast.hours[selectedTimeIndex] : nil,
-                            isSelected: selectedForecast?.id == forecast.id,
-                            isHovered: hoveredLocationID == forecast.id,
-                            action: { selectedLocationID = forecast.id },
-                            hovering: { hoveredLocationID = $0 ? forecast.id : nil }
-                        )
+            GeometryReader { geometry in
+                Map(position: $cameraPosition, bounds: MapCameraBounds(
+                    centerCoordinateBounds: MKCoordinateRegion(
+                        center: CLLocationCoordinate2D(latitude: 11.9, longitude: 122),
+                        span: MKCoordinateSpan(latitudeDelta: 24, longitudeDelta: 18)
+                    ),
+                    minimumDistance: 70_000,
+                    maximumDistance: 2_700_000
+                )) {
+                    ForEach(forecasts) { forecast in
+                        Annotation("", coordinate: CLLocationCoordinate2D(
+                            latitude: forecast.location.latitude,
+                            longitude: forecast.location.longitude
+                        )) {
+                            let hour = forecast.hours.indices.contains(selectedTimeIndex)
+                                ? forecast.hours[selectedTimeIndex] : nil
+                            WeatherBeacon(
+                                name: forecast.location.name,
+                                hour: hour,
+                                isSelected: selectedForecast?.id == forecast.id,
+                                isHovered: hoveredLocationID == forecast.id,
+                                labelSide: labelSides[forecast.id],
+                                labelText: "\(forecast.location.name) · \(layer.label(hour))",
+                                action: { selectedLocationID = forecast.id },
+                                hovering: { hoveredLocationID = $0 ? forecast.id : nil }
+                            )
+                        }
+                        .annotationTitles(.hidden)
                     }
                 }
-            }
-            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
-            .onMapCameraChange(frequency: .onEnd) { _ in cameraRevision += 1 }
-            .overlay(alignment: .topLeading) {
-                GeometryReader { geometry in
-                    let labels = mapLabels(proxy: proxy, size: geometry.size, revision: cameraRevision)
-                    ForEach(labels) { label in
-                        Text(label.text)
-                            .font(.system(size: 12, weight: .semibold))
-                            .monospacedDigit()
-                            .foregroundStyle(Color(red: 0.91, green: 0.95, blue: 0.98))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(Color(red: 0.03, green: 0.07, blue: 0.11).opacity(0.92), in: Capsule())
-                            .overlay(Capsule().stroke(Color(red: 0.12, green: 0.2, blue: 0.28)))
-                            .position(label.position)
+                .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+                .onMapCameraChange(frequency: .continuous) { context in
+                    let span = context.region.span.latitudeDelta
+                    if let previous = lastLabelSpan, previous > 0,
+                       abs(span - previous) / previous > 0.04 {
+                        lastLabelSpan = span
+                        updateLabelSides(proxy: proxy, size: geometry.size)
+                    } else if lastLabelSpan == nil {
+                        lastLabelSpan = span
                     }
                 }
-                .allowsHitTesting(false)
-            }
-            .overlay(alignment: .topLeading) {
-                if let focus = forecasts.first(where: { $0.id == hoveredLocationID }) ?? selectedForecast {
-                    let hour = focus.hours.indices.contains(selectedTimeIndex) ? focus.hours[selectedTimeIndex] : nil
-                    Text("\(focus.location.name) · \(hour?.rainChance.map { "\($0)%" } ?? "No data")")
-                        .font(.caption.weight(.semibold)).monospacedDigit()
+                .onMapCameraChange(frequency: .onEnd) { context in
+                    lastLabelSpan = context.region.span.latitudeDelta
+                    updateLabelSides(proxy: proxy, size: geometry.size)
+                }
+                .onAppear { updateLabelSides(proxy: proxy, size: geometry.size) }
+                .onChange(of: geometry.size) { _, size in updateLabelSides(proxy: proxy, size: size) }
+                .onChange(of: loadedAt) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
+                .onChange(of: selectedTimeIndex) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
+                .onChange(of: selectedLocationID) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
+                .onChange(of: hoveredLocationID) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
+                .onChange(of: allLabels) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
+                .onChange(of: layer) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
+                .overlay(alignment: .bottomLeading) {
+                    Text("16 forecast points · Open-Meteo · Asia/Manila · \(loadedAt.map { formattedTime($0, format: "h:mm a") } ?? "awaiting data")")
+                        .font(.system(size: 12))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 9).padding(.vertical, 6)
-                        .background(.black.opacity(0.78), in: Capsule())
+                        .background(.black.opacity(0.75), in: Capsule())
                         .padding(9)
-                        .allowsHitTesting(false)
                 }
-            }
-            .overlay(alignment: .bottomLeading) {
-                Text("16 forecast points · Open-Meteo · Asia/Manila · \(loadedAt.map { formattedTime($0, format: "h:mm a") } ?? "awaiting data")")
-                    .font(.caption2)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 9).padding(.vertical, 6)
-                    .background(.black.opacity(0.75), in: Capsule())
-                    .padding(9)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.12)))
     }
 
-    private struct MapLabel: Identifiable {
-        let id: String
-        let text: String
-        let position: CGPoint
+    private func updateLabelSides(proxy: MapProxy, size: CGSize) {
+        let points = forecasts.map { forecast -> WeatherLabelPoint in
+            let hour = forecast.hours.indices.contains(selectedTimeIndex)
+                ? forecast.hours[selectedTimeIndex] : nil
+            let condition = WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation)
+            let focus = forecast.id == selectedForecast?.id || forecast.id == hoveredLocationID
+            let title = "\(forecast.location.name) · \(layer.label(hour))"
+            return WeatherLabelPoint(
+                id: forecast.id,
+                position: proxy.convert(CLLocationCoordinate2D(
+                    latitude: forecast.location.latitude,
+                    longitude: forecast.location.longitude
+                ), to: .local),
+                labelSize: WeatherMapLabelSize.measure(title),
+                priority: (condition.isThunderstorm ? 1_000 : 0) + (hour?.rainChance ?? -1),
+                isFocused: focus
+            )
+        }
+        let next = WeatherLabelPlacer.place(
+            points: points, viewSize: size, maxLabels: allLabels ? 16 : 6, previous: labelSides
+        )
+        if next != labelSides { labelSides = next }
     }
 
-    private func mapLabels(proxy: MapProxy, size: CGSize, revision: Int) -> [MapLabel] {
-        _ = revision
-        let points: [(forecast: PhilippineLocationForecast, point: CGPoint)] = forecasts.compactMap { forecast in
-            guard let point = proxy.convert(CLLocationCoordinate2D(
-                latitude: forecast.location.latitude,
-                longitude: forecast.location.longitude
-            ), to: .local), point.x >= 0, point.y >= 0,
-               point.x <= size.width, point.y <= size.height else { return nil }
-            return (forecast, point)
-        }
-        let beaconBoxes = points.map { CGRect(x: $0.point.x - 23, y: $0.point.y - 23, width: 46, height: 46) }
-        let ordered = points.sorted { left, right in
-            func priority(_ item: (forecast: PhilippineLocationForecast, point: CGPoint)) -> Int {
-                let hour = item.forecast.hours.indices.contains(selectedTimeIndex) ? item.forecast.hours[selectedTimeIndex] : nil
-                let emphasis = item.forecast.id == hoveredLocationID ? 20_000
-                    : item.forecast.id == selectedForecast?.id ? 10_000 : 0
-                let thunder = WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation).isThunderstorm ? 1_000 : 0
-                return emphasis + thunder + (hour?.rainChance ?? -1)
-            }
-            return priority(left) > priority(right)
-        }
-        var placed: [CGRect] = []
-        var labels: [MapLabel] = []
-        let maximum = allLabels ? 16 : 6
-        for item in ordered {
-            if labels.count >= maximum { break }
-            let hour = item.forecast.hours.indices.contains(selectedTimeIndex)
-                ? item.forecast.hours[selectedTimeIndex] : nil
-            let chance = hour?.rainChance.map { "\($0)%" } ?? "No data"
-            let title = "\(item.forecast.location.name) · \(chance)"
-            let width = CGFloat(title.count) * 6.8 + 18
-            let height: CGFloat = 28
-            let p = item.point
-            let candidates = [
-                CGPoint(x: p.x + 28 + width / 2, y: p.y),
-                CGPoint(x: p.x - 28 - width / 2, y: p.y),
-                CGPoint(x: p.x, y: p.y - 30 - height / 2),
-                CGPoint(x: p.x, y: p.y + 30 + height / 2)
-            ]
-            for center in candidates {
-                let rect = CGRect(x: center.x - width / 2, y: center.y - height / 2, width: width, height: height)
-                guard rect.minX >= 5, rect.maxX <= size.width - 5,
-                      rect.minY >= 5, rect.maxY <= size.height - 38,
-                      !placed.contains(where: { $0.intersects(rect) }),
-                      !beaconBoxes.contains(where: { $0.intersects(rect) }) else { continue }
-                labels.append(MapLabel(id: item.forecast.id, text: title, position: center))
-                placed.append(rect)
-                break
-            }
-        }
-        return labels
+    private static func fittedRect(for forecasts: [PhilippineLocationForecast]) -> MKMapRect {
+        let locations = forecasts.isEmpty ? PhilippineForecastService.locations : forecasts.map(\.location)
+        let points = locations.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) }
+        guard let first = points.first else { return MKMapRect.world }
+        let minX = points.map(\.x).min() ?? first.x
+        let maxX = points.map(\.x).max() ?? first.x
+        let minY = points.map(\.y).min() ?? first.y
+        let maxY = points.map(\.y).max() ?? first.y
+        let width = maxX - minX
+        let height = maxY - minY
+        // The northernmost beacon needs room for its ring and label above the coordinate.
+        return MKMapRect(x: minX - width * 0.14, y: minY - height * 0.35,
+                         width: width * 1.28, height: height * 1.50)
     }
 
     private var timelineControls: some View {
@@ -463,7 +485,7 @@ struct PhilippineWeatherMapView: View {
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(height: 650)
+        .frame(maxHeight: .infinity)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
     }
 
@@ -542,7 +564,9 @@ struct PhilippineWeatherMapView: View {
         do {
             let result = try await service.forecast()
             guard result.contains(where: { !$0.hours.isEmpty }) else { throw URLError(.cannotParseResponse) }
+            let firstLoad = forecasts.isEmpty
             forecasts = result
+            if firstLoad { cameraPosition = .rect(Self.fittedRect(for: result)) }
             selectedTimeIndex = result.first?.hours.firstIndex(where: { $0.time >= .now }) ?? 0
             selectedLocationID = selectedLocationID ?? result.first?.id
             loadedAt = .now

@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Complete Feature Reference
 
-**Current version:** 0.2.4
+**Current version:** 0.2.5
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first macOS productivity and intelligence dashboard
@@ -312,9 +312,10 @@ Available presets currently include:
 #### Weather map
 
 - Native interactive map centred on the Philippines with 16 representative forecast locations.
-- Compact, selectable point beacons now use weather glyphs and rain-probability rings instead of large value chips; labels are placed only where they do not collide with beacons or other labels.
+- Compact, selectable point beacons use weather glyphs and rain-probability rings. Each label travels with its beacon while panning and zooming; a tested placer chooses its side and hides crowded labels.
+- The camera fits all 16 locations, a Reset view control restores that framing, and the map expands to use available window width.
 - Selected-location detail, wettest-location list, forecast provenance, and a rain-ring legend make the point-based data easier to interpret.
-- Seven selectable sampled-point layers: temperature, rain chance, rainfall, wind, cloud cover, humidity, and sea-level pressure.
+- Seven selectable detail metrics: temperature, rain chance, rainfall, wind, cloud cover, humidity, and sea-level pressure. The beacon ring always represents rain chance.
 - Hourly timeline across seven forecast days, with location details, the next 24 hours, and daily summaries.
 - Forecast samples are not continuous raster overlays or live radar. Open-Meteo is credited; PAGASA remains the authority for official warnings.
 
@@ -584,7 +585,7 @@ The following distinctions are important when interpreting the dashboard:
 
 The current distributable build is:
 
-`dist/JARVIS-Dashboard-0.2.4.zip`
+`dist/JARVIS-Dashboard-0.2.5.zip`
 
 The installed application is expected at:
 

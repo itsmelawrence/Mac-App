@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Detailed Product and Feature Specification
 
-**Current release:** 0.2.4
+**Current release:** 0.2.5
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first productivity, operations, and intelligence dashboard  
@@ -516,7 +516,7 @@ Preset locations include Baguio, Manila, Legazpi, Puerto Princesa, Cebu, Iloilo,
 ### 9.6 Philippines
 
 - Native MapKit view with 16 sampled Philippine forecast locations and seven selectable forecast layers.
-- Compact weather beacons with rain-probability rings, condition glyphs, collision-checked labels, and a selectable wettest-location list.
+- Compact weather beacons with rain-probability rings, condition glyphs, annotation-attached labels that follow panning and zooming, collision-tested placement, a fitted/resettable camera, and a selectable wettest-location list. The detail metric picker does not change the rain-chance ring.
 - A legend and on-map provenance distinguish point forecasts from radar or area-wide rain coverage.
 - Seven days of hourly forecast navigation, next-24-hour detail, and seven daily summaries for a selected location.
 - Sampled values are explicitly distinguished from continuous map tiles, radar, and official weather warnings.
@@ -805,7 +805,7 @@ The planned iOS application can reuse the Laravel Monitoring API later, but it i
 
 Current distributable archive:
 
-`dist/JARVIS-Dashboard-0.2.4.zip`
+`dist/JARVIS-Dashboard-0.2.5.zip`
 
 Installed application location:
 
