@@ -65,6 +65,70 @@ private enum WeatherMapLayer: String, CaseIterable, Identifiable {
     }
 }
 
+private func rainBandColor(_ band: WeatherRainBand) -> Color {
+    switch band {
+    case .low: Color(red: 0.37, green: 0.91, blue: 1)
+    case .moderate: Color(red: 0.29, green: 0.64, blue: 1)
+    case .high: Color(red: 0.65, green: 0.55, blue: 1)
+    case .extreme: Color(red: 0.94, green: 0.42, blue: 0.91)
+    case .thunderstorm: Color(red: 0.96, green: 0.73, blue: 0.29)
+    case .unavailable: .gray
+    }
+}
+
+private struct WeatherBeacon: View {
+    let name: String
+    let hour: PhilippineForecastHour?
+    let isSelected: Bool
+    let isHovered: Bool
+    let action: () -> Void
+    let hovering: (Bool) -> Void
+
+    private var condition: WeatherPointCondition {
+        WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation)
+    }
+
+    private var band: WeatherRainBand {
+        WeatherRainBand(chance: hour?.rainChance, thunderstorm: condition.isThunderstorm)
+    }
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                if isSelected {
+                    Circle().stroke(Color.cyan.opacity(0.65), lineWidth: 2)
+                        .frame(width: 54, height: 54)
+                }
+                Circle()
+                    .fill(Color(red: 0.03, green: 0.07, blue: 0.12).opacity(0.92))
+                    .frame(width: 42, height: 42)
+                if let chance = hour?.rainChance {
+                    Circle()
+                        .trim(from: 0, to: min(1, max(0, CGFloat(chance) / 100)))
+                        .stroke(rainBandColor(band), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 40, height: 40)
+                } else {
+                    Circle()
+                        .stroke(.gray, style: StrokeStyle(lineWidth: 2.5, dash: [3, 3]))
+                        .frame(width: 40, height: 40)
+                }
+                Image(systemName: condition.systemImage)
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(condition.isThunderstorm ? Color.orange : Color(red: 0.91, green: 0.95, blue: 0.98))
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .frame(width: 56, height: 56)
+            .scaleEffect(isHovered ? 1.10 : 1)
+            .shadow(color: .black.opacity(0.5), radius: 5)
+        }
+        .buttonStyle(.plain)
+        .onHover(perform: hovering)
+        .accessibilityLabel("\(name): \(condition.title), \(hour?.rainChance.map { "\($0)% chance of rain" } ?? "rain chance unavailable")")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
 struct PhilippineWeatherMapView: View {
     private enum DetailMode: String, CaseIterable {
         case hourly = "Hourly"
@@ -76,9 +140,12 @@ struct PhilippineWeatherMapView: View {
     @State private var detailMode: DetailMode = .hourly
     @State private var selectedTimeIndex = 0
     @State private var selectedLocationID: String?
+    @State private var hoveredLocationID: String?
+    @State private var cameraRevision = 0
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var loadedAt: Date?
+    @AppStorage("weatherMap.allLabels") private var allLabels = false
 
     private let service = PhilippineForecastService()
     private let timeZone = TimeZone(identifier: "Asia/Manila")!
@@ -99,6 +166,9 @@ struct PhilippineWeatherMapView: View {
                         }
                     }
                     .frame(width: 220)
+                    Toggle("More labels", isOn: $allLabels)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
                     Spacer()
                     if let loadedAt {
                         Text("Updated \(loadedAt, style: .relative)")
@@ -124,9 +194,15 @@ struct PhilippineWeatherMapView: View {
                             .frame(height: 380)
                     }
                 } else {
-                    HStack(alignment: .top, spacing: 14) {
-                        map.frame(maxWidth: .infinity, minHeight: 480)
-                        locationDetail.frame(width: 280)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 14) {
+                            map.frame(width: 520, height: 650)
+                            locationDetail.frame(width: 440)
+                        }
+                        VStack(spacing: 14) {
+                            map.frame(height: 580)
+                            locationDetail
+                        }
                     }
                     timelineControls
                 }
@@ -139,38 +215,132 @@ struct PhilippineWeatherMapView: View {
     }
 
     private var map: some View {
-        Map(initialPosition: .region(MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 12.5, longitude: 122.8),
-            span: MKCoordinateSpan(latitudeDelta: 18.5, longitudeDelta: 15.0)
-        ))) {
-            ForEach(forecasts) { forecast in
-                Annotation("", coordinate: CLLocationCoordinate2D(
-                    latitude: forecast.location.latitude,
-                    longitude: forecast.location.longitude
-                )) {
-                    Button { selectedLocationID = forecast.id } label: {
-                        let hour = forecast.hours.indices.contains(selectedTimeIndex)
-                            ? forecast.hours[selectedTimeIndex] : nil
-                        VStack(spacing: 2) {
-                            Text(hour.map { layer.label($0) } ?? "—")
-                                .font(.system(size: 11, weight: .bold)).monospacedDigit()
-                            Text(forecast.location.name).font(.system(size: 9, weight: .semibold))
-                                .lineLimit(1)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6).padding(.vertical, 4)
-                        .background(hour.map { layer.tint($0) } ?? .gray, in: RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8)
-                            .stroke(selectedForecast?.id == forecast.id ? .white : .clear, lineWidth: 2))
-                        .shadow(color: .black.opacity(0.35), radius: 4)
+        let region = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 12.6, longitude: 121.6),
+            span: MKCoordinateSpan(latitudeDelta: 15.4, longitudeDelta: 11.2)
+        )
+        return MapReader { proxy in
+            Map(initialPosition: .region(region), bounds: MapCameraBounds(
+                centerCoordinateBounds: region,
+                minimumDistance: 70_000,
+                maximumDistance: 2_700_000
+            )) {
+                ForEach(forecasts) { forecast in
+                    Annotation("", coordinate: CLLocationCoordinate2D(
+                        latitude: forecast.location.latitude,
+                        longitude: forecast.location.longitude
+                    )) {
+                        WeatherBeacon(
+                            name: forecast.location.name,
+                            hour: forecast.hours.indices.contains(selectedTimeIndex) ? forecast.hours[selectedTimeIndex] : nil,
+                            isSelected: selectedForecast?.id == forecast.id,
+                            isHovered: hoveredLocationID == forecast.id,
+                            action: { selectedLocationID = forecast.id },
+                            hovering: { hoveredLocationID = $0 ? forecast.id : nil }
+                        )
                     }
-                    .buttonStyle(.plain)
                 }
             }
+            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+            .onMapCameraChange(frequency: .onEnd) { _ in cameraRevision += 1 }
+            .overlay(alignment: .topLeading) {
+                GeometryReader { geometry in
+                    let labels = mapLabels(proxy: proxy, size: geometry.size, revision: cameraRevision)
+                    ForEach(labels) { label in
+                        Text(label.text)
+                            .font(.system(size: 12, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(Color(red: 0.91, green: 0.95, blue: 0.98))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Color(red: 0.03, green: 0.07, blue: 0.11).opacity(0.92), in: Capsule())
+                            .overlay(Capsule().stroke(Color(red: 0.12, green: 0.2, blue: 0.28)))
+                            .position(label.position)
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+            .overlay(alignment: .topLeading) {
+                if let focus = forecasts.first(where: { $0.id == hoveredLocationID }) ?? selectedForecast {
+                    let hour = focus.hours.indices.contains(selectedTimeIndex) ? focus.hours[selectedTimeIndex] : nil
+                    Text("\(focus.location.name) · \(hour?.rainChance.map { "\($0)%" } ?? "No data")")
+                        .font(.caption.weight(.semibold)).monospacedDigit()
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 9).padding(.vertical, 6)
+                        .background(.black.opacity(0.78), in: Capsule())
+                        .padding(9)
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                Text("16 forecast points · Open-Meteo · Asia/Manila · \(loadedAt.map { formattedTime($0, format: "h:mm a") } ?? "awaiting data")")
+                    .font(.caption2)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 9).padding(.vertical, 6)
+                    .background(.black.opacity(0.75), in: Capsule())
+                    .padding(9)
+            }
         }
-        .mapStyle(.standard(elevation: .flat, emphasis: .muted))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.12)))
+    }
+
+    private struct MapLabel: Identifiable {
+        let id: String
+        let text: String
+        let position: CGPoint
+    }
+
+    private func mapLabels(proxy: MapProxy, size: CGSize, revision: Int) -> [MapLabel] {
+        _ = revision
+        let points: [(forecast: PhilippineLocationForecast, point: CGPoint)] = forecasts.compactMap { forecast in
+            guard let point = proxy.convert(CLLocationCoordinate2D(
+                latitude: forecast.location.latitude,
+                longitude: forecast.location.longitude
+            ), to: .local), point.x >= 0, point.y >= 0,
+               point.x <= size.width, point.y <= size.height else { return nil }
+            return (forecast, point)
+        }
+        let beaconBoxes = points.map { CGRect(x: $0.point.x - 23, y: $0.point.y - 23, width: 46, height: 46) }
+        let ordered = points.sorted { left, right in
+            func priority(_ item: (forecast: PhilippineLocationForecast, point: CGPoint)) -> Int {
+                let hour = item.forecast.hours.indices.contains(selectedTimeIndex) ? item.forecast.hours[selectedTimeIndex] : nil
+                let emphasis = item.forecast.id == hoveredLocationID ? 20_000
+                    : item.forecast.id == selectedForecast?.id ? 10_000 : 0
+                let thunder = WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation).isThunderstorm ? 1_000 : 0
+                return emphasis + thunder + (hour?.rainChance ?? -1)
+            }
+            return priority(left) > priority(right)
+        }
+        var placed: [CGRect] = []
+        var labels: [MapLabel] = []
+        let maximum = allLabels ? 16 : 6
+        for item in ordered {
+            if labels.count >= maximum { break }
+            let hour = item.forecast.hours.indices.contains(selectedTimeIndex)
+                ? item.forecast.hours[selectedTimeIndex] : nil
+            let chance = hour?.rainChance.map { "\($0)%" } ?? "No data"
+            let title = "\(item.forecast.location.name) · \(chance)"
+            let width = CGFloat(title.count) * 6.8 + 18
+            let height: CGFloat = 28
+            let p = item.point
+            let candidates = [
+                CGPoint(x: p.x + 28 + width / 2, y: p.y),
+                CGPoint(x: p.x - 28 - width / 2, y: p.y),
+                CGPoint(x: p.x, y: p.y - 30 - height / 2),
+                CGPoint(x: p.x, y: p.y + 30 + height / 2)
+            ]
+            for center in candidates {
+                let rect = CGRect(x: center.x - width / 2, y: center.y - height / 2, width: width, height: height)
+                guard rect.minX >= 5, rect.maxX <= size.width - 5,
+                      rect.minY >= 5, rect.maxY <= size.height - 38,
+                      !placed.contains(where: { $0.intersects(rect) }),
+                      !beaconBoxes.contains(where: { $0.intersects(rect) }) else { continue }
+                labels.append(MapLabel(id: item.forecast.id, text: title, position: center))
+                placed.append(rect)
+                break
+            }
+        }
+        return labels
     }
 
     private var timelineControls: some View {
@@ -195,13 +365,31 @@ struct PhilippineWeatherMapView: View {
     }
 
     private var locationDetail: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 12) {
             if let forecast = selectedForecast,
                forecast.hours.indices.contains(selectedTimeIndex) {
                 let hour = forecast.hours[selectedTimeIndex]
-                Text(forecast.location.name).font(.headline)
-                Text(layer.label(hour)).font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(layer.tint(hour))
+                let condition = WeatherPointCondition(code: hour.weatherCode, precipitation: hour.precipitation)
+                Text("SELECTED FORECAST POINT")
+                    .font(.caption2.weight(.bold)).tracking(1.2).foregroundStyle(.secondary)
+                Text(forecast.location.name).font(.title2.weight(.bold))
+                Text(selectedTime.map { formattedTime($0, format: "EEE, MMM d · h:mm a") } ?? "Time unavailable")
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    Image(systemName: condition.systemImage)
+                        .font(.system(size: 38))
+                        .foregroundStyle(condition.isThunderstorm ? Color.orange : Color.cyan)
+                        .frame(width: 50)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(hour.temperature.map { "\(Int($0.rounded()))°C" } ?? "—")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                        Text(condition.title).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                Text("\(layer.rawValue): \(layer.label(hour))")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(layer.tint(hour))
                 Divider()
                 detailLine("Temperature", hour.temperature.map { "\(Int($0.rounded()))°C" })
                 detailLine("Rain chance", hour.rainChance.map { "\($0)%" })
@@ -247,11 +435,60 @@ struct PhilippineWeatherMapView: View {
                 }
                 .frame(maxHeight: 170)
             }
-            Spacer(minLength: 0)
+            Divider()
+            Text("WETTEST AT THIS TIME")
+                .font(.caption2.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
+            ForEach(wettestForecasts.prefix(6)) { forecast in
+                Button { selectedLocationID = forecast.id } label: {
+                    let hour = forecast.hours.indices.contains(selectedTimeIndex) ? forecast.hours[selectedTimeIndex] : nil
+                    let condition = WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation)
+                    HStack(spacing: 8) {
+                        Image(systemName: condition.systemImage).frame(width: 20)
+                            .foregroundStyle(condition.isThunderstorm ? Color.orange : Color.cyan)
+                        Text(forecast.location.name).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(hour?.rainChance.map { "\($0)%" } ?? "—")
+                            .monospacedDigit().foregroundStyle(rainBandColor(WeatherRainBand(
+                                chance: hour?.rainChance,
+                                thunderstorm: condition.isThunderstorm
+                            )))
+                    }
+                    .font(.caption).frame(minHeight: 32)
+                }
+                .buttonStyle(.plain)
+            }
+            Divider()
+            rainLegend
         }
         .padding(15)
-        .frame(maxWidth: .infinity, minHeight: 480, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .frame(height: 650)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var wettestForecasts: [PhilippineLocationForecast] {
+        forecasts.sorted { left, right in
+            let a = left.hours.indices.contains(selectedTimeIndex) ? left.hours[selectedTimeIndex] : nil
+            let b = right.hours.indices.contains(selectedTimeIndex) ? right.hours[selectedTimeIndex] : nil
+            return (a?.rainChance ?? -1) > (b?.rainChance ?? -1)
+        }
+    }
+
+    private var rainLegend: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("RAIN-CHANCE RING")
+                .font(.caption2.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
+            ForEach([WeatherRainBand.low, .moderate, .high, .extreme, .thunderstorm], id: \.self) { band in
+                HStack(spacing: 7) {
+                    Circle().fill(rainBandColor(band)).frame(width: 9, height: 9)
+                    Text(band.label).font(.caption)
+                }
+            }
+            Text("Each ring describes one forecast point; it does not show rain coverage between points. Check PAGASA for official warnings.")
+                .font(.caption2).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private func detailLine(_ title: String, _ value: String?) -> some View {
