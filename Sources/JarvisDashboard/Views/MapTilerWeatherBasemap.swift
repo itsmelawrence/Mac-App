@@ -7,10 +7,16 @@ struct MapTilerPoint: Encodable {
     let longitude: Double
 }
 
-/// A vector basemap only. Forecast glyphs stay in SwiftUI so their animation and
+enum MapTilerBasemapStyle: String {
+    case landscape
+    case satellite
+}
+
+/// A basemap only. Forecast glyphs stay in SwiftUI so their animation and
 /// accessibility do not depend on the web renderer.
 struct MapTilerWeatherBasemap: NSViewRepresentable {
     let key: String
+    let style: MapTilerBasemapStyle
     let points: [MapTilerPoint]
     let resetCounter: Int
     let onPositions: ([String: CGPoint]) -> Void
@@ -24,15 +30,20 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
         configuration.userContentController.add(context.coordinator, name: "jarvisMap")
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.underPageBackgroundColor = NSColor(red: 0.03, green: 0.08, blue: 0.13, alpha: 1)
-        webView.customUserAgent = "JARVIS-Dashboard-macOS/0.2.8"
+        webView.customUserAgent = "JARVIS-Dashboard-macOS/0.2.10"
         webView.navigationDelegate = context.coordinator
         context.coordinator.lastResetCounter = resetCounter
+        context.coordinator.lastStyle = style
         webView.loadHTMLString(Self.html, baseURL: URL(string: "https://api.maptiler.com/"))
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.parent = self
+        if context.coordinator.lastStyle != style {
+            context.coordinator.lastStyle = style
+            webView.evaluateJavaScript("window.jarvisSetStyle && window.jarvisSetStyle('\(style.rawValue)')", completionHandler: nil)
+        }
         if context.coordinator.lastResetCounter != resetCounter {
             context.coordinator.lastResetCounter = resetCounter
             webView.evaluateJavaScript("window.jarvisResetMap && window.jarvisResetMap()", completionHandler: nil)
@@ -48,6 +59,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: MapTilerWeatherBasemap
         var lastResetCounter = 0
+        var lastStyle: MapTilerBasemapStyle = .landscape
 
         init(_ parent: MapTilerWeatherBasemap) { self.parent = parent }
 
@@ -57,7 +69,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
                 parent.onStatus("Could not prepare the MapTiler preview.")
                 return
             }
-            webView.evaluateJavaScript("window.jarvisStartMap(\(encodedKey), \(encodedPoints))") { [weak self] _, error in
+            webView.evaluateJavaScript("window.jarvisStartMap(\(encodedKey), \(encodedPoints), '\(parent.style.rawValue)')") { [weak self] _, error in
                 if error != nil { self?.parent.onStatus("The MapTiler preview could not start.") }
             }
         }
@@ -69,7 +81,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard let body = message.body as? [String: Any], let kind = body["kind"] as? String else { return }
             if kind == "error" {
-                parent.onStatus("MapTiler could not load the landscape map. Check the API key and plan limits.")
+                parent.onStatus("MapTiler could not load the map. Check the API key and plan limits.")
             } else if kind == "ready" {
                 parent.onStatus(nil)
             } else if kind == "positions", let items = body["items"] as? [[String: Any]] {
@@ -103,6 +115,9 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     let jarvisMap = null;
     let jarvisPoints = [];
     let pendingFrame = 0;
+    let jarvisStyle = (key, style) => style === 'satellite'
+      ? maptilersdk.MapStyle.SATELLITE
+      : 'https://api.maptiler.com/maps/landscape-v4/style.json?key=' + encodeURIComponent(key);
     const report = (kind, items) => window.webkit.messageHandlers.jarvisMap.postMessage({kind, items});
     const reportPositions = () => {
       if (!jarvisMap) return;
@@ -118,17 +133,21 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     window.jarvisResetMap = () => {
       if (jarvisMap) jarvisMap.fitBounds([[118.0,5.2],[126.3,18.8]], {padding:55, duration:350});
     };
-    window.jarvisStartMap = (key, points) => {
+    window.jarvisSetStyle = (style) => {
+      if (jarvisMap) jarvisMap.setStyle(jarvisStyle(maptilersdk.config.apiKey, style));
+    };
+    window.jarvisStartMap = (key, points, style) => {
       if (typeof maptilersdk === 'undefined') { report('error'); return; }
       jarvisPoints = points;
       maptilersdk.config.apiKey = key;
       jarvisMap = new maptilersdk.Map({
         container:'map',
-        style:'https://api.maptiler.com/maps/landscape-v4/style.json?key=' + encodeURIComponent(key),
+        style:jarvisStyle(key, style),
         center:[122.1,12.0], zoom:5.1, minZoom:4, maxZoom:12,
-        attributionControl:true
+        attributionControl:true, geolocateControl:false
       });
       jarvisMap.on('load', () => { window.jarvisResetMap(); reportPositions(); report('ready'); });
+      jarvisMap.on('style.load', () => { reportPositions(); report('ready'); });
       jarvisMap.on('move', reportPositions);
       jarvisMap.on('resize', reportPositions);
       // Individual tile/auxiliary requests can fail even while the basemap renders.

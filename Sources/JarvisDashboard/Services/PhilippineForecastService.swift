@@ -29,6 +29,12 @@ struct PhilippineLocationForecast: Identifiable, Sendable {
     func hour(closestTo date: Date) -> PhilippineForecastHour? {
         hours.min { abs($0.time.timeIntervalSince(date)) < abs($1.time.timeIntervalSince(date)) }
     }
+
+    func hasThunderstorm(at index: Int) -> Bool {
+        guard hours.indices.contains(index) else { return false }
+        let hour = hours[index]
+        return WeatherPointCondition(code: hour.weatherCode, precipitation: hour.precipitation).isThunderstorm
+    }
 }
 
 struct PhilippineForecastService: Sendable {

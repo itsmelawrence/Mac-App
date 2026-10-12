@@ -144,10 +144,29 @@ private struct WeatherBeacon: View {
     }
 }
 
+private struct ThunderstormBeacon: View {
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            AnimatedWeatherGlyph(condition: .thunderstorm, size: 42)
+                .frame(width: 50, height: 50)
+                .shadow(color: .black.opacity(0.85), radius: 5)
+        }
+        .buttonStyle(.plain)
+        .help("Thunderstorm forecast at \(name)")
+        .accessibilityLabel("\(name): thunderstorm forecast at the selected time")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
 struct PhilippineWeatherMapView: View {
     private enum MapProvider: String, CaseIterable {
         case apple = "Apple Maps"
         case mapTiler = "MapTiler preview"
+        case satellite = "Satellite"
     }
 
     private enum DetailMode: String, CaseIterable {
@@ -182,6 +201,8 @@ struct PhilippineWeatherMapView: View {
     private var selectedForecast: PhilippineLocationForecast? {
         forecasts.first { $0.id == selectedLocationID } ?? forecasts.first
     }
+    private var usesMapTiler: Bool { mapProvider == .mapTiler || mapProvider == .satellite }
+    private var thunderstormCount: Int { forecasts.filter { $0.hasThunderstorm(at: selectedTimeIndex) }.count }
 
     var body: some View {
         DashboardSection(title: "Philippines weather map", systemImage: "map.fill") {
@@ -193,17 +214,19 @@ struct PhilippineWeatherMapView: View {
                         }
                     }
                     .frame(width: 185)
-                    Picker("Detail metric", selection: $layer) {
-                        ForEach(WeatherMapLayer.allCases) { layer in
-                            Label(layer.rawValue, systemImage: layer.symbol).tag(layer)
+                    if mapProvider != .satellite {
+                        Picker("Detail metric", selection: $layer) {
+                            ForEach(WeatherMapLayer.allCases) { layer in
+                                Label(layer.rawValue, systemImage: layer.symbol).tag(layer)
+                            }
                         }
+                        .frame(width: 220)
+                        Toggle("All cities", isOn: $allLabels)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
                     }
-                    .frame(width: 220)
-                    Toggle("All cities", isOn: $allLabels)
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
                     Button {
-                        if mapProvider == .mapTiler { mapTilerResetCounter += 1 }
+                        if usesMapTiler { mapTilerResetCounter += 1 }
                         else { cameraPosition = .rect(Self.fittedRect(for: forecasts)) }
                     } label: {
                         Label("Reset view", systemImage: "scope")
@@ -224,7 +247,7 @@ struct PhilippineWeatherMapView: View {
                     Label(errorMessage, systemImage: "exclamationmark.triangle")
                         .font(.caption).foregroundStyle(.orange)
                 }
-                if mapProvider == .mapTiler {
+                if usesMapTiler {
                     if mapTilerKey == nil {
                         Label("Add your MapTiler API key in Settings, then return to this map.", systemImage: "key")
                             .font(.caption).foregroundStyle(.orange)
@@ -254,6 +277,12 @@ struct PhilippineWeatherMapView: View {
                         }
                     }
                     timelineControls
+                    if mapProvider == .satellite {
+                        Text(thunderstormCount == 0
+                             ? "No thunderstorms forecast at the 16 sampled locations for this hour. This is satellite imagery, not live storm radar."
+                             : "\(thunderstormCount) sampled \(thunderstormCount == 1 ? "location has" : "locations have") a thunderstorm forecast for this hour. Icons mark forecast points, not storm coverage; this is not live radar.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
 
                 Text("Forecast samples at 16 Philippine locations, not a continuous weather raster or live radar. Times are Philippine time. Data: Open-Meteo; check PAGASA for official warnings. MapTiler preview uses its own online map service and attribution.")
@@ -268,8 +297,16 @@ struct PhilippineWeatherMapView: View {
 
     @ViewBuilder
     private var selectedMap: some View {
-        if mapProvider == .mapTiler, let mapTilerKey {
-            mapTilerMap(key: mapTilerKey)
+        if usesMapTiler {
+            if let mapTilerKey {
+                mapTilerMap(key: mapTilerKey)
+            } else {
+                ContentUnavailableView(
+                    "MapTiler key needed",
+                    systemImage: "key",
+                    description: Text("Save your MapTiler API key in Settings, or select Apple Maps.")
+                )
+            }
         } else {
             map
         }
@@ -285,12 +322,15 @@ struct PhilippineWeatherMapView: View {
             ZStack(alignment: .topLeading) {
                 MapTilerWeatherBasemap(
                     key: key,
+                    style: mapProvider == .satellite ? .satellite : .landscape,
                     points: forecasts.map { .init(id: $0.id, latitude: $0.location.latitude,
                                                    longitude: $0.location.longitude) },
                     resetCounter: mapTilerResetCounter,
                     onPositions: { positions in
                         mapTilerPositions = positions
-                        updateMapTilerLabelSides(size: geometry.size, positions: positions)
+                        if mapProvider != .satellite {
+                            updateMapTilerLabelSides(size: geometry.size, positions: positions)
+                        }
                     },
                     onStatus: { message in mapTilerError = message }
                 )
@@ -301,19 +341,35 @@ struct PhilippineWeatherMapView: View {
                        position.x >= -35, position.y >= -35,
                        position.x <= geometry.size.width + 35,
                        position.y <= geometry.size.height + 35 {
-                        let hour = forecast.hours.indices.contains(selectedTimeIndex)
-                            ? forecast.hours[selectedTimeIndex] : nil
-                        WeatherBeacon(
-                            name: forecast.location.name,
-                            hour: hour,
-                            isSelected: selectedForecast?.id == forecast.id,
-                            isHovered: hoveredLocationID == forecast.id,
-                            labelSide: labelSides[forecast.id],
-                            action: { selectedLocationID = forecast.id },
-                            hovering: { hoveredLocationID = $0 ? forecast.id : nil }
-                        )
-                        .position(position)
+                        if mapProvider == .satellite {
+                            if forecast.hasThunderstorm(at: selectedTimeIndex) {
+                                ThunderstormBeacon(
+                                    name: forecast.location.name,
+                                    isSelected: selectedForecast?.id == forecast.id,
+                                    action: { selectedLocationID = forecast.id }
+                                )
+                                .position(position)
+                            }
+                        } else {
+                            let hour = forecast.hours.indices.contains(selectedTimeIndex)
+                                ? forecast.hours[selectedTimeIndex] : nil
+                            WeatherBeacon(
+                                name: forecast.location.name,
+                                hour: hour,
+                                isSelected: selectedForecast?.id == forecast.id,
+                                isHovered: hoveredLocationID == forecast.id,
+                                labelSide: labelSides[forecast.id],
+                                action: { selectedLocationID = forecast.id },
+                                hovering: { hoveredLocationID = $0 ? forecast.id : nil }
+                            )
+                            .position(position)
+                        }
                     }
+                }
+            }
+            .onChange(of: mapProvider) { _, provider in
+                if provider == .mapTiler {
+                    updateMapTilerLabelSides(size: geometry.size, positions: mapTilerPositions)
                 }
             }
             .onChange(of: selectedTimeIndex) { _, _ in updateMapTilerLabelSides(size: geometry.size, positions: mapTilerPositions) }

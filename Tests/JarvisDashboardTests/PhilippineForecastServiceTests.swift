@@ -34,6 +34,24 @@ import Testing
         #expect(throws: URLError.self) { try PhilippineForecastService.decode(data) }
     }
 
+    @Test func satelliteThunderIconsRequireAStormAtTheSelectedHour() {
+        let location = SavedLocationValue(name: "Cebu", latitude: 10.3157, longitude: 123.8854)
+        let ordinaryRain = PhilippineForecastHour(
+            time: .now, temperature: 29, rainChance: 100, precipitation: 12,
+            windSpeed: nil, windDirection: nil, cloudCover: nil, humidity: nil,
+            pressure: nil, weatherCode: 65
+        )
+        let storm = PhilippineForecastHour(
+            time: .now.addingTimeInterval(3600), temperature: 27, rainChance: 80,
+            precipitation: 3, windSpeed: nil, windDirection: nil, cloudCover: nil,
+            humidity: nil, pressure: nil, weatherCode: 95
+        )
+        let forecast = PhilippineLocationForecast(location: location, hours: [ordinaryRain, storm])
+        #expect(!forecast.hasThunderstorm(at: 0))
+        #expect(forecast.hasThunderstorm(at: 1))
+        #expect(!forecast.hasThunderstorm(at: 2))
+    }
+
     @Test func decodesSingleSelectedCityAndItsLocalTimeZone() throws {
         let location = SavedLocationValue(name: "London", latitude: 51.5072, longitude: -0.1276)
         let item: [String: Any] = [
