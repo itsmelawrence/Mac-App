@@ -53,6 +53,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Sleep/wake monitoring and configurable wake briefings
 - Live weather forecasts from Open-Meteo
 - Switchable Philippine weather map and personal weather dashboard, with a primary-location hero forecast, four independently chosen city cards, city search, and opt-in Mac location
+- Optional MapTiler Landscape basemap preview for the Philippine map; Apple Maps remains the default and native animated weather beacons remain above either basemap
 - Eight native condition-specific weather animations across the map, hero forecast, hourly strip, and city cards; Reduce Motion keeps a still condition icon
 - Recent Philippine-region earthquake data from USGS
 - Philippine headlines from GMA News and world headlines from BBC News
@@ -64,4 +65,4 @@ Live providers are isolated behind service boundaries so they can be replaced or
 
 ## Data and permissions
 
-Tasks, projects, saved locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; city search uses Apple Maps. Mac location is requested only when you press “Use Mac location” and is kept in memory for that session, not added to saved locations. Earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Monitoring API tokens are stored in macOS Keychain and sent only to the configured HTTPS endpoint. Launch at login and notifications are opt-in settings controlled from within the application.
+Tasks, projects, saved locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; city search uses Apple Maps. Mac location is requested only when you press “Use Mac location” and is kept in memory for that session, not added to saved locations. The optional MapTiler preview loads MapTiler's SDK and map tiles while visible; its API key is stored in macOS Keychain, not in the repository, but is necessarily sent in map requests. Paste only the API key in Settings, then select **MapTiler preview** in the Philippine map's **Basemap** picker. MapTiler usage counts towards the account's quota. Earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Monitoring API tokens are stored in macOS Keychain and sent only to the configured HTTPS endpoint. Launch at login and notifications are opt-in settings controlled from within the application.

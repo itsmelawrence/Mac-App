@@ -8,12 +8,16 @@ struct SettingsView: View {
     @State private var newsAPIKey = ""
     @State private var hasStoredNewsAPIKey = false
     @State private var newsAPIStatus: String?
+    @State private var mapTilerKey = ""
+    @State private var hasStoredMapTilerKey = false
+    @State private var mapTilerStatus: String?
     @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
     @State private var monitoringAPIToken = ""
     @State private var hasStoredMonitoringAPIToken = false
     @State private var monitoringConnectionState = MonitoringConnectionState.notTested
 
     private let newsAPIKeyStore = NewsAPIKeyStore()
+    private let mapTilerKeyStore = MapTilerKeyStore()
     private let monitoringCredentialStore = MonitoringAPICredentialStore()
     private let monitoringAPIService = MonitoringAPIService()
 
@@ -153,6 +157,26 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Philippines map · MapTiler preview") {
+                SecureField("Paste your MapTiler API key", text: $mapTilerKey)
+                    .textContentType(.password)
+                HStack {
+                    Text(hasStoredMapTilerKey ? "Key stored in macOS Keychain." : "No key stored. Apple Maps remains available.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    if hasStoredMapTilerKey {
+                        Button("Remove", role: .destructive) { removeMapTilerKey() }
+                    }
+                    Button("Save") { saveMapTilerKey() }
+                        .disabled(mapTilerKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                Text("Use a MapTiler API key, never a service token. The preview loads MapTiler's landscape map over the internet; map sessions and tile requests count towards your plan's allowance. The key is sent to MapTiler while the preview is open.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if let mapTilerStatus {
+                    Text(mapTilerStatus).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
             Section("Monitoring API") {
                 TextField("API URL", text: $monitoringAPIBaseURL)
                     .textContentType(.URL)
@@ -202,7 +226,7 @@ struct SettingsView: View {
             }
 
             Section("Data and privacy") {
-                Text("Tasks, projects, locations, and backups are stored locally. NewsAPI.org and monitoring API credentials are stored in macOS Keychain and excluded from backups and exports. Live services receive only the information required for their requests.")
+                Text("Tasks, projects, locations, and backups are stored locally. NewsAPI.org, MapTiler, and monitoring API credentials are stored in macOS Keychain and excluded from backups and exports. Live services receive only the information required for their requests.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -214,6 +238,7 @@ struct SettingsView: View {
         .onAppear {
             loginItemService.refresh()
             hasStoredNewsAPIKey = newsAPIKeyStore.read() != nil
+            hasStoredMapTilerKey = mapTilerKeyStore.read() != nil
             hasStoredMonitoringAPIToken = monitoringCredentialStore.read() != nil
         }
         .task { await refreshNotificationStatus() }
@@ -227,6 +252,31 @@ struct SettingsView: View {
             newsAPIStatus = "Saved. NewsAPI.org will be used on the next refresh."
         } catch {
             newsAPIStatus = error.localizedDescription
+        }
+    }
+
+    private func saveMapTilerKey() {
+        do {
+            try mapTilerKeyStore.save(mapTilerKey)
+            mapTilerKey = ""
+            hasStoredMapTilerKey = true
+            mapTilerStatus = "Saved. Select MapTiler preview on the Philippines map."
+            NotificationCenter.default.post(name: .mapTilerKeyChanged, object: nil)
+        } catch {
+            mapTilerStatus = error.localizedDescription
+        }
+    }
+
+    private func removeMapTilerKey() {
+        do {
+            try mapTilerKeyStore.delete()
+            mapTilerKey = ""
+            hasStoredMapTilerKey = false
+            mapTilerStatus = "Removed. The Philippines map will use Apple Maps."
+            UserDefaults.standard.set("Apple Maps", forKey: "weatherMap.provider")
+            NotificationCenter.default.post(name: .mapTilerKeyChanged, object: nil)
+        } catch {
+            mapTilerStatus = error.localizedDescription
         }
     }
 

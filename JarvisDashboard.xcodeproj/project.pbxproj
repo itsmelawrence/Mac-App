@@ -34,6 +34,7 @@
 		526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */; };
 		58435D26AD40A47D83E67778 /* PhilippineWeatherMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD5538F71885821F15EBBAB /* PhilippineWeatherMapView.swift */; };
 		5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129B4602808BAD0764F88928 /* AppStateTests.swift */; };
+		6F85A824489D20F1BAA5761B /* MapTilerWeatherBasemap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */; };
 		721999F6EF250D7B692A3EDF /* BriefingComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */; };
 		73E90DA7F5A420582754AF22 /* SavedLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F597BC852599AE0CBB694F4B /* SavedLocation.swift */; };
 		86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39902BB88D836CA9896FAE1 /* AppState.swift */; };
@@ -66,6 +67,7 @@
 		EDCFF725B6A12152431016B4 /* MonitoringHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D418DFEB339CA429E99244AE /* MonitoringHealthTests.swift */; };
 		EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */; };
 		F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */; };
+		F8A0C0E00BBBEB1B54682D53 /* MapTilerKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */; };
 		FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */; };
 /* End PBXBuildFile section */
 
@@ -100,6 +102,7 @@
 		42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDataSchema.swift; sourceTree = "<group>"; };
 		463546401670CFBB95386BFC /* SpeechServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechServiceTests.swift; sourceTree = "<group>"; };
 		498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryService.swift; sourceTree = "<group>"; };
+		49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapTilerWeatherBasemap.swift; sourceTree = "<group>"; };
 		5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastService.swift; sourceTree = "<group>"; };
 		54F58FE3B6B29601D526900C /* JarvisBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupService.swift; sourceTree = "<group>"; };
 		5F41B209EF204B77186B9DFC /* MotivationalQuoteServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteServiceTests.swift; sourceTree = "<group>"; };
@@ -110,6 +113,7 @@
 		73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshotTests.swift; sourceTree = "<group>"; };
 		776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPICredentialStore.swift; sourceTree = "<group>"; };
 		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapTilerKeyStore.swift; sourceTree = "<group>"; };
 		7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherBeaconModel.swift; sourceTree = "<group>"; };
 		87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIKeyStore.swift; sourceTree = "<group>"; };
@@ -152,6 +156,7 @@
 				A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */,
 				E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */,
 				D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */,
+				49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */,
 				6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */,
 				DDD5538F71885821F15EBBAB /* PhilippineWeatherMapView.swift */,
 				3B1676D6679B29E4122F6E3E /* ProjectsView.swift */,
@@ -266,6 +271,7 @@
 				3894B477148C693086708ABB /* JarvisCommandEngine.swift */,
 				42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */,
 				AD6319322836627DA4F54FAD /* LoginItemService.swift */,
+				7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */,
 				776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */,
 				3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */,
 				06AECC040E2CE1B8AD502271 /* MonitoringHealth.swift */,
@@ -427,6 +433,8 @@
 				4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */,
 				343108046F415B870B70645F /* JarvisDataSchema.swift in Sources */,
 				4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */,
+				F8A0C0E00BBBEB1B54682D53 /* MapTilerKeyStore.swift in Sources */,
+				6F85A824489D20F1BAA5761B /* MapTilerWeatherBasemap.swift in Sources */,
 				FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */,
 				16CE5D7DDFC05390D8D22A80 /* MonitoringAPICredentialStore.swift in Sources */,
 				A035E86236F77399BA88B212 /* MonitoringAPIService.swift in Sources */,
@@ -502,7 +510,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -523,7 +531,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.7;
+				MARKETING_VERSION = 0.2.8;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -640,7 +648,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -655,7 +663,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.7;
+				MARKETING_VERSION = 0.2.8;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
