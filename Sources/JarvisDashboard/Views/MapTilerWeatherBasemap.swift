@@ -19,6 +19,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     let style: MapTilerBasemapStyle
     let points: [MapTilerPoint]
     let resetCounter: Int
+    let cloudRefreshCounter: Int
     let onPositions: ([String: CGPoint]) -> Void
     let onStatus: (String?) -> Void
 
@@ -30,9 +31,10 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
         configuration.userContentController.add(context.coordinator, name: "jarvisMap")
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.underPageBackgroundColor = NSColor(red: 0.03, green: 0.08, blue: 0.13, alpha: 1)
-        webView.customUserAgent = "JARVIS-Dashboard-macOS/0.2.10"
+        webView.customUserAgent = "JARVIS-Dashboard-macOS/0.2.12"
         webView.navigationDelegate = context.coordinator
         context.coordinator.lastResetCounter = resetCounter
+        context.coordinator.lastCloudRefreshCounter = cloudRefreshCounter
         context.coordinator.lastStyle = style
         webView.loadHTMLString(Self.html, baseURL: URL(string: "https://api.maptiler.com/"))
         return webView
@@ -48,6 +50,10 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
             context.coordinator.lastResetCounter = resetCounter
             webView.evaluateJavaScript("window.jarvisResetMap && window.jarvisResetMap()", completionHandler: nil)
         }
+        if context.coordinator.lastCloudRefreshCounter != cloudRefreshCounter {
+            context.coordinator.lastCloudRefreshCounter = cloudRefreshCounter
+            webView.evaluateJavaScript("window.jarvisRefreshClouds && window.jarvisRefreshClouds()", completionHandler: nil)
+        }
     }
 
     static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
@@ -59,6 +65,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: MapTilerWeatherBasemap
         var lastResetCounter = 0
+        var lastCloudRefreshCounter = 0
         var lastStyle: MapTilerBasemapStyle = .landscape
 
         init(_ parent: MapTilerWeatherBasemap) { self.parent = parent }
@@ -82,6 +89,8 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
             guard let body = message.body as? [String: Any], let kind = body["kind"] as? String else { return }
             if kind == "error" {
                 parent.onStatus("MapTiler could not load the map. Check the API key and plan limits.")
+            } else if kind == "cloudError" {
+                parent.onStatus("NOAA cloud imagery is unavailable right now; the satellite basemap is still usable.")
             } else if kind == "ready" {
                 parent.onStatus(nil)
             } else if kind == "positions", let items = body["items"] as? [[String: Any]] {
@@ -115,6 +124,23 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     let jarvisMap = null;
     let jarvisPoints = [];
     let pendingFrame = 0;
+    const cloudSourceID = 'jarvis-noaa-clouds';
+    const cloudLayerID = 'jarvis-noaa-clouds-layer';
+    const cloudTiles = 'https://gis.nnvl.noaa.gov/arcgis/rest/services/GOES/GOES_current/ImageServer/tile/{z}/{y}/{x}';
+    let jarvisCurrentStyle = 'landscape';
+    let baseStyleReady = false;
+    const addCloudLayer = () => {
+      if (!jarvisMap || jarvisMap.getSource(cloudSourceID)) return;
+      jarvisMap.addSource(cloudSourceID, {
+        type:'raster', tiles:[cloudTiles + '?v=' + Math.floor(Date.now() / 600000)],
+        tileSize:256, minzoom:0, maxzoom:8,
+        attribution:'Cloud imagery: NOAA/NESDIS'
+      });
+      jarvisMap.addLayer({
+        id:cloudLayerID, type:'raster', source:cloudSourceID,
+        paint:{'raster-opacity':0.58, 'raster-contrast':0.22, 'raster-fade-duration':0}
+      });
+    };
     let jarvisStyle = (key, style) => style === 'satellite'
       ? maptilersdk.MapStyle.SATELLITE
       : 'https://api.maptiler.com/maps/landscape-v4/style.json?key=' + encodeURIComponent(key);
@@ -134,11 +160,20 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
       if (jarvisMap) jarvisMap.fitBounds([[118.0,5.2],[126.3,18.8]], {padding:55, duration:350});
     };
     window.jarvisSetStyle = (style) => {
+      jarvisCurrentStyle = style;
+      baseStyleReady = false;
       if (jarvisMap) jarvisMap.setStyle(jarvisStyle(maptilersdk.config.apiKey, style));
+    };
+    window.jarvisRefreshClouds = () => {
+      if (!jarvisMap || jarvisCurrentStyle !== 'satellite') return;
+      if (jarvisMap.getLayer(cloudLayerID)) jarvisMap.removeLayer(cloudLayerID);
+      if (jarvisMap.getSource(cloudSourceID)) jarvisMap.removeSource(cloudSourceID);
+      addCloudLayer();
     };
     window.jarvisStartMap = (key, points, style) => {
       if (typeof maptilersdk === 'undefined') { report('error'); return; }
       jarvisPoints = points;
+      jarvisCurrentStyle = style;
       maptilersdk.config.apiKey = key;
       jarvisMap = new maptilersdk.Map({
         container:'map',
@@ -147,12 +182,19 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
         attributionControl:true, geolocateControl:false
       });
       jarvisMap.on('load', () => { window.jarvisResetMap(); reportPositions(); report('ready'); });
-      jarvisMap.on('style.load', () => { reportPositions(); report('ready'); });
+      jarvisMap.on('style.load', () => {
+        baseStyleReady = true;
+        if (jarvisCurrentStyle === 'satellite') addCloudLayer();
+        reportPositions(); report('ready');
+      });
       jarvisMap.on('move', reportPositions);
       jarvisMap.on('resize', reportPositions);
       // Individual tile/auxiliary requests can fail even while the basemap renders.
       // Only surface a map-loading error before the main style becomes available.
-      jarvisMap.on('error', () => { if (!jarvisMap.isStyleLoaded()) report('error'); });
+      jarvisMap.on('error', event => {
+        if (event.sourceId === cloudSourceID) report('cloudError');
+        else if (!baseStyleReady) report('error');
+      });
       new ResizeObserver(() => { jarvisMap.resize(); reportPositions(); }).observe(document.getElementById('map'));
     };
     </script></body></html>

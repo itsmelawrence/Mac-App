@@ -190,6 +190,7 @@ struct PhilippineWeatherMapView: View {
     @State private var mapTilerPositions: [String: CGPoint] = [:]
     @State private var mapTilerError: String?
     @State private var mapTilerResetCounter = 0
+    @State private var mapTilerCloudRefreshCounter = 0
     @AppStorage("weatherMap.allLabels") private var allLabels = false
     @AppStorage("weatherMap.provider") private var mapProvider: MapProvider = .apple
 
@@ -237,7 +238,10 @@ struct PhilippineWeatherMapView: View {
                         Text("Updated \(loadedAt, style: .relative)")
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                    Button { Task { await refresh() } } label: {
+                    Button {
+                        if mapProvider == .satellite { mapTilerCloudRefreshCounter += 1 }
+                        Task { await refresh() }
+                    } label: {
                         Label("Refresh map", systemImage: "arrow.clockwise")
                     }
                     .disabled(isLoading)
@@ -278,9 +282,11 @@ struct PhilippineWeatherMapView: View {
                     }
                     timelineControls
                     if mapProvider == .satellite {
+                        Text("Cloud imagery: NOAA infrared tiles (latest available). Clouds depict an observation and do not change with the forecast-hour slider; image time is not supplied by this service.")
+                            .font(.caption).foregroundStyle(.secondary)
                         Text(thunderstormCount == 0
-                             ? "No thunderstorms forecast at the 16 sampled locations for this hour. This is satellite imagery, not live storm radar."
-                             : "\(thunderstormCount) sampled \(thunderstormCount == 1 ? "location has" : "locations have") a thunderstorm forecast for this hour. Icons mark forecast points, not storm coverage; this is not live radar.")
+                             ? "No thunderstorms forecast at the 16 sampled locations for this hour. This is not live storm radar."
+                             : "\(thunderstormCount) sampled \(thunderstormCount == 1 ? "location has" : "locations have") a thunderstorm forecast for this hour. Icons mark forecast points, not storm coverage or lightning strikes.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -326,6 +332,7 @@ struct PhilippineWeatherMapView: View {
                     points: forecasts.map { .init(id: $0.id, latitude: $0.location.latitude,
                                                    longitude: $0.location.longitude) },
                     resetCounter: mapTilerResetCounter,
+                    cloudRefreshCounter: mapTilerCloudRefreshCounter,
                     onPositions: { positions in
                         mapTilerPositions = positions
                         if mapProvider != .satellite {
