@@ -14,7 +14,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     let points: [MapTilerPoint]
     let resetCounter: Int
     let onPositions: ([String: CGPoint]) -> Void
-    let onError: (String) -> Void
+    let onStatus: (String?) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -54,22 +54,24 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard let encodedKey = Self.jsonString(parent.key),
                   let encodedPoints = Self.jsonData(parent.points) else {
-                parent.onError("Could not prepare the MapTiler preview.")
+                parent.onStatus("Could not prepare the MapTiler preview.")
                 return
             }
             webView.evaluateJavaScript("window.jarvisStartMap(\(encodedKey), \(encodedPoints))") { [weak self] _, error in
-                if error != nil { self?.parent.onError("The MapTiler preview could not start.") }
+                if error != nil { self?.parent.onStatus("The MapTiler preview could not start.") }
             }
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            parent.onError("MapTiler could not load. Check your internet connection.")
+            parent.onStatus("MapTiler could not load. Check your internet connection.")
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard let body = message.body as? [String: Any], let kind = body["kind"] as? String else { return }
             if kind == "error" {
-                parent.onError("MapTiler could not load the landscape map. Check the API key and plan limits.")
+                parent.onStatus("MapTiler could not load the landscape map. Check the API key and plan limits.")
+            } else if kind == "ready" {
+                parent.onStatus(nil)
             } else if kind == "positions", let items = body["items"] as? [[String: Any]] {
                 var positions: [String: CGPoint] = [:]
                 for item in items {
@@ -103,7 +105,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
     let pendingFrame = 0;
     const report = (kind, items) => window.webkit.messageHandlers.jarvisMap.postMessage({kind, items});
     const reportPositions = () => {
-      if (!jarvisMap || !jarvisMap.loaded()) return;
+      if (!jarvisMap) return;
       if (pendingFrame) return;
       pendingFrame = requestAnimationFrame(() => {
         pendingFrame = 0;
@@ -126,10 +128,12 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
         center:[122.1,12.0], zoom:5.1, minZoom:4, maxZoom:12,
         attributionControl:true
       });
-      jarvisMap.on('load', () => { window.jarvisResetMap(); reportPositions(); });
+      jarvisMap.on('load', () => { window.jarvisResetMap(); reportPositions(); report('ready'); });
       jarvisMap.on('move', reportPositions);
       jarvisMap.on('resize', reportPositions);
-      jarvisMap.on('error', () => report('error'));
+      // Individual tile/auxiliary requests can fail even while the basemap renders.
+      // Only surface a map-loading error before the main style becomes available.
+      jarvisMap.on('error', () => { if (!jarvisMap.isStyleLoaded()) report('error'); });
       new ResizeObserver(() => { jarvisMap.resize(); reportPositions(); }).observe(document.getElementById('map'));
     };
     </script></body></html>

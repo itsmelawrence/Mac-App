@@ -292,7 +292,7 @@ struct PhilippineWeatherMapView: View {
                         mapTilerPositions = positions
                         updateMapTilerLabelSides(size: geometry.size, positions: positions)
                     },
-                    onError: { message in mapTilerError = message }
+                    onStatus: { message in mapTilerError = message }
                 )
                 .id(key)
 
