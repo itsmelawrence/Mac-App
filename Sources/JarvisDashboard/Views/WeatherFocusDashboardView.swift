@@ -132,8 +132,8 @@ struct WeatherFocusDashboardView: View {
                     Text(condition.title).font(.title3.weight(.medium))
                 }
                 Spacer(minLength: 12)
-                AnimatedWeatherGlyph(condition: condition, size: 92)
-                    .frame(width: 120, height: 110)
+                AnimatedWeatherGlyph(condition: condition, size: 120)
+                    .frame(width: 128, height: 128)
             }
             HStack(spacing: 22) {
                 metric("RAIN", hour?.rainChance.map { "\($0)%" } ?? "—", symbol: "drop.fill")
@@ -174,8 +174,10 @@ struct WeatherFocusDashboardView: View {
                 VStack(spacing: 7) {
                     Text(formattedTime(hour.time, for: forecast, format: "h a"))
                         .font(.caption2).foregroundStyle(.white.opacity(0.75))
-                    Image(systemName: WeatherPointCondition(code: hour.weatherCode, precipitation: hour.precipitation).systemImage)
-                        .symbolRenderingMode(.multicolor).font(.system(size: 19))
+                    AnimatedWeatherGlyph(
+                        condition: WeatherPointCondition(code: hour.weatherCode, precipitation: hour.precipitation),
+                        size: 22
+                    )
                     Text(hour.temperature.map { "\(Int($0.rounded()))°" } ?? "—")
                         .font(.subheadline.weight(.semibold)).monospacedDigit()
                 }
@@ -388,27 +390,5 @@ private final class WeatherCurrentLocationProvider: NSObject, ObservableObject, 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         completion?(.failure(error))
         completion = nil
-    }
-}
-
-/// Motion is decorative only; reduced-motion users get the same condition icon without animation.
-struct AnimatedWeatherGlyph: View {
-    let condition: WeatherPointCondition
-    let size: CGFloat
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 12, paused: reduceMotion)) { context in
-            let phase = context.date.timeIntervalSinceReferenceDate
-            let drift = reduceMotion ? 0 : sin(phase * 1.5) * 2
-            let pulse = reduceMotion ? 1 : 1 + sin(phase * 1.8) * 0.035
-            Image(systemName: condition.systemImage)
-                .symbolRenderingMode(.multicolor)
-                .font(.system(size: size, weight: .regular))
-                .scaleEffect(pulse)
-                .offset(x: condition == .clear ? 0 : drift)
-                .shadow(color: condition == .thunderstorm ? .yellow.opacity(0.4) : .cyan.opacity(0.25), radius: 12)
-        }
-        .accessibilityLabel(condition.title)
     }
 }

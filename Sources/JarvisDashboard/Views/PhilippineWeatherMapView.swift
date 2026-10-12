@@ -107,7 +107,7 @@ private struct WeatherBeacon: View {
 
     var body: some View {
         Button(action: action) {
-            AnimatedWeatherGlyph(condition: condition, size: 26)
+            AnimatedWeatherGlyph(condition: condition, size: 40)
                 .frame(width: 44, height: 44)
                 .overlay(alignment: .bottom) {
                     if isSelected {
@@ -366,9 +366,7 @@ struct PhilippineWeatherMapView: View {
                 Text(selectedTime.map { formattedTime($0, format: "EEE, MMM d · h:mm a") } ?? "Time unavailable")
                     .font(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 12) {
-                    Image(systemName: condition.systemImage)
-                        .font(.system(size: 38))
-                        .foregroundStyle(condition.isThunderstorm ? Color.orange : Color.cyan)
+                    AnimatedWeatherGlyph(condition: condition, size: 44)
                         .frame(width: 50)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(hour.temperature.map { "\(Int($0.rounded()))°C" } ?? "—")
@@ -432,8 +430,7 @@ struct PhilippineWeatherMapView: View {
                     let hour = forecast.hours.indices.contains(selectedTimeIndex) ? forecast.hours[selectedTimeIndex] : nil
                     let condition = WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation)
                     HStack(spacing: 8) {
-                        Image(systemName: condition.systemImage).frame(width: 20)
-                            .foregroundStyle(condition.isThunderstorm ? Color.orange : Color.cyan)
+                        AnimatedWeatherGlyph(condition: condition, size: 24).frame(width: 24)
                         Text(forecast.location.name).lineLimit(1)
                         Spacer(minLength: 4)
                         Text(hour?.rainChance.map { "\($0)%" } ?? "—")

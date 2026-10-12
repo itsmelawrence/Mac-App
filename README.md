@@ -53,6 +53,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Sleep/wake monitoring and configurable wake briefings
 - Live weather forecasts from Open-Meteo
 - Switchable Philippine weather map and personal weather dashboard, with a primary-location hero forecast, four independently chosen city cards, city search, and opt-in Mac location
+- Eight native condition-specific weather animations across the map, hero forecast, hourly strip, and city cards; Reduce Motion keeps a still condition icon
 - Recent Philippine-region earthquake data from USGS
 - Philippine headlines from GMA News and world headlines from BBC News
 - Optional NewsAPI.org integration with the key stored in macOS Keychain

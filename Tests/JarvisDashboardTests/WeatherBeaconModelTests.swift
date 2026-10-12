@@ -19,4 +19,25 @@ import Testing
         #expect(WeatherRainBand(chance: 25, thunderstorm: true) == .thunderstorm)
         #expect(WeatherRainBand(chance: nil, thunderstorm: true) == .unavailable)
     }
+
+    @Test func animatedArtworkMatchesEachSupportedCondition() {
+        #expect(WeatherPointCondition.clear.animatedIconID == "clear")
+        #expect(WeatherPointCondition.partlyCloudy.animatedIconID == "partly-cloudy")
+        #expect(WeatherPointCondition.cloudy.animatedIconID == "cloudy")
+        #expect(WeatherPointCondition.fog.animatedIconID == "fog")
+        #expect(WeatherPointCondition.showers.animatedIconID == "light-rain")
+        #expect(WeatherPointCondition.rain.animatedIconID == "rain")
+        #expect(WeatherPointCondition.heavyRain.animatedIconID == "heavy-rain")
+        #expect(WeatherPointCondition.thunderstorm.animatedIconID == "thunderstorm")
+        #expect(WeatherPointCondition.unknown.animatedIconID == nil)
+    }
+
+    @Test func rainLoopsAndThunderDoubleFlashHaveDistinctFrames() {
+        #expect(WeatherIconMotion.fraction(time: 0, period: 1.2) == 0)
+        #expect(WeatherIconMotion.fraction(time: 0.6, period: 1.2) == 0.5)
+        #expect(WeatherIconMotion.fraction(time: 1.2, period: 1.2) == 0)
+        #expect(WeatherIconMotion.thunderFlash(time: 0) == 0)
+        #expect(WeatherIconMotion.thunderFlash(time: 3.2 * 0.55) > 0.9)
+        #expect(WeatherIconMotion.thunderFlash(time: 3.2 * 0.63) > 0.9)
+    }
 }

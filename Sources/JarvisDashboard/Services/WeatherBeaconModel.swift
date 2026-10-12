@@ -47,6 +47,21 @@ enum WeatherPointCondition: Equatable, Sendable {
     }
 
     var isThunderstorm: Bool { self == .thunderstorm }
+
+    /// Matches the supplied weather-<id>.svg reference artwork.
+    var animatedIconID: String? {
+        switch self {
+        case .clear: "clear"
+        case .partlyCloudy: "partly-cloudy"
+        case .cloudy: "cloudy"
+        case .fog: "fog"
+        case .showers: "light-rain"
+        case .rain: "rain"
+        case .heavyRain: "heavy-rain"
+        case .thunderstorm: "thunderstorm"
+        case .unknown: nil
+        }
+    }
 }
 
 enum WeatherRainBand: Equatable, Sendable {
