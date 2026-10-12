@@ -14,8 +14,8 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
-    MARKETING_VERSION: "0.2.5"
-    CURRENT_PROJECT_VERSION: "6"
+    MARKETING_VERSION: "0.2.6"
+    CURRENT_PROJECT_VERSION: "7"
 
 targets:
   JarvisDashboard:
@@ -34,6 +34,7 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
         NSHumanReadableCopyright: Copyright © 2026 Skeema Digital. All rights reserved.
+        NSLocationWhenInUseUsageDescription: JARVIS uses your Mac location only when you choose Use Mac location to show a local weather forecast.
         NSSupportsAutomaticTermination: false
         NSSupportsSuddenTermination: true
     settings:

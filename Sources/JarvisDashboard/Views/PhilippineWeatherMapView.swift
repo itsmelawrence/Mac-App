@@ -5,9 +5,9 @@ import SwiftUI
 private enum WeatherMapLabelSize {
     static func measure(_ text: String) -> CGSize {
         let textSize = (text as NSString).size(withAttributes: [
-            .font: NSFont.systemFont(ofSize: 12, weight: .semibold)
+            .font: NSFont.systemFont(ofSize: 11, weight: .semibold)
         ])
-        return CGSize(width: ceil(textSize.width) + 18, height: ceil(textSize.height) + 10)
+        return CGSize(width: max(64, ceil(textSize.width) + 6), height: 38)
     }
 }
 
@@ -97,7 +97,6 @@ private struct WeatherBeacon: View {
     let isSelected: Bool
     let isHovered: Bool
     let labelSide: WeatherLabelSide?
-    let labelText: String
     let action: () -> Void
     let hovering: (Bool) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -106,53 +105,32 @@ private struct WeatherBeacon: View {
         WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation)
     }
 
-    private var band: WeatherRainBand {
-        WeatherRainBand(chance: hour?.rainChance, thunderstorm: condition.isThunderstorm)
-    }
-
     var body: some View {
         Button(action: action) {
-            ZStack {
-                if isSelected {
-                    Circle().stroke(Color.cyan.opacity(0.65), lineWidth: 2)
-                        .frame(width: 44, height: 44)
+            AnimatedWeatherGlyph(condition: condition, size: 26)
+                .frame(width: 44, height: 44)
+                .overlay(alignment: .bottom) {
+                    if isSelected {
+                        Circle().fill(.cyan).frame(width: 4, height: 4).offset(y: 3)
+                    }
                 }
-                Circle()
-                    .fill(Color(red: 0.03, green: 0.07, blue: 0.12).opacity(0.92))
-                    .frame(width: 38, height: 38)
-                if let chance = hour?.rainChance {
-                    Circle()
-                        .trim(from: 0, to: min(1, max(0, CGFloat(chance) / 100)))
-                        .stroke(rainBandColor(band), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: 36, height: 36)
-                } else {
-                    Circle()
-                        .stroke(.gray, style: StrokeStyle(lineWidth: 2.5, dash: [3, 3]))
-                        .frame(width: 36, height: 36)
-                }
-                Image(systemName: condition.systemImage)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(condition.isThunderstorm ? Color.orange : Color(red: 0.91, green: 0.95, blue: 0.98))
-                    .symbolRenderingMode(.hierarchical)
-            }
-            .frame(width: 44, height: 44)
             .scaleEffect(isHovered ? 1.08 : 1)
-            .shadow(color: .black.opacity(0.5), radius: 5)
+            .shadow(color: .black.opacity(0.8), radius: 4)
         }
         .buttonStyle(.plain)
         .overlay {
             if let labelSide {
-                let labelSize = WeatherMapLabelSize.measure(labelText)
+                let labelSize = WeatherMapLabelSize.measure(name)
                 let rect = labelSide.rect(around: .zero, labelSize: labelSize)
-                Text(labelText)
-                    .font(.system(size: 12, weight: .semibold))
-                    .monospacedDigit()
-                    .fixedSize()
-                    .foregroundStyle(Color(red: 0.91, green: 0.95, blue: 0.98))
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Color(red: 0.03, green: 0.07, blue: 0.11).opacity(0.92), in: Capsule())
-                    .overlay(Capsule().stroke(Color(red: 0.12, green: 0.2, blue: 0.28)))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(hour?.temperature.map { "\(Int($0.rounded()))°C" } ?? "—°C")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                    Text(name).font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                }
+                    .foregroundStyle(.white)
+                    .shadow(color: .black, radius: 2, x: 0, y: 1)
+                    .shadow(color: .black.opacity(0.8), radius: 5)
                     .offset(x: rect.midX, y: rect.midY)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -161,7 +139,7 @@ private struct WeatherBeacon: View {
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: labelSide)
         .onHover(perform: hovering)
-        .accessibilityLabel("\(name): \(condition.title), \(hour?.rainChance.map { "\($0)% chance of rain" } ?? "rain chance unavailable")")
+        .accessibilityLabel("\(name): \(condition.title), \(hour?.temperature.map { "\(Int($0.rounded())) degrees Celsius" } ?? "temperature unavailable")")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -205,7 +183,7 @@ struct PhilippineWeatherMapView: View {
                         }
                     }
                     .frame(width: 220)
-                    Toggle("More labels", isOn: $allLabels)
+                    Toggle("All cities", isOn: $allLabels)
                         .toggleStyle(.switch)
                         .controlSize(.small)
                     Button { cameraPosition = .rect(Self.fittedRect(for: forecasts)) } label: {
@@ -281,7 +259,6 @@ struct PhilippineWeatherMapView: View {
                                 isSelected: selectedForecast?.id == forecast.id,
                                 isHovered: hoveredLocationID == forecast.id,
                                 labelSide: labelSides[forecast.id],
-                                labelText: "\(forecast.location.name) · \(layer.label(hour))",
                                 action: { selectedLocationID = forecast.id },
                                 hovering: { hoveredLocationID = $0 ? forecast.id : nil }
                             )
@@ -311,15 +288,6 @@ struct PhilippineWeatherMapView: View {
                 .onChange(of: selectedLocationID) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
                 .onChange(of: hoveredLocationID) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
                 .onChange(of: allLabels) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
-                .onChange(of: layer) { _, _ in updateLabelSides(proxy: proxy, size: geometry.size) }
-                .overlay(alignment: .bottomLeading) {
-                    Text("16 forecast points · Open-Meteo · Asia/Manila · \(loadedAt.map { formattedTime($0, format: "h:mm a") } ?? "awaiting data")")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 9).padding(.vertical, 6)
-                        .background(.black.opacity(0.75), in: Capsule())
-                        .padding(9)
-                }
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -332,20 +300,19 @@ struct PhilippineWeatherMapView: View {
                 ? forecast.hours[selectedTimeIndex] : nil
             let condition = WeatherPointCondition(code: hour?.weatherCode, precipitation: hour?.precipitation)
             let focus = forecast.id == selectedForecast?.id || forecast.id == hoveredLocationID
-            let title = "\(forecast.location.name) · \(layer.label(hour))"
             return WeatherLabelPoint(
                 id: forecast.id,
                 position: proxy.convert(CLLocationCoordinate2D(
                     latitude: forecast.location.latitude,
                     longitude: forecast.location.longitude
                 ), to: .local),
-                labelSize: WeatherMapLabelSize.measure(title),
+                labelSize: WeatherMapLabelSize.measure(forecast.location.name),
                 priority: (condition.isThunderstorm ? 1_000 : 0) + (hour?.rainChance ?? -1),
                 isFocused: focus
             )
         }
         let next = WeatherLabelPlacer.place(
-            points: points, viewSize: size, maxLabels: allLabels ? 16 : 6, previous: labelSides
+            points: points, viewSize: size, maxLabels: allLabels ? 16 : 10, previous: labelSides
         )
         if next != labelSides { labelSides = next }
     }
@@ -360,7 +327,7 @@ struct PhilippineWeatherMapView: View {
         let maxY = points.map(\.y).max() ?? first.y
         let width = maxX - minX
         let height = maxY - minY
-        // The northernmost beacon needs room for its ring and label above the coordinate.
+        // Leave room for the northernmost city label above the coordinate.
         return MKMapRect(x: minX - width * 0.14, y: minY - height * 0.35,
                          width: width * 1.28, height: height * 1.50)
     }
@@ -480,7 +447,8 @@ struct PhilippineWeatherMapView: View {
                 .buttonStyle(.plain)
             }
             Divider()
-            rainLegend
+            Text("Weather symbols show the forecast condition at each sampled city. Temperature appears beside the symbol; the selected detail metric remains available above.")
+                .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -494,22 +462,6 @@ struct PhilippineWeatherMapView: View {
             let a = left.hours.indices.contains(selectedTimeIndex) ? left.hours[selectedTimeIndex] : nil
             let b = right.hours.indices.contains(selectedTimeIndex) ? right.hours[selectedTimeIndex] : nil
             return (a?.rainChance ?? -1) > (b?.rainChance ?? -1)
-        }
-    }
-
-    private var rainLegend: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("RAIN-CHANCE RING")
-                .font(.caption2.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
-            ForEach([WeatherRainBand.low, .moderate, .high, .extreme, .thunderstorm], id: \.self) { band in
-                HStack(spacing: 7) {
-                    Circle().fill(rainBandColor(band)).frame(width: 9, height: 9)
-                    Text(band.label).font(.caption)
-                }
-            }
-            Text("Each ring describes one forecast point; it does not show rain coverage between points. Check PAGASA for official warnings.")
-                .font(.caption2).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

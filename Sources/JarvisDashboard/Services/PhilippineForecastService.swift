@@ -16,6 +16,13 @@ struct PhilippineForecastHour: Equatable, Sendable {
 struct PhilippineLocationForecast: Identifiable, Sendable {
     let location: SavedLocationValue
     let hours: [PhilippineForecastHour]
+    let timeZoneIdentifier: String
+
+    init(location: SavedLocationValue, hours: [PhilippineForecastHour], timeZoneIdentifier: String = "Asia/Manila") {
+        self.location = location
+        self.hours = hours
+        self.timeZoneIdentifier = timeZoneIdentifier
+    }
 
     var id: String { location.id }
 
@@ -46,6 +53,7 @@ struct PhilippineForecastService: Sendable {
     ]
 
     private struct Response: Decodable {
+        let timezone: String?
         let hourly: Hourly
 
         struct Hourly: Decodable {
@@ -76,24 +84,38 @@ struct PhilippineForecastService: Sendable {
     }
 
     func forecast() async throws -> [PhilippineLocationForecast] {
+        try await forecast(for: Self.locations, timeZone: "Asia/Manila")
+    }
+
+    func forecast(for locations: [SavedLocationValue], timeZone: String = "auto") async throws -> [PhilippineLocationForecast] {
+        guard !locations.isEmpty else { return [] }
         var components = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
         components.queryItems = [
-            URLQueryItem(name: "latitude", value: Self.locations.map { String($0.latitude) }.joined(separator: ",")),
-            URLQueryItem(name: "longitude", value: Self.locations.map { String($0.longitude) }.joined(separator: ",")),
+            URLQueryItem(name: "latitude", value: locations.map { String($0.latitude) }.joined(separator: ",")),
+            URLQueryItem(name: "longitude", value: locations.map { String($0.longitude) }.joined(separator: ",")),
             URLQueryItem(name: "hourly", value: "temperature_2m,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,cloud_cover,relative_humidity_2m,pressure_msl,weather_code"),
             URLQueryItem(name: "forecast_days", value: "7"),
             URLQueryItem(name: "timeformat", value: "unixtime"),
-            URLQueryItem(name: "timezone", value: "Asia/Manila")
+            URLQueryItem(name: "timezone", value: timeZone)
         ]
         let (data, response) = try await URLSession.shared.data(from: components.url!)
         guard let response = response as? HTTPURLResponse, 200..<300 ~= response.statusCode else {
             throw URLError(.badServerResponse)
         }
-        return try Self.decode(data)
+        return try Self.decode(data, locations: locations)
     }
 
     static func decode(_ data: Data) throws -> [PhilippineLocationForecast] {
-        let responses = try JSONDecoder().decode([Response].self, from: data)
+        try decode(data, locations: locations)
+    }
+
+    static func decode(_ data: Data, locations: [SavedLocationValue]) throws -> [PhilippineLocationForecast] {
+        let responses: [Response]
+        if locations.count == 1, let single = try? JSONDecoder().decode(Response.self, from: data) {
+            responses = [single]
+        } else {
+            responses = try JSONDecoder().decode([Response].self, from: data)
+        }
         guard responses.count == locations.count else { throw URLError(.cannotParseResponse) }
         return zip(locations, responses).map { location, response in
             let hourly = response.hourly
@@ -116,7 +138,8 @@ struct PhilippineForecastService: Sendable {
                     weatherCode: hourly.weatherCode[index]
                 )
             }
-            return PhilippineLocationForecast(location: location, hours: hours)
+            return PhilippineLocationForecast(location: location, hours: hours,
+                                              timeZoneIdentifier: response.timezone ?? "Asia/Manila")
         }
     }
 }

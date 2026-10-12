@@ -33,4 +33,29 @@ import Testing
         let data = Data("[]".utf8)
         #expect(throws: URLError.self) { try PhilippineForecastService.decode(data) }
     }
+
+    @Test func decodesSingleSelectedCityAndItsLocalTimeZone() throws {
+        let location = SavedLocationValue(name: "London", latitude: 51.5072, longitude: -0.1276)
+        let item: [String: Any] = [
+            "timezone": "Europe/London",
+            "hourly": [
+                "time": [1_700_000_000],
+                "temperature_2m": [12.4],
+                "precipitation_probability": [40],
+                "precipitation": [0.2],
+                "wind_speed_10m": [16.0],
+                "wind_direction_10m": [180.0],
+                "cloud_cover": [80],
+                "relative_humidity_2m": [75],
+                "pressure_msl": [1005.0],
+                "weather_code": [61]
+            ]
+        ]
+        let data = try JSONSerialization.data(withJSONObject: item)
+        let result = try PhilippineForecastService.decode(data, locations: [location])
+        #expect(result.count == 1)
+        #expect(result[0].location.name == "London")
+        #expect(result[0].timeZoneIdentifier == "Europe/London")
+        #expect(result[0].hours[0].temperature == 12.4)
+    }
 }

@@ -30,6 +30,7 @@ struct IntelligenceView: View {
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
 
     @AppStorage("intelligence.selectedPage") private var selectedPageRawValue = Page.now.rawValue
+    @AppStorage("intelligence.weatherPresentation") private var weatherPresentation = "Map"
     @AppStorage("intelligence.newsCategory") private var newsCategoryRawValue = NewsSource.Category.philippines.rawValue
     @AppStorage("intelligence.watchlist") private var watchlistText = "AI, WordPress, technology, business"
     @AppStorage("intelligence.earthquakeThreshold") private var earthquakeThreshold = 5.0
@@ -430,8 +431,26 @@ struct IntelligenceView: View {
 
     private var philippinesPage: some View {
         Group {
-            PhilippineWeatherMapView()
-            regionalForecastSection
+            HStack {
+                Label("Weather view", systemImage: "square.on.square")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Picker("Weather view", selection: $weatherPresentation) {
+                    Text("My weather").tag("Dashboard")
+                    Text("Philippines map").tag("Map")
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 300)
+                .labelsHidden()
+            }
+            .padding(14)
+            .intelligenceSurface(cornerRadius: 14)
+            if weatherPresentation == "Dashboard" {
+                WeatherFocusDashboardView(savedLocations: savedLocations)
+            } else {
+                PhilippineWeatherMapView()
+                regionalForecastSection
+            }
             earthquakeSection
             newsSection(title: "Philippines news", articles: newsByCategory[.philippines] ?? [])
         }

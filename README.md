@@ -52,6 +52,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 - Launch-at-login setting using `SMAppService`
 - Sleep/wake monitoring and configurable wake briefings
 - Live weather forecasts from Open-Meteo
+- Switchable Philippine weather map and personal weather dashboard, with a primary-location hero forecast, four independently chosen city cards, city search, and opt-in Mac location
 - Recent Philippine-region earthquake data from USGS
 - Philippine headlines from GMA News and world headlines from BBC News
 - Optional NewsAPI.org integration with the key stored in macOS Keychain
@@ -62,4 +63,4 @@ Live providers are isolated behind service boundaries so they can be replaced or
 
 ## Data and permissions
 
-Tasks, projects, locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Monitoring API tokens are stored in macOS Keychain and sent only to the configured HTTPS endpoint. Launch at login and notifications are opt-in settings controlled from within the application.
+Tasks, projects, saved locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; city search uses Apple Maps. Mac location is requested only when you press “Use Mac location” and is kept in memory for that session, not added to saved locations. Earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Monitoring API tokens are stored in macOS Keychain and sent only to the configured HTTPS endpoint. Launch at login and notifications are opt-in settings controlled from within the application.
