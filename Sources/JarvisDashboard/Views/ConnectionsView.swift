@@ -18,8 +18,8 @@ struct ConnectionsView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Connections").font(.title2.bold())
-                    Text("Trace a project from source to context and Graphify notes.")
+                    Text("Cortex").font(.title2.bold())
+                    Text("Your workspace memory and source connections.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -44,7 +44,7 @@ struct ConnectionsView: View {
                 overview
             }
         }
-        .navigationTitle("Connections")
+        .navigationTitle("Cortex")
         .onAppear(perform: reload)
         .onChange(of: vaultPath) { _, _ in reload() }
     }
@@ -177,6 +177,7 @@ struct ConnectionsView: View {
                         NSWorkspace.shared.activateFileViewerSelecting([selectedFile?.url ?? project.rootURL])
                     }
                 }
+                Text("SYNAPSE MAP").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 RelationshipMap(center: selectedFile?.name ?? project.name, notes: notes)
                     .frame(height: 280)
                 HStack {
@@ -296,6 +297,7 @@ private struct RelationshipMap: View {
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("\(note.title), \(note.relation)")
                     .position(position(index, count: visible.count, size: geometry.size))
                 }
                 Text(center).lineLimit(2).multilineTextAlignment(.center)
@@ -305,7 +307,6 @@ private struct RelationshipMap: View {
                     .position(middle)
             }
         }
-        .accessibilityLabel("Connection map for \(center)")
     }
 
     private func position(_ index: Int, count: Int, size: CGSize) -> CGPoint {

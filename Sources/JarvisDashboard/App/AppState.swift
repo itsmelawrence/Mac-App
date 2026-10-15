@@ -72,7 +72,7 @@ enum SidebarDestination: String, CaseIterable, Identifiable {
         case .today: "Today"
         case .tasks: "Tasks"
         case .projects: "Projects"
-        case .connections: "Connections"
+        case .connections: "Cortex"
         case .intelligence: "Intelligence"
         case .settings: "Settings"
         }
