@@ -178,11 +178,11 @@ struct ConnectionsView: View {
                     }
                 }
                 Text("SYNAPSE MAP").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                GraphifyCanvasView(
+                GraphifyNetworkView(
                     graphDirectory: project.graphURL,
                     focusNoteURL: notes.first(where: { $0.relation == "maps source" })?.url
                 )
-                .frame(height: 470)
+                .frame(height: 570)
                 HStack {
                     Text("KNOWN CONNECTIONS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     Spacer()
