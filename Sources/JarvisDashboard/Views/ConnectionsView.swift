@@ -178,8 +178,11 @@ struct ConnectionsView: View {
                     }
                 }
                 Text("SYNAPSE MAP").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                RelationshipMap(center: selectedFile?.name ?? project.name, notes: notes)
-                    .frame(height: 280)
+                GraphifyCanvasView(
+                    graphDirectory: project.graphURL,
+                    focusNoteURL: notes.first(where: { $0.relation == "maps source" })?.url
+                )
+                .frame(height: 470)
                 HStack {
                     Text("KNOWN CONNECTIONS").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     Spacer()
@@ -267,53 +270,5 @@ private struct ConnectionTreeRow: View {
                 }
             }
         }
-    }
-}
-
-private struct RelationshipMap: View {
-    let center: String
-    let notes: [ConnectionNote]
-
-    var body: some View {
-        GeometryReader { geometry in
-            let visible = Array(notes.prefix(8))
-            let middle = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.cyan.opacity(0.035))
-                Path { path in
-                    for index in visible.indices {
-                        let point = position(index, count: visible.count, size: geometry.size)
-                        path.move(to: middle)
-                        path.addLine(to: point)
-                    }
-                }
-                .stroke(Color.cyan.opacity(0.35), lineWidth: 1)
-                ForEach(Array(visible.enumerated()), id: \.element.id) { index, note in
-                    Button { NSWorkspace.shared.open(note.url) } label: {
-                        Text(note.title).lineLimit(2).multilineTextAlignment(.center)
-                            .font(.caption2.weight(.medium))
-                            .frame(width: 112, height: 42)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(note.title), \(note.relation)")
-                    .position(position(index, count: visible.count, size: geometry.size))
-                }
-                Text(center).lineLimit(2).multilineTextAlignment(.center)
-                    .font(.caption.weight(.semibold)).foregroundStyle(.cyan)
-                    .frame(width: 135, height: 55)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 11))
-                    .position(middle)
-            }
-        }
-    }
-
-    private func position(_ index: Int, count: Int, size: CGSize) -> CGPoint {
-        let angle = (Double(index) / Double(max(count, 1))) * 2 * Double.pi - Double.pi / 2
-        let radiusX = max(0, size.width / 2 - 85)
-        let radiusY = max(0, size.height / 2 - 42)
-        return CGPoint(x: size.width / 2 + cos(angle) * radiusX,
-                       y: size.height / 2 + sin(angle) * radiusY)
     }
 }
