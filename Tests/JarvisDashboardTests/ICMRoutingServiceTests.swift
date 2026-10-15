@@ -33,6 +33,22 @@ struct ICMRoutingServiceTests {
         #expect(try String(contentsOf: file, encoding: .utf8).contains("Fix JARVIS"))
     }
 
+    @Test func projectActivityUsesPARAAndLinksToRawPrompt() throws {
+        let vault = try makeVault()
+        defer { try? FileManager.default.removeItem(at: vault) }
+        let result = try ICMRoutingService.prepare(prompt: "Fix JARVIS", vaultURL: vault)
+        let route = try #require(result).route
+        let raw = try ICMRoutingService.capture(prompt: "Fix JARVIS", route: route, vaultURL: vault)
+        let activity = try ICMRoutingService.recordActivity(
+            prompt: "Fix JARVIS", route: route, rawPromptURL: raw, vaultURL: vault
+        )
+        let contents = try String(contentsOf: activity, encoding: .utf8)
+        #expect(activity.path.contains("Notes/Projects/Personal/ChatGPT/Mac App/Activities/"))
+        #expect(contents.contains("status: requested"))
+        #expect(contents.contains("Raw prompt: [[Memory/01_intake/"))
+        #expect(contents.contains("Pending agent work."))
+    }
+
     private func makeVault() throws -> URL {
         let vault = FileManager.default.temporaryDirectory.appendingPathComponent("jarvis-icm-\(UUID().uuidString)")
         let files: [String: String] = [
@@ -41,6 +57,8 @@ struct ICMRoutingServiceTests {
             "Personal/Skeema/LawrencePortfolio1/routes/web.php": "<?php",
             "Memory/03_references/JARVIS.md": "# JARVIS",
             "Memory/03_references/LawrencePortfolio.md": "# Portfolio",
+            "Notes/Projects/Personal/ChatGPT/Mac App/PROJECT.md": "# JARVIS",
+            "Notes/Projects/Personal/Skeema/LawrencePortfolio1/PROJECT.md": "# Portfolio",
             "Graphify/JARVIS/ProjectsView.swift.md": "# ProjectsView",
         ]
         for (path, contents) in files {
@@ -50,12 +68,12 @@ struct ICMRoutingServiceTests {
         }
         let routes = ICMManifest(version: 1, routes: [
             ICMRoute(id: "jarvis", name: "JARVIS", aliases: ["Mac App"],
-                     projectPath: "Personal/ChatGPT/Mac App", contextPath: "Memory/03_references/JARVIS.md",
+                     projectPath: "Personal/ChatGPT/Mac App", contextPath: "Notes/Projects/Personal/ChatGPT/Mac App/PROJECT.md",
                      graphPath: "Graphify/JARVIS", entrypoints: ["Sources/ProjectsView.swift"],
                      graphNotes: ["ProjectsView.swift.md"]),
             ICMRoute(id: "portfolio", name: "LawrencePortfolio", aliases: ["portfolio"],
                      projectPath: "Personal/Skeema/LawrencePortfolio1",
-                     contextPath: "Memory/03_references/LawrencePortfolio.md",
+                     contextPath: "Notes/Projects/Personal/Skeema/LawrencePortfolio1/PROJECT.md",
                      graphPath: "Graphify/LawrencePortfolio", entrypoints: ["routes/web.php"],
                      graphNotes: [])
         ])

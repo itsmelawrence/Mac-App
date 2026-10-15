@@ -38,7 +38,7 @@ Select the `JarvisDashboard` application scheme in Xcode to run the signed app b
 
 ## Obsidian ICM handoff
 
-The **Ask JARVIS** console can route work requests through a local Obsidian vault. In Settings, choose the `Projects` vault containing `CONTEXT.md` and `ICM/routes.json` (the default location is `~/Documents/Main/Projects`). For a prompt such as “Update the JARVIS UI”, JARVIS selects the configured project, checks its context note, suggests a few Graphify notes, and offers a short handoff to copy into Codex or Claude. It saves every submitted console prompt locally under `Memory/01_intake/`; unmatched prompts go into `_unrouted/`.
+The **Ask JARVIS** console can route work requests through a local Obsidian vault. In Settings, choose the `Projects` vault containing `CONTEXT.md` and `ICM/routes.json` (the default location is `~/Documents/Main/Projects`). For a prompt such as “Update the JARVIS UI”, JARVIS selects the configured project, checks its context note, suggests a few Graphify notes, and offers a short handoff to copy into Codex or Claude. It saves every submitted console prompt locally under `Memory/01_intake/`; unmatched prompts go into `_unrouted/`. Matched work requests also create a dated, append-only activity note under `Notes/Projects/<project path>/Activities/` following PARA. The handoff asks the agent to fill in work performed, files, verification, and outcome in that note.
 
 Routing is deterministic and does not call an AI service. The agent must still inspect current source and local project instructions. The route file is the place to add further projects; the currently configured pilot routes are JARVIS and LawrencePortfolio.
 

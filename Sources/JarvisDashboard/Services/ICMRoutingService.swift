@@ -32,6 +32,7 @@ enum ICMRoutingError: LocalizedError {
     case missingContext(String)
     case ambiguous([String])
     case captureFailed
+    case missingProjectHub(String)
 
     var errorDescription: String? {
         switch self {
@@ -49,6 +50,8 @@ enum ICMRoutingError: LocalizedError {
             "More than one project matches: \(names.joined(separator: ", ")). Name the intended project."
         case .captureFailed:
             "JARVIS could not save this prompt in the Obsidian vault."
+        case let .missingProjectHub(path):
+            "The PARA project note is missing: \(path)."
         }
     }
 }
@@ -139,6 +142,68 @@ enum ICMRoutingService {
             throw ICMRoutingError.captureFailed
         }
         return file
+    }
+
+    @discardableResult
+    static func recordActivity(
+        prompt: String,
+        route: ICMRoute,
+        rawPromptURL: URL,
+        vaultURL: URL,
+        now: Date = .now
+    ) throws -> URL {
+        let projectNotesPath = "Notes/Projects/" + route.projectPath
+        let hub = try safeURL(projectNotesPath + "/PROJECT.md", under: vaultURL)
+        guard FileManager.default.fileExists(atPath: hub.path) else {
+            throw ICMRoutingError.missingProjectHub(hub.path)
+        }
+        let activityFolder = try safeURL(projectNotesPath + "/Activities", under: vaultURL)
+        try FileManager.default.createDirectory(at: activityFolder, withIntermediateDirectories: true)
+        let timestamp = ISO8601DateFormatter().string(from: now)
+        let filename = timestamp.replacingOccurrences(of: ":", with: "-") + "-" + UUID().uuidString.prefix(8) + ".md"
+        let note = activityFolder.appendingPathComponent(filename)
+        let hubLink = "Notes/Projects/" + route.projectPath + "/PROJECT"
+        let rawRelative = rawPromptURL.path.replacingOccurrences(of: vaultURL.path + "/", with: "")
+        let rawLink = String(rawRelative.dropLast(rawRelative.hasSuffix(".md") ? 3 : 0))
+        var fence = "```"
+        while prompt.contains(fence) { fence += "`" }
+        let body = """
+        ---
+        type: project-activity
+        para: Projects
+        status: requested
+        source: jarvis-command-console
+        project: \(String(data: try JSONEncoder().encode(route.projectPath), encoding: .utf8) ?? "\"\"")
+        created_at: \(timestamp)
+        ---
+
+        # Activity · \(timestamp)
+
+        Project: [[\(hubLink)|\(route.name)]]
+        Raw prompt: [[\(rawLink)|Captured prompt]]
+
+        ## Request
+
+        \(fence)text
+        \(prompt.trimmingCharacters(in: .whitespacesAndNewlines))
+        \(fence)
+
+        ## Work performed
+
+        Pending agent work.
+
+        ## Files and connections
+
+        Pending verification.
+
+        ## Verification and outcome
+
+        Pending verification.
+        """
+        guard FileManager.default.createFile(atPath: note.path, contents: Data(body.utf8)) else {
+            throw ICMRoutingError.captureFailed
+        }
+        return note
     }
 
     private static func loadManifest(vaultURL: URL) throws -> ICMManifest {

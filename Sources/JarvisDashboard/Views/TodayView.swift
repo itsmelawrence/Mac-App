@@ -580,6 +580,7 @@ private struct JarvisCommandConsole: View {
     @State private var response = "Awaiting your command, Sir."
     @State private var lastResult: JarvisCommandResult?
     @State private var preparedRoute: ICMPreparedRoute?
+    @State private var activityNoteURL: URL?
     @State private var captureStatus: String?
     let context: JarvisCommandContext
     let onResult: (JarvisCommandResult) -> Void
@@ -625,7 +626,10 @@ private struct JarvisCommandConsole: View {
                         HStack {
                             Button("Copy agent handoff", systemImage: "doc.on.doc") {
                                 NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(preparedRoute.handoff, forType: .string)
+                                let activityInstruction = activityNoteURL.map {
+                                    "\nActivity note: \($0.path)\nUpdate this note with work performed, source files, verification, outcome and next action before finishing."
+                                } ?? ""
+                                NSPasteboard.general.setString(preparedRoute.handoff + activityInstruction, forType: .string)
                             }
                             Button("Open project", systemImage: "folder") {
                                 NSWorkspace.shared.open(preparedRoute.projectURL)
@@ -677,7 +681,7 @@ private struct JarvisCommandConsole: View {
                 .buttonStyle(.bordered).controlSize(.small)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Text("Work requests use the local ICM vault route. Copy the handoff into Codex or Claude. Every submitted prompt is saved locally when the vault is available; nothing is sent to an LLM from this console.")
+            Text("Work requests use the local ICM vault route and create a PARA project activity note. Copy the handoff into Codex or Claude. Every submitted prompt is saved locally when the vault is available; nothing is sent to an LLM from this console.")
                 .font(.caption2).foregroundStyle(.tertiary)
         }
         .padding(26)
@@ -691,6 +695,7 @@ private struct JarvisCommandConsole: View {
         guard !prompt.isEmpty else { return }
         let vaultURL = ICMRoutingService.vaultURL(configuredPath: vaultPath)
         preparedRoute = nil
+        activityNoteURL = nil
         captureStatus = nil
         if ICMRoutingService.isWorkRequest(prompt) {
             do {
@@ -719,7 +724,18 @@ private struct JarvisCommandConsole: View {
     private func capture(prompt: String, route: ICMRoute?, vaultURL: URL) {
         do {
             let file = try ICMRoutingService.capture(prompt: prompt, route: route, vaultURL: vaultURL)
-            captureStatus = "Saved in Obsidian: \(file.lastPathComponent)"
+            if let route {
+                do {
+                    activityNoteURL = try ICMRoutingService.recordActivity(
+                        prompt: prompt, route: route, rawPromptURL: file, vaultURL: vaultURL
+                    )
+                    captureStatus = "Prompt and PARA activity note saved in Obsidian."
+                } catch {
+                    captureStatus = "Prompt saved; activity note was not created: \(error.localizedDescription)"
+                }
+            } else {
+                captureStatus = "Prompt saved in Obsidian: \(file.lastPathComponent)"
+            }
         } catch {
             captureStatus = "Prompt was not saved: \(error.localizedDescription)"
         }
