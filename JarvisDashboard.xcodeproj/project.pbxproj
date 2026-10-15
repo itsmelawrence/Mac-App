@@ -18,6 +18,7 @@
 		1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D3E361632FD5BDFF57EAED /* TaskItem.swift */; };
 		21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */; };
 		2300284192FBE27A0396330F /* PhilippineForecastService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */; };
+		29BF022C497B29BF6FCECD19 /* ICMRoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E0231110CC215074D454FD /* ICMRoutingService.swift */; };
 		302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */; };
 		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
 		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
@@ -30,6 +31,7 @@
 		4BCD012D6BC045A651C3C090 /* WeatherBeaconModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */; };
 		4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */; };
 		50479114E93D90F40F989C23 /* JarvisBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F58FE3B6B29601D526900C /* JarvisBackupService.swift */; };
+		506C808B355162B386D3E291 /* ICMRoutingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */; };
 		51A37F652CB4E6DFB044CB05 /* MotivationalQuoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED09AD3EE3606647297A1CE /* MotivationalQuoteService.swift */; };
 		526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */; };
 		58435D26AD40A47D83E67778 /* PhilippineWeatherMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD5538F71885821F15EBBAB /* PhilippineWeatherMapView.swift */; };
@@ -87,6 +89,7 @@
 		10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectItemTests.swift; sourceTree = "<group>"; };
 		129B4602808BAD0764F88928 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		12DF1F9E077E514D300D8146 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICMRoutingServiceTests.swift; sourceTree = "<group>"; };
 		2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIServiceTests.swift; sourceTree = "<group>"; };
 		2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryServiceTests.swift; sourceTree = "<group>"; };
@@ -111,6 +114,7 @@
 		6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		6E2ACC1A3C15A094D6D8FBCC /* WeatherFocusDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherFocusDashboardView.swift; sourceTree = "<group>"; };
 		73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshotTests.swift; sourceTree = "<group>"; };
+		74E0231110CC215074D454FD /* ICMRoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICMRoutingService.swift; sourceTree = "<group>"; };
 		776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPICredentialStore.swift; sourceTree = "<group>"; };
 		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapTilerKeyStore.swift; sourceTree = "<group>"; };
@@ -204,6 +208,7 @@
 				129B4602808BAD0764F88928 /* AppStateTests.swift */,
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
 				2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */,
+				1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */,
 				661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */,
 				3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */,
 				629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */,
@@ -265,6 +270,7 @@
 				FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */,
 				A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */,
 				498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */,
+				74E0231110CC215074D454FD /* ICMRoutingService.swift */,
 				F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */,
 				C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */,
 				54F58FE3B6B29601D526900C /* JarvisBackupService.swift */,
@@ -396,6 +402,7 @@
 				5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */,
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
 				AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */,
+				506C808B355162B386D3E291 /* ICMRoutingServiceTests.swift in Sources */,
 				DDAE33EEC8D1C276092B865E /* IntelligenceEngineTests.swift in Sources */,
 				BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */,
 				9B014AA708572162BF677B1F /* JarvisCommandEngineTests.swift in Sources */,
@@ -425,6 +432,7 @@
 				A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */,
 				E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */,
 				3EEA784EBF63F8D872D731CA /* GitRepositoryService.swift in Sources */,
+				29BF022C497B29BF6FCECD19 /* ICMRoutingService.swift in Sources */,
 				E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */,
 				E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */,
 				8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */,

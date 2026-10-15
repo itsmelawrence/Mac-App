@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -12,6 +13,8 @@ struct SettingsView: View {
     @State private var hasStoredMapTilerKey = false
     @State private var mapTilerStatus: String?
     @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
+    @AppStorage("icm.vaultPath") private var icmVaultPath = ""
+    @State private var icmVaultStatus: String?
     @State private var monitoringAPIToken = ""
     @State private var hasStoredMonitoringAPIToken = false
     @State private var monitoringConnectionState = MonitoringConnectionState.notTested
@@ -221,6 +224,19 @@ struct SettingsView: View {
                 Link("Open Laravel Cloud", destination: URL(string: "https://cloud.laravel.com")!)
             }
 
+            Section("ICM · Obsidian vault") {
+                LabeledContent("Vault", value: ICMRoutingService.vaultURL(configuredPath: icmVaultPath).path)
+                    .textSelection(.enabled)
+                HStack {
+                    Button("Choose Projects vault") { chooseICMVault() }
+                    if let icmVaultStatus {
+                        Text(icmVaultStatus).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Text("JARVIS reads CONTEXT.md and ICM/routes.json to route work requests. The command console saves submitted prompts under Memory/01_intake. Graphify notes are navigation hints.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Data, backup and restore") {
                 BackupSettingsView()
             }
@@ -265,6 +281,24 @@ struct SettingsView: View {
         } catch {
             mapTilerStatus = error.localizedDescription
         }
+    }
+
+    private func chooseICMVault() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Choose Vault"
+        panel.directoryURL = ICMRoutingService.vaultURL(configuredPath: icmVaultPath)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let hasRouter = FileManager.default.fileExists(atPath: url.appendingPathComponent("CONTEXT.md").path)
+        let hasRoutes = FileManager.default.fileExists(atPath: url.appendingPathComponent("ICM/routes.json").path)
+        guard hasRouter && hasRoutes else {
+            icmVaultStatus = "Choose the Projects vault containing CONTEXT.md and ICM/routes.json."
+            return
+        }
+        icmVaultPath = url.path
+        icmVaultStatus = "Vault ready."
     }
 
     private func removeMapTilerKey() {

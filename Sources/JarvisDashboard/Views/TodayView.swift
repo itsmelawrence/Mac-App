@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -573,10 +574,13 @@ private struct CommandEmptyState: View {
 
 private struct JarvisCommandConsole: View {
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("icm.vaultPath") private var vaultPath = ""
     @FocusState private var commandFocused: Bool
     @State private var command = ""
     @State private var response = "Awaiting your command, Sir."
     @State private var lastResult: JarvisCommandResult?
+    @State private var preparedRoute: ICMPreparedRoute?
+    @State private var captureStatus: String?
     let context: JarvisCommandContext
     let onResult: (JarvisCommandResult) -> Void
     let onOpenProject: (UUID) -> Void
@@ -590,7 +594,7 @@ private struct JarvisCommandConsole: View {
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             HStack(spacing: 10) {
-                TextField("Ask about a project or your next task…", text: $command)
+                TextField("Ask about a project or describe work to route…", text: $command)
                     .textFieldStyle(.roundedBorder).focused($commandFocused).onSubmit(executeCommand)
                 Button("Execute", action: executeCommand)
                     .buttonStyle(.borderedProminent).tint(.cyan)
@@ -599,7 +603,7 @@ private struct JarvisCommandConsole: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Label(lastResult?.card?.title ?? "JARVIS RESPONSE", systemImage: "sparkles.rectangle.stack")
+                        Label(preparedRoute?.route.name ?? lastResult?.card?.title ?? "JARVIS RESPONSE", systemImage: "sparkles.rectangle.stack")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.cyan)
                         Spacer()
@@ -610,6 +614,28 @@ private struct JarvisCommandConsole: View {
                         }
                     }
                     Text(response).font(.subheadline).textSelection(.enabled)
+                    if let preparedRoute {
+                        Divider()
+                        LabeledContent("Project", value: preparedRoute.projectURL.path)
+                            .font(.caption).textSelection(.enabled)
+                        LabeledContent("Context", value: preparedRoute.contextURL.path)
+                            .font(.caption).textSelection(.enabled)
+                        Text("Graphify hints: \(preparedRoute.graphURLs.count) · verify each connection in source")
+                            .font(.caption).foregroundStyle(.secondary)
+                        HStack {
+                            Button("Copy agent handoff", systemImage: "doc.on.doc") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(preparedRoute.handoff, forType: .string)
+                            }
+                            Button("Open project", systemImage: "folder") {
+                                NSWorkspace.shared.open(preparedRoute.projectURL)
+                            }
+                            Button("Open context", systemImage: "doc.text") {
+                                NSWorkspace.shared.open(preparedRoute.contextURL)
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
                     if let card = lastResult?.card {
                         Divider()
                         ForEach(card.facts, id: \.self) { fact in
@@ -625,9 +651,12 @@ private struct JarvisCommandConsole: View {
                                 .buttonStyle(.borderedProminent).tint(.cyan)
                             }
                         }
-                    } else {
+                    } else if preparedRoute == nil {
                         Text("Source: local dashboard snapshot")
                             .font(.caption2).foregroundStyle(.tertiary)
+                    }
+                    if let captureStatus {
+                        Text(captureStatus).font(.caption2).foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -648,7 +677,7 @@ private struct JarvisCommandConsole: View {
                 .buttonStyle(.bordered).controlSize(.small)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Text("Commands are processed locally from dashboard data. Ask for help to see supported phrases. No request is sent to an LLM.")
+            Text("Work requests use the local ICM vault route. Copy the handoff into Codex or Claude. Every submitted prompt is saved locally when the vault is available; nothing is sent to an LLM from this console.")
                 .font(.caption2).foregroundStyle(.tertiary)
         }
         .padding(26)
@@ -658,12 +687,41 @@ private struct JarvisCommandConsole: View {
     }
 
     private func executeCommand() {
-        let result = JarvisCommandEngine.execute(command, context: context)
+        let prompt = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty else { return }
+        let vaultURL = ICMRoutingService.vaultURL(configuredPath: vaultPath)
+        preparedRoute = nil
+        captureStatus = nil
+        if ICMRoutingService.isWorkRequest(prompt) {
+            do {
+                let route = try ICMRoutingService.prepare(prompt: prompt, vaultURL: vaultURL)
+                preparedRoute = route
+                lastResult = nil
+                response = route.map { "Routed to \($0.route.name). The agent handoff is ready to copy." }
+                    ?? "No project route matched. Add an alias in ICM/routes.json or name a configured project."
+            } catch {
+                lastResult = nil
+                response = error.localizedDescription
+            }
+            capture(prompt: prompt, route: preparedRoute?.route, vaultURL: vaultURL)
+            return
+        }
+        let result = JarvisCommandEngine.execute(prompt, context: context)
         response = result.response
         lastResult = result
         onResult(result)
+        capture(prompt: prompt, route: nil, vaultURL: vaultURL)
         if result.response.contains("Opening") && result.destination != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { dismiss() }
+        }
+    }
+
+    private func capture(prompt: String, route: ICMRoute?, vaultURL: URL) {
+        do {
+            let file = try ICMRoutingService.capture(prompt: prompt, route: route, vaultURL: vaultURL)
+            captureStatus = "Saved in Obsidian: \(file.lastPathComponent)"
+        } catch {
+            captureStatus = "Prompt was not saved: \(error.localizedDescription)"
         }
     }
 }
