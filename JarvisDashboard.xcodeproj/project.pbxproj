@@ -27,6 +27,7 @@
 		3AF3EC2ECB722AD98AFCF877 /* MonitoringAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D8AECA276ED2E7DCE563AE /* MonitoringAPIServiceTests.swift */; };
 		3EEA784EBF63F8D872D731CA /* GitRepositoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */; };
 		40885B1ADEBE3753843F8A54 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E946B3F227D267E00F6D9C73 /* WeatherService.swift */; };
+		42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */; };
 		4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6319322836627DA4F54FAD /* LoginItemService.swift */; };
 		4BCD012D6BC045A651C3C090 /* WeatherBeaconModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */; };
 		4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */; };
@@ -48,6 +49,7 @@
 		A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */; };
 		A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */; };
 		A9ADE8ED59F0E10599D961EF /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE0303E41DC4C80F1F68571 /* TasksView.swift */; };
+		AC2E3E23EA05AFE678552909 /* ConnectionsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */; };
 		AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */; };
 		ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */; };
 		B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DF1F9E077E514D300D8146 /* TodayView.swift */; };
@@ -55,6 +57,7 @@
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
 		BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */; };
 		C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A962457DF4DD94ED621844A8 /* SpeechService.swift */; };
+		D2A807A075566331803B2C91 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7987A59411E3538B9DEBF31E /* ConnectionsView.swift */; };
 		D39B539A085FAF1AD89EF0D0 /* WeatherLabelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */; };
 		D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C7D173283F605CA610779F /* ProjectItem.swift */; };
 		D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E664AC10761E65E6FED7D18 /* Assets.xcassets */; };
@@ -113,11 +116,14 @@
 		661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceEngineTests.swift; sourceTree = "<group>"; };
 		6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		6E2ACC1A3C15A094D6D8FBCC /* WeatherFocusDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherFocusDashboardView.swift; sourceTree = "<group>"; };
+		73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsService.swift; sourceTree = "<group>"; };
 		73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshotTests.swift; sourceTree = "<group>"; };
 		74E0231110CC215074D454FD /* ICMRoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICMRoutingService.swift; sourceTree = "<group>"; };
 		776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPICredentialStore.swift; sourceTree = "<group>"; };
+		7987A59411E3538B9DEBF31E /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
 		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapTilerKeyStore.swift; sourceTree = "<group>"; };
+		7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsServiceTests.swift; sourceTree = "<group>"; };
 		7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherBeaconModel.swift; sourceTree = "<group>"; };
 		87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIKeyStore.swift; sourceTree = "<group>"; };
@@ -159,6 +165,7 @@
 				D40175E07BCF2331D2827034 /* AnimatedWeatherGlyph.swift */,
 				A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */,
 				E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */,
+				7987A59411E3538B9DEBF31E /* ConnectionsView.swift */,
 				D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */,
 				49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */,
 				6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */,
@@ -207,6 +214,7 @@
 			children = (
 				129B4602808BAD0764F88928 /* AppStateTests.swift */,
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
+				7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */,
 				2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */,
 				1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */,
 				661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */,
@@ -268,6 +276,7 @@
 			isa = PBXGroup;
 			children = (
 				FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */,
+				73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */,
 				A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */,
 				498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */,
 				74E0231110CC215074D454FD /* ICMRoutingService.swift */,
@@ -401,6 +410,7 @@
 			files = (
 				5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */,
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
+				42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */,
 				AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */,
 				506C808B355162B386D3E291 /* ICMRoutingServiceTests.swift in Sources */,
 				DDAE33EEC8D1C276092B865E /* IntelligenceEngineTests.swift in Sources */,
@@ -430,6 +440,8 @@
 				EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */,
 				721999F6EF250D7B692A3EDF /* BriefingComposer.swift in Sources */,
 				A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */,
+				AC2E3E23EA05AFE678552909 /* ConnectionsService.swift in Sources */,
+				D2A807A075566331803B2C91 /* ConnectionsView.swift in Sources */,
 				E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */,
 				3EEA784EBF63F8D872D731CA /* GitRepositoryService.swift in Sources */,
 				29BF022C497B29BF6FCECD19 /* ICMRoutingService.swift in Sources */,
@@ -518,7 +530,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -539,7 +551,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.13;
+				MARKETING_VERSION = 0.2.14;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -656,7 +668,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -671,7 +683,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.13;
+				MARKETING_VERSION = 0.2.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
