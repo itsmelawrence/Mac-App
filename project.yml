@@ -14,8 +14,8 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
-    MARKETING_VERSION: "0.2.17"
-    CURRENT_PROJECT_VERSION: "18"
+    MARKETING_VERSION: "0.2.18"
+    CURRENT_PROJECT_VERSION: "19"
 
 targets:
   JarvisDashboard:
@@ -24,6 +24,9 @@ targets:
     sources:
       - path: Sources/JarvisDashboard
       - path: Supporting/Assets.xcassets
+      - path: Supporting/GraphifyViewer
+        type: folder
+        buildPhase: resources
     info:
       path: Supporting/Info.plist
       properties:

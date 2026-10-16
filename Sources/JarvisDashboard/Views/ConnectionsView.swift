@@ -178,9 +178,9 @@ struct ConnectionsView: View {
                     }
                 }
                 Text("SYNAPSE MAP").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                GraphifyNetworkView(
-                    graphDirectory: project.graphURL,
-                    focusNoteURL: notes.first(where: { $0.relation == "maps source" })?.url
+                GraphifyHTMLView(
+                    htmlURL: GraphifyHTMLService.htmlURL(for: project, vaultURL: vaultURL),
+                    focusSourcePath: selectedFile?.isDirectory == false ? selectedFile?.relativePath : nil
                 )
                 .frame(height: 570)
                 HStack {

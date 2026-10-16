@@ -9,8 +9,6 @@
 /* Begin PBXBuildFile section */
 		04F44315BC6B217B17D49E29 /* WeatherBeaconModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F52E7EC04FF96A1A6A102393 /* WeatherBeaconModelTests.swift */; };
 		081F09DFF5C26EF416BD2EE9 /* WeatherFocusDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2ACC1A3C15A094D6D8FBCC /* WeatherFocusDashboardView.swift */; };
-		0D69C9804AEB90360A871F2D /* GraphifyNetworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5236CB22FE7DA7837A690F4 /* GraphifyNetworkView.swift */; };
-		1116ED0A6AA7E8994A500670 /* GraphifyNetworkServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30922FEF7D3007EF1F14BF05 /* GraphifyNetworkServiceTests.swift */; };
 		162696049C4E2F1D8DC3D175 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */; };
 		16CE5D7DDFC05390D8D22A80 /* MonitoringAPICredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */; };
 		1821F8301E67E4E27BBAD5DD /* AnimatedWeatherGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = D40175E07BCF2331D2827034 /* AnimatedWeatherGlyph.swift */; };
@@ -31,13 +29,14 @@
 		40885B1ADEBE3753843F8A54 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E946B3F227D267E00F6D9C73 /* WeatherService.swift */; };
 		42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */; };
 		4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6319322836627DA4F54FAD /* LoginItemService.swift */; };
+		44B4A5CAC904EFD470A4B5CB /* GraphifyHTMLServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EA2DF20E35C891DB8E9DFA5 /* GraphifyHTMLServiceTests.swift */; };
 		4BCD012D6BC045A651C3C090 /* WeatherBeaconModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */; };
 		4F4A208360A5F98B066665D0 /* JarvisDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */; };
 		50479114E93D90F40F989C23 /* JarvisBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F58FE3B6B29601D526900C /* JarvisBackupService.swift */; };
 		506C808B355162B386D3E291 /* ICMRoutingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */; };
-		5193A474AAEB91223095A6A2 /* GraphifyNetworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C60A5B24360363BA5A0D4A4 /* GraphifyNetworkService.swift */; };
 		51A37F652CB4E6DFB044CB05 /* MotivationalQuoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED09AD3EE3606647297A1CE /* MotivationalQuoteService.swift */; };
 		526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */; };
+		54164EBA15AF7AC20428D114 /* GraphifyHTMLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31A6FFE0E92B946FC556DA5 /* GraphifyHTMLService.swift */; };
 		58435D26AD40A47D83E67778 /* PhilippineWeatherMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD5538F71885821F15EBBAB /* PhilippineWeatherMapView.swift */; };
 		5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129B4602808BAD0764F88928 /* AppStateTests.swift */; };
 		6F85A824489D20F1BAA5761B /* MapTilerWeatherBasemap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */; };
@@ -57,6 +56,8 @@
 		ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */; };
 		B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DF1F9E077E514D300D8146 /* TodayView.swift */; };
 		B926C297CAE8CCFF614BC0D2 /* MonitoringSiteCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */; };
+		BA9C638FBCE1407B654522E9 /* GraphifyHTMLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B5D0D6E57EAD013994D12D /* GraphifyHTMLView.swift */; };
+		BC3077CAC13F9B15FC0B352C /* GraphifyViewer in Resources */ = {isa = PBXBuildFile; fileRef = BF590F901D7F4447A3F3DDDA /* GraphifyViewer */; };
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
 		BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */; };
 		C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A962457DF4DD94ED621844A8 /* SpeechService.swift */; };
@@ -101,7 +102,6 @@
 		2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryServiceTests.swift; sourceTree = "<group>"; };
 		2ED09AD3EE3606647297A1CE /* MotivationalQuoteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteService.swift; sourceTree = "<group>"; };
 		2EE0303E41DC4C80F1F68571 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
-		30922FEF7D3007EF1F14BF05 /* GraphifyNetworkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyNetworkServiceTests.swift; sourceTree = "<group>"; };
 		35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDashboardApp.swift; sourceTree = "<group>"; };
 		3894B477148C693086708ABB /* JarvisCommandEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisCommandEngine.swift; sourceTree = "<group>"; };
 		39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringSiteCredentialStore.swift; sourceTree = "<group>"; };
@@ -132,23 +132,23 @@
 		80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherBeaconModel.swift; sourceTree = "<group>"; };
 		87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIKeyStore.swift; sourceTree = "<group>"; };
 		8E664AC10761E65E6FED7D18 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8EA2DF20E35C891DB8E9DFA5 /* GraphifyHTMLServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyHTMLServiceTests.swift; sourceTree = "<group>"; };
 		929151532C0ADDCF47913F8B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposerTests.swift; sourceTree = "<group>"; };
 		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
-		9C60A5B24360363BA5A0D4A4 /* GraphifyNetworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyNetworkService.swift; sourceTree = "<group>"; };
 		9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLabelPlacement.swift; sourceTree = "<group>"; };
 		A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarthquakeService.swift; sourceTree = "<group>"; };
 		A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSettingsView.swift; sourceTree = "<group>"; };
 		A962457DF4DD94ED621844A8 /* SpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechService.swift; sourceTree = "<group>"; };
 		AD6319322836627DA4F54FAD /* LoginItemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemService.swift; sourceTree = "<group>"; };
 		B4D8AECA276ED2E7DCE563AE /* MonitoringAPIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPIServiceTests.swift; sourceTree = "<group>"; };
+		BF590F901D7F4447A3F3DDDA /* GraphifyViewer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GraphifyViewer; path = Supporting/GraphifyViewer; sourceTree = SOURCE_ROOT; };
 		C0C7D173283F605CA610779F /* ProjectItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectItem.swift; sourceTree = "<group>"; };
 		C39902BB88D836CA9896FAE1 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceNotificationService.swift; sourceTree = "<group>"; };
 		D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueEngine.swift; sourceTree = "<group>"; };
 		D40175E07BCF2331D2827034 /* AnimatedWeatherGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedWeatherGlyph.swift; sourceTree = "<group>"; };
 		D418DFEB339CA429E99244AE /* MonitoringHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringHealthTests.swift; sourceTree = "<group>"; };
-		D5236CB22FE7DA7837A690F4 /* GraphifyNetworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyNetworkView.swift; sourceTree = "<group>"; };
 		D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceView.swift; sourceTree = "<group>"; };
 		DDD5538F71885821F15EBBAB /* PhilippineWeatherMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineWeatherMapView.swift; sourceTree = "<group>"; };
 		DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsServiceTests.swift; sourceTree = "<group>"; };
@@ -157,9 +157,11 @@
 		E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLabelPlacementTests.swift; sourceTree = "<group>"; };
 		E946B3F227D267E00F6D9C73 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		F05985254777A183A84A7C45 /* PhilippineForecastServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastServiceTests.swift; sourceTree = "<group>"; };
+		F31A6FFE0E92B946FC556DA5 /* GraphifyHTMLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyHTMLService.swift; sourceTree = "<group>"; };
 		F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceEngine.swift; sourceTree = "<group>"; };
 		F52E7EC04FF96A1A6A102393 /* WeatherBeaconModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherBeaconModelTests.swift; sourceTree = "<group>"; };
 		F597BC852599AE0CBB694F4B /* SavedLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedLocation.swift; sourceTree = "<group>"; };
+		F8B5D0D6E57EAD013994D12D /* GraphifyHTMLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyHTMLView.swift; sourceTree = "<group>"; };
 		FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposer.swift; sourceTree = "<group>"; };
 		FACC438E464E4C497F0523A8 /* JarvisDashboard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JarvisDashboard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -172,7 +174,7 @@
 				A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */,
 				E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */,
 				7987A59411E3538B9DEBF31E /* ConnectionsView.swift */,
-				D5236CB22FE7DA7837A690F4 /* GraphifyNetworkView.swift */,
+				F8B5D0D6E57EAD013994D12D /* GraphifyHTMLView.swift */,
 				D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */,
 				49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */,
 				6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */,
@@ -223,7 +225,7 @@
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
 				7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */,
 				2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */,
-				30922FEF7D3007EF1F14BF05 /* GraphifyNetworkServiceTests.swift */,
+				8EA2DF20E35C891DB8E9DFA5 /* GraphifyHTMLServiceTests.swift */,
 				1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */,
 				661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */,
 				3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */,
@@ -256,6 +258,7 @@
 			isa = PBXGroup;
 			children = (
 				8E664AC10761E65E6FED7D18 /* Assets.xcassets */,
+				BF590F901D7F4447A3F3DDDA /* GraphifyViewer */,
 			);
 			path = Supporting;
 			sourceTree = "<group>";
@@ -287,7 +290,7 @@
 				73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */,
 				A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */,
 				498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */,
-				9C60A5B24360363BA5A0D4A4 /* GraphifyNetworkService.swift */,
+				F31A6FFE0E92B946FC556DA5 /* GraphifyHTMLService.swift */,
 				74E0231110CC215074D454FD /* ICMRoutingService.swift */,
 				F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */,
 				C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */,
@@ -407,6 +410,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */,
+				BC3077CAC13F9B15FC0B352C /* GraphifyViewer in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -421,7 +425,7 @@
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
 				42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */,
 				AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */,
-				1116ED0A6AA7E8994A500670 /* GraphifyNetworkServiceTests.swift in Sources */,
+				44B4A5CAC904EFD470A4B5CB /* GraphifyHTMLServiceTests.swift in Sources */,
 				506C808B355162B386D3E291 /* ICMRoutingServiceTests.swift in Sources */,
 				DDAE33EEC8D1C276092B865E /* IntelligenceEngineTests.swift in Sources */,
 				BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */,
@@ -454,8 +458,8 @@
 				D2A807A075566331803B2C91 /* ConnectionsView.swift in Sources */,
 				E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */,
 				3EEA784EBF63F8D872D731CA /* GitRepositoryService.swift in Sources */,
-				5193A474AAEB91223095A6A2 /* GraphifyNetworkService.swift in Sources */,
-				0D69C9804AEB90360A871F2D /* GraphifyNetworkView.swift in Sources */,
+				54164EBA15AF7AC20428D114 /* GraphifyHTMLService.swift in Sources */,
+				BA9C638FBCE1407B654522E9 /* GraphifyHTMLView.swift in Sources */,
 				29BF022C497B29BF6FCECD19 /* ICMRoutingService.swift in Sources */,
 				E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */,
 				E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */,
@@ -542,7 +546,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -563,7 +567,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -680,7 +684,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -695,7 +699,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
