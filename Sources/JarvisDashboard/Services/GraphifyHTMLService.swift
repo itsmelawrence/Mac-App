@@ -16,7 +16,6 @@ enum GraphifyHTMLError: LocalizedError {
 
 enum GraphifyHTMLService {
     static let remoteLibrary = "https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"
-    static let localLibrary = "vis-network.min.js"
 
     /// Graphify's original HTML lives beside graph.json, outside the Obsidian notes export.
     static func htmlURL(for project: ConnectionProject, vaultURL: URL) -> URL {
@@ -28,10 +27,12 @@ enum GraphifyHTMLService {
             .appendingPathComponent("graphify-out/graph.html")
     }
 
-    /// Keep Graphify's generated viewer intact. Only localise its exact pinned JS dependency.
+    /// Keep Graphify's generated viewer intact. Inline only its exact pinned JS dependency.
     static func prepare(sourceURL: URL, libraryURL: URL, cacheRoot: URL) throws -> URL {
         guard FileManager.default.fileExists(atPath: sourceURL.path) else { throw GraphifyHTMLError.missing }
-        guard FileManager.default.fileExists(atPath: libraryURL.path) else { throw GraphifyHTMLError.missingViewerLibrary }
+        guard let scriptData = try? Data(contentsOf: libraryURL), scriptData.count <= 5_000_000,
+              let script = String(data: scriptData, encoding: .utf8),
+              !script.lowercased().contains("</script") else { throw GraphifyHTMLError.missingViewerLibrary }
         guard let data = try? Data(contentsOf: sourceURL), data.count <= 30_000_000,
               let html = String(data: data, encoding: .utf8),
               html.contains("const RAW_NODES ="), html.contains("new vis.Network"),
@@ -44,16 +45,13 @@ enum GraphifyHTMLService {
         let directory = cacheRoot.appendingPathComponent("GraphifyViewer/\(String(hash, radix: 16))")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let viewerURL = directory.appendingPathComponent("graph.html")
-        let scriptURL = directory.appendingPathComponent(localLibrary)
-        let localHTML = html
-            .replacingOccurrences(of: remoteLibrary, with: localLibrary)
-            .replacingOccurrences(of: "integrity=\"sha384-Ux6phic9PEHJ38YtrijhkzyJ8yQlH8i/+buBR8s3mAZOJrP1gwyvAcIYl3GWtpX1\"", with: "")
-            .replacingOccurrences(of: "crossorigin=\"anonymous\"", with: "")
-        try localHTML.write(to: viewerURL, atomically: true, encoding: .utf8)
-        if FileManager.default.fileExists(atPath: scriptURL.path) {
-            try FileManager.default.removeItem(at: scriptURL)
+        guard let start = html.range(of: "<script src=\"\(remoteLibrary)\""),
+              let end = html.range(of: "</script>", range: start.upperBound..<html.endIndex) else {
+            throw GraphifyHTMLError.malformed
         }
-        try FileManager.default.copyItem(at: libraryURL, to: scriptURL)
+        var localHTML = html
+        localHTML.replaceSubrange(start.lowerBound..<end.upperBound, with: "<script>\n\(script)\n</script>")
+        try localHTML.write(to: viewerURL, atomically: true, encoding: .utf8)
         return viewerURL
     }
 }

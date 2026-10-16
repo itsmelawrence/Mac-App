@@ -19,11 +19,10 @@ struct GraphifyHTMLServiceTests {
         let viewer = try GraphifyHTMLService.prepare(sourceURL: source, libraryURL: library,
                                                       cacheRoot: root.appendingPathComponent("cache"))
         let result = try String(contentsOf: viewer, encoding: .utf8)
-        #expect(result.contains("src=\"vis-network.min.js\""))
+        #expect(result.contains("<script>\nviewer\n</script>"))
+        #expect(!result.contains(GraphifyHTMLService.remoteLibrary))
         #expect(!result.contains("crossorigin="))
         #expect(!result.contains("integrity="))
         #expect(try String(contentsOf: source, encoding: .utf8) == original)
-        #expect(FileManager.default.fileExists(atPath: viewer.deletingLastPathComponent()
-            .appendingPathComponent("vis-network.min.js").path))
     }
 }
