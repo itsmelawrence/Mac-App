@@ -24,6 +24,10 @@ struct GraphifyHTMLView: View {
             .padding(.horizontal, 12).padding(.vertical, 8)
             Divider()
             if let viewerURL {
+                if let errorMessage {
+                    Text(errorMessage).font(.caption).foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(8)
+                }
                 GraphifyWebView(fileURL: viewerURL, focusSourcePath: focusSourcePath) { error in
                     errorMessage = error
                 }

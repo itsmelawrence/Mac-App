@@ -45,7 +45,10 @@ enum GraphifyHTMLService {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let viewerURL = directory.appendingPathComponent("graph.html")
         let scriptURL = directory.appendingPathComponent(localLibrary)
-        let localHTML = html.replacingOccurrences(of: remoteLibrary, with: localLibrary)
+        let localHTML = html
+            .replacingOccurrences(of: remoteLibrary, with: localLibrary)
+            .replacingOccurrences(of: "integrity=\"sha384-Ux6phic9PEHJ38YtrijhkzyJ8yQlH8i/+buBR8s3mAZOJrP1gwyvAcIYl3GWtpX1\"", with: "")
+            .replacingOccurrences(of: "crossorigin=\"anonymous\"", with: "")
         try localHTML.write(to: viewerURL, atomically: true, encoding: .utf8)
         if FileManager.default.fileExists(atPath: scriptURL.path) {
             try FileManager.default.removeItem(at: scriptURL)
