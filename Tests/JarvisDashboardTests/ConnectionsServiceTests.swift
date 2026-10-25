@@ -34,6 +34,35 @@ struct ConnectionsServiceTests {
         #expect(ConnectionsService.children(of: vault, in: project).isEmpty)
     }
 
+    @Test func newVaultProjectsAppearWithoutAddingICMRoutes() throws {
+        let vault = try fixture()
+        defer { try? FileManager.default.removeItem(at: vault) }
+        let manager = FileManager.default
+        let files: [String: String] = [
+            "Work/Pixeld/New Site/index.html": "<!doctype html>",
+            "Personal/Skeema/New API/composer.json": "{}",
+            "Personal/Skeema/New API/public/index.php": "<?php",
+            "Personal/Empty Folder/readme.txt": "not a project marker",
+            "Personal/Skeema/New API/node_modules/example/package.json": "{}"
+        ]
+        for (path, contents) in files {
+            let url = vault.appendingPathComponent(path)
+            try manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try contents.write(to: url, atomically: true, encoding: .utf8)
+        }
+        let registeredGit = vault.appendingPathComponent("Personal/ChatGPT/Mac App/.git")
+        try manager.createDirectory(at: registeredGit, withIntermediateDirectories: true)
+
+        let projects = try ConnectionsService.projects(in: vault)
+        #expect(projects.count == 3)
+        #expect(projects.filter(\.isRegistered).map(\.name) == ["JARVIS"])
+        #expect(Set(projects.filter { !$0.isRegistered }.map(\.route.projectPath)) == [
+            "Work/Pixeld/New Site", "Personal/Skeema/New API"
+        ])
+        #expect(!projects.contains { $0.route.projectPath.hasSuffix("/public") })
+        #expect(!projects.contains { $0.route.projectPath.contains("node_modules") })
+    }
+
     private func fixture() throws -> URL {
         let vault = FileManager.default.temporaryDirectory.appendingPathComponent("jarvis-connections-\(UUID().uuidString)")
         let files: [String: String] = [

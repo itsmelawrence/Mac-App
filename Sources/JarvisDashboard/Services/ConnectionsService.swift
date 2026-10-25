@@ -6,6 +6,7 @@ struct ConnectionProject: Identifiable, Hashable {
     let rootURL: URL
     let contextURL: URL
     let graphURL: URL
+    let isRegistered: Bool
 
     var id: String { route.id }
     var name: String { route.name }
@@ -38,6 +39,14 @@ enum ConnectionsService {
         ".git", ".build", ".next", ".cache", ".obsidian", "node_modules",
         "vendor", "dist", "build", "coverage", "DerivedData", "__pycache__"
     ]
+    private static let projectMarkers: Set<String> = [
+        ".git", "Package.swift", "package.json", "composer.json", "Cargo.toml",
+        "go.mod", "pyproject.toml", "Gemfile", "artisan", "project.yml", "PROJECT.md",
+        "wp-config.php", "public_html", "index.php", "index.html"
+    ]
+    private static let discoveryExcludedDirectories = excludedDirectories.union([
+        ".vscode", "Media", "JPC Assets", "output", "tmp", "uploads"
+    ])
 
     static func projects(in vaultURL: URL) throws -> [ConnectionProject] {
         let manifestURL = vaultURL.appendingPathComponent("ICM/routes.json")
@@ -46,13 +55,77 @@ enum ConnectionsService {
               let manifest = try? JSONDecoder().decode(ICMManifest.self, from: data),
               manifest.version == 1 else { throw ICMRoutingError.invalidVault }
 
-        return try manifest.routes.map { route in
+        let registered = try manifest.routes.map { route in
             let root = try containedURL(route.projectPath, under: vaultURL)
             let context = try containedURL(route.contextPath, under: vaultURL)
             let graph = try containedURL(route.graphPath, under: vaultURL)
             guard isDirectory(root) else { throw ICMRoutingError.missingProject(route.projectPath) }
-            return ConnectionProject(route: route, rootURL: root, contextURL: context, graphURL: graph)
-        }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            return ConnectionProject(route: route, rootURL: root, contextURL: context,
+                                     graphURL: graph, isRegistered: true)
+        }
+        let registeredPaths = Set(manifest.routes.map(\.projectPath))
+        return (registered + discoveredProjects(in: vaultURL, excluding: registeredPaths))
+            .sorted {
+                let byName = $0.name.localizedStandardCompare($1.name)
+                return byName == .orderedSame
+                    ? $0.route.projectPath < $1.route.projectPath
+                    : byName == .orderedAscending
+            }
+    }
+
+    private static func discoveredProjects(in vaultURL: URL, excluding registeredPaths: Set<String>) -> [ConnectionProject] {
+        let manager = FileManager.default
+        let keys: Set<URLResourceKey> = [.isDirectoryKey, .isSymbolicLinkKey]
+        let vaultPath = canonicalPath(vaultURL)
+        var pending = ["Work", "Personal"].map { vaultURL.appendingPathComponent($0, isDirectory: true) }
+        var candidates: [(path: String, hasGit: Bool)] = []
+
+        while let directory = pending.popLast() {
+            guard isDirectory(directory), isContained(directory, under: vaultURL),
+                  let entries = try? manager.contentsOfDirectory(
+                    at: directory, includingPropertiesForKeys: Array(keys), options: [.skipsPackageDescendants]
+                  ) else { continue }
+            let names = Set(entries.map(\.lastPathComponent))
+            let relativePath = String(canonicalPath(directory).dropFirst(vaultPath.count + 1))
+            if !names.isDisjoint(with: projectMarkers) {
+                candidates.append((relativePath, names.contains(".git")))
+            }
+            let depth = relativePath.split(separator: "/").count
+            guard depth < 6 else { continue }
+            for entry in entries {
+                guard !entry.lastPathComponent.hasPrefix("."),
+                      !discoveryExcludedDirectories.contains(entry.lastPathComponent),
+                      let values = try? entry.resourceValues(forKeys: keys),
+                      values.isDirectory == true, values.isSymbolicLink != true,
+                      isContained(entry, under: vaultURL) else { continue }
+                pending.append(entry)
+            }
+        }
+
+        let candidatePaths = Set(candidates.map(\.path)).union(registeredPaths)
+        return candidates.compactMap { candidate in
+            let path = candidate.path
+            guard !registeredPaths.contains(path),
+                  (candidate.hasGit || !hasCandidateAncestor(path, in: candidatePaths)) else { return nil }
+            let route = ICMRoute(
+                id: "discovered:\(path)", name: URL(fileURLWithPath: path).lastPathComponent,
+                aliases: [], projectPath: path,
+                contextPath: "Notes/Projects/\(path)/PROJECT.md",
+                graphPath: "Graphify/_discovered/\(path.replacingOccurrences(of: "/", with: "__"))",
+                entrypoints: [], graphNotes: []
+            )
+            guard let root = try? containedURL(route.projectPath, under: vaultURL),
+                  let context = try? containedURL(route.contextPath, under: vaultURL),
+                  let graph = try? containedURL(route.graphPath, under: vaultURL) else { return nil }
+            return ConnectionProject(route: route, rootURL: root, contextURL: context,
+                                     graphURL: graph, isRegistered: false)
+        }
+    }
+
+    private static func hasCandidateAncestor(_ path: String, in paths: Set<String>) -> Bool {
+        let parts = path.split(separator: "/")
+        guard parts.count > 1 else { return false }
+        return (1..<parts.count).contains { paths.contains(parts.prefix($0).joined(separator: "/")) }
     }
 
     static func children(of directory: URL, in project: ConnectionProject) -> [ConnectionFile] {
@@ -123,8 +196,9 @@ enum ConnectionsService {
               parts.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }) else {
             throw ICMRoutingError.invalidPath(path)
         }
-        let url = root.appendingPathComponent(path).standardizedFileURL.resolvingSymlinksInPath()
-        guard isContained(url, under: root) else { throw ICMRoutingError.invalidPath(path) }
+        let canonicalRoot = URL(fileURLWithPath: canonicalPath(root), isDirectory: true)
+        let url = canonicalRoot.appendingPathComponent(path).standardizedFileURL.resolvingSymlinksInPath()
+        guard isContained(url, under: canonicalRoot) else { throw ICMRoutingError.invalidPath(path) }
         return url
     }
 

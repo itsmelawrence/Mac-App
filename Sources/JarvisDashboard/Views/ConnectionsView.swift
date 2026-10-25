@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 struct ConnectionsView: View {
@@ -31,8 +32,8 @@ struct ConnectionsView: View {
                 ContentUnavailableView("Vault unavailable", systemImage: "point.3.connected.trianglepath.dotted",
                                        description: Text(errorMessage))
             } else if projects.isEmpty {
-                ContentUnavailableView("No registered projects", systemImage: "square.stack.3d.up",
-                                       description: Text("Add projects to ICM/routes.json in the selected vault."))
+                ContentUnavailableView("No projects found", systemImage: "square.stack.3d.up",
+                                       description: Text("Add a project under Work or Personal in the selected vault."))
             } else if let project {
                 HSplitView {
                     browser(for: project)
@@ -47,6 +48,9 @@ struct ConnectionsView: View {
         .navigationTitle("Cortex")
         .onAppear(perform: reload)
         .onChange(of: vaultPath) { _, _ in reload() }
+        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+            if selectedProjectID == nil { reload() }
+        }
     }
 
     private func browser(for project: ConnectionProject) -> some View {
@@ -104,7 +108,7 @@ struct ConnectionsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("Workspace map").font(.title3.bold())
-                Text("\(projects.count) registered projects · choose one to inspect its source tree and connections.")
+                Text("\(projects.count) projects found · choose one to inspect its source tree and connections.")
                     .font(.subheadline).foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     Image(systemName: "square.stack.3d.up.fill").foregroundStyle(.cyan)
@@ -122,6 +126,8 @@ struct ConnectionsView: View {
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(item.name).font(.headline)
                                 Text(item.route.projectPath).font(.caption).foregroundStyle(.secondary)
+                                Text(item.isRegistered ? "ICM route" : "Discovered from vault")
+                                    .font(.caption2).foregroundStyle(.secondary)
                                 Text(FileManager.default.fileExists(atPath: item.graphURL.path)
                                      ? "Graphify export available" : "No Graphify export yet")
                                     .font(.caption2).foregroundStyle(.secondary)
@@ -134,7 +140,7 @@ struct ConnectionsView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                Text("The map shows registered projects. Add a route to ICM/routes.json to include another project. Each project view omits hidden, generated and dependency folders.")
+                Text("Projects under Work and Personal appear automatically when they contain a source marker such as Git, a project manifest, or an index file. ICM/routes.json adds command handoff context. Each project view omits hidden, generated and dependency folders.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             .padding(22)
