@@ -65,6 +65,10 @@ Routing is deterministic and does not call an AI service. The agent must still i
 
 - Native SwiftUI macOS application
 - Command-centre Today dashboard with live operational hierarchy, monitoring health, fixed-grid intelligence, and a local Ask JARVIS console
+- Cortex workspace map of the Obsidian Projects vault, with source browsing, the Graphify Synapse Map, and a vault-health card
+- Ask JARVIS work handoffs to agents, with prompt intake and PARA activity notes
+- App-lifetime background work: briefings, wake, backups, vault maintenance, and prompt-capture filing, all running with the window closed
+- Launch safety: a recovery screen instead of a crash when the data store cannot open
 - Persistent Tasks Mission Queue and project operations using SwiftData
 - Versioned local-data schema with daily backups, secret-free JSON export, previewed merge/replace restore, and configurable rotation
 - Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion

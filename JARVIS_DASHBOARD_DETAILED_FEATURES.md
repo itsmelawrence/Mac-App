@@ -1,6 +1,6 @@
 # JARVIS Dashboard — Detailed Product and Feature Specification
 
-**Current release:** 0.2.5
+**Current release:** 0.2.29
 
 **Platform:** macOS 14 Sonoma or newer  
 **Application type:** Native, local-first productivity, operations, and intelligence dashboard  
@@ -15,17 +15,25 @@ JARVIS Dashboard is a personal macOS command centre for daily work, client opera
 3. Are active projects and client websites healthy?
 4. Has anything important changed locally or regionally?
 
-The application is local-first. Tasks, projects, locations, and preferences remain on the Mac. Network requests are made only for configured live services such as weather, earthquake data, news, and the JARVIS Monitoring API.
+The application is local-first. Tasks, projects, locations, and preferences remain on the Mac. Network requests are made only for configured live services such as weather, earthquake data, news, map tiles, and the JARVIS Monitoring API.
+
+JARVIS is also the always-on local host for the Obsidian **Projects vault** that agent tools (Codex, Claude Code) use:
+- it routes work requests to projects and records the work;
+- it browses project source and Graphify maps in Cortex;
+- it keeps the vault healthy in the background.
+
+The longer-term direction, a local AI assistant acting through JARVIS's tools, is tracked in the vault at `Notes/Projects/Personal/Mac App/ROADMAP.md`.
 
 ## 2. Main application structure
 
-The primary window uses a native macOS sidebar with five destinations:
+The primary window uses a native macOS sidebar with six destinations:
 
 - **Today** — daily command centre
 - **Tasks** — operational mission queue
 - **Projects** — project, repository, and website operations
+- **Cortex** — the Projects vault: every project, its source tree, context notes, Graphify maps, and vault health
 - **Intelligence** — regional, news, and operational intelligence
-- **Settings** — startup, voice, notifications, API credentials, backup, restore, and privacy
+- **Settings** — startup, voice, notifications, API credentials, map and vault configuration, backup, restore, and privacy
 
 The application also includes:
 
@@ -64,6 +72,7 @@ Today is the main overview rather than a miscellaneous widget board. It uses a f
 - Asks for a more specific project name when multiple projects match; never invents a project or a monitoring result.
 - Keeps the answer visible until the user selects **View project** to open that project's detail screen.
 - Explains currently supported capabilities when a request is not understood.
+- Turns a work request into an agent handoff through the Obsidian vault; see section 10.1.
 
 ### 3.3 Daily briefing
 
@@ -190,13 +199,14 @@ When a due date is set, JARVIS can schedule a local reminder subject to macOS no
 
 ### 4.5 Task management
 
-- Mark complete or return to pending.
+- Mark complete or return to pending. Completing cancels the task's due-date reminder; returning to pending reschedules it if the due date is still ahead.
 - Mark blocked or unblock from the context menu.
 - Display overdue deadlines in red.
 - Display priority using restrained urgency colours.
-- Delete only after confirmation.
+- Delete only after confirmation. Deleting cancels the task's pending reminder.
 - Persist changes locally with SwiftData.
 - Calculate overall completion momentum.
+- Task changes go through a tested `TaskStore`, so reminders always follow the task's state.
 
 ### 4.6 Project-to-task behaviour
 
@@ -272,7 +282,10 @@ Waiting-on-client projects display the number of days spent in that state.
 - Duplicate a project.
 - Archive and restore a project.
 - Show or hide archived projects.
-- Delete after confirmation.
+- Delete after confirmation, through `ProjectStore`:
+  - linked tasks move to the Inbox rather than keeping a dangling project link, which would make later backups fail to import;
+  - the project's monitoring reporter token is removed from Keychain;
+  - a failed save is reported in an alert.
 - Sort and filter the project fleet.
 - Show only projects needing attention.
 
@@ -364,6 +377,8 @@ The monitoring design is platform-flexible:
 - A score appears only after the backend completes an outside reachability check.
 - Unknown, stale, disconnected, offline, or awaiting-check states remain explicit.
 - A missing signal never becomes a fabricated score of 100.
+- A site reported down stays **Down** even when its readings are stale (down outranks stale).
+- An unrecognised `platform` value from the API is shown as Custom instead of failing the whole site list.
 - The score begins at 100 and applies explainable deductions.
 
 Potential deductions include:
@@ -371,7 +386,7 @@ Potential deductions include:
 - Open vulnerabilities
 - Available component updates
 - Unsupported PHP version
-- SSL certificate expiring within fourteen days
+- SSL certificate expiring within fourteen days (15 points), or already expired (40 points, the same as a critical finding)
 - Missing reporter heartbeat
 - Failed application or database health checks
 
@@ -500,7 +515,9 @@ Earthquakes at magnitude 6.0 or above are classified as critical. News-derived h
 - Rain threshold adjustable from 40% to 100%.
 - Optional warning and critical notifications.
 - Configurable quiet hours.
-- Duplicate-notification suppression.
+- Duplicate-notification suppression:
+  - Weather alerts (storm, rain, heat) are identified per location per day. A new storm the next day alerts again, while a reading drifting within the day does not re-alert.
+  - The last 500 notified and spoken alert identifiers are kept in order and the oldest are forgotten first.
 - Maximum of three new notifications per delivery cycle.
 
 ### 9.5 Saved locations
@@ -520,6 +537,11 @@ Preset locations include Baguio, Manila, Legazpi, Puerto Princesa, Cebu, Iloilo,
 - A legend and on-map provenance distinguish point forecasts from radar or area-wide rain coverage.
 - Seven days of hourly forecast navigation, next-24-hour detail, and seven daily summaries for a selected location.
 - Sampled values are explicitly distinguished from continuous map tiles, radar, and official weather warnings.
+- **Basemap picker.** **Apple Maps** is the default. **MapTiler preview** shows a Landscape basemap. **Satellite** shows MapTiler ground imagery under NOAA/NESDIS infrared cloud tiles: the latest available observation, independent of the forecast-hour slider. Ordinary overlays are hidden in Satellite mode, and animated thunderstorm icons appear only at sampled locations where the selected hour reports a storm. This is not live radar or lightning detection.
+- MapTiler modes need a MapTiler key (Keychain) and count towards the account's quota. Forecast points arriving after the map page loads are pushed to the map.
+- **Personal weather dashboard.** Switchable from the map. It shows a primary-location hero forecast, four independently chosen city cards, Apple Maps city search, and an opt-in "Use Mac location" kept in memory for the session only.
+- Eight condition-specific native weather animations across the map, hero forecast, hourly strip, and city cards. With Reduce Motion, a still icon is shown instead.
+- One failed location no longer discards the others' weather. Missing (null) hourly precipitation is read as 0%.
 - Displays representative conditions across Luzon, Visayas, and Mindanao.
 - Includes temperature, condition, and precipitation probability.
 - Lists recent Philippine-region earthquakes.
@@ -561,9 +583,13 @@ Default watchlist terms are AI, WordPress, technology, and business.
 
 - **Open-Meteo** — current weather and precipitation probability
 - **USGS** — Philippine-region earthquake feed
-- **GMA News RSS** — Philippine headlines
-- **BBC News RSS** — world headlines
-- **NewsAPI.org** — optional news enrichment
+- **GMA News** — Philippine headlines. The feed URL currently serves an HTML list, which is read through the HTML fallback.
+- **BBC News RSS** — world headlines. CDATA titles are read as-is; bare `&` repair applies only outside CDATA.
+- **NewsAPI.org** — optional news enrichment:
+  - Philippines requests use `country=ph`; World requests use `category=general&language=en`, because NewsAPI requires a filter.
+  - Errors such as an invalid key or quota are shown on the Intelligence screen.
+  - Malformed or `[Removed]` articles are skipped, not fatal.
+- **MapTiler** and **NOAA/NESDIS** — map and cloud tiles, only while those basemaps are visible.
 
 Weather, earthquake, Philippine news, world news, and regional weather requests run concurrently. RSS remains the fallback when NewsAPI is unavailable or not configured.
 
@@ -574,7 +600,49 @@ Weather, earthquake, Philippine news, world news, and regional weather requests 
 - Headline matching is an early signal, not an emergency instruction.
 - Evacuation and safety decisions must be confirmed with the appropriate authorities.
 
-## 10. JARVIS Voice
+## 10. Cortex, Vault, and Agent Handoff
+
+JARVIS works with a local Obsidian **Projects vault** (default `~/Documents/Main/Projects`, chosen in Settings → ICM · Obsidian vault). The vault is shared with Codex and Claude Code. All vault reads and writes are local; no AI service is called.
+
+### 10.1 Ask JARVIS work handoff
+
+- A work request is matched to a project through `ICM/routes.json`, using fixed rules.
+- JARVIS verifies the project folder and context note, suggests relevant Graphify notes, and prepares a handoff for an agent.
+- Every submitted console prompt is saved under `Memory/01_intake/<project>/` (unmatched prompts go to `_unrouted/`).
+- Matched requests get a dated activity note under `Notes/Projects/<project path>/Activities/` for the agent to complete.
+- Routing never edits project source; the agent must still inspect current source and local instructions.
+
+### 10.2 Cortex workspace map
+
+- **Discovery:** lists all vault projects under `Work/` and `Personal/`, combining ICM routes with projects found by marker files (Git, manifests, `PROJECT.md`, index files), without duplicates. The rules live in `ICM/discovery.json`, shared with the vault's `.tools/project_hubs.py`, with built-in defaults if the file is missing or malformed.
+- **Refresh:** on open and every 30 seconds on the overview. The scan, search, and file reads run off the main thread, and a refresh is skipped while one is still running.
+- **Scan record:** the scanned list is written to `ICM/cortex-projects.json`, only when it changes, so the vault doctor can check that JARVIS and the vault tools agree.
+- **Route problems:** a missing or unsafe route appears under **ICM routes need attention** without hiding other projects.
+- **Per project:** browse the source tree (generated, dependency, and hidden folders omitted), search paths, and open the context note and Graphify connection notes.
+
+### 10.3 Vault health
+
+- Cortex shows a health card from `ICM/health.json`, written by the vault doctor (`.tools/vault_doctor.py`).
+- The card gives the error and warning counts, the top issues, and an **Open report** button for `Notes/Resources/Vault health.md`. It warns when the report is more than a day old.
+- The doctor checks routes, project hubs (including moved projects, detected through stable hub IDs), wikilinks in curated notes, Graphify coverage, activity-note status, stray intake folders, and Cortex-versus-tools discovery parity.
+
+### 10.4 Synapse Map (Graphify)
+
+- Embeds Graphify's own `graph.html`, with search, node inspector, community filters, and force-directed layout. JARVIS inlines the pinned vis-network 9.1.6 library and adds signal pulses.
+- Selecting a source file focuses its node. The viewer is prepared off the main thread and reloads when `graph.html` changes.
+- Maps are regenerated with `.tools/graphify_refresh.py <route>`, which validates code coverage, the HTML, and inbound links before installing.
+
+### 10.5 Background vault upkeep
+
+`AppCoordinator` runs these for the app's lifetime, with or without the dashboard window. Each runs as a time-limited child process of JARVIS. They can't run as launchd jobs: macOS doesn't let those list `~/Documents`, and they can read only files they created.
+
+- **Vault maintenance:** at launch and then every 3 hours, `.tools/vault_maintenance.py --vault <configured vault>` refreshes project hubs and runs the doctor. It logs to `~/Library/Logs/vault-maintenance.log`.
+- **Prompt capture filing:** every 15 seconds, when prompts are queued, JARVIS files prompts captured by the Codex and Claude Code `UserPromptSubmit` hooks:
+  - one activity note per agent session, project, and day;
+  - Codex's automatic "suggestions" prompts are skipped;
+  - prompts queued while JARVIS is closed are filed when it opens.
+
+## 11. JARVIS Voice
 
 Text-to-speech uses macOS speech synthesis and runs locally.
 
@@ -594,16 +662,17 @@ Voice controls include:
 
 The application does not contain or distribute the copyrighted cinematic JARVIS voice.
 
-## 11. Briefing Panel
+## 12. Briefing Panel
 
 - Compact floating native macOS panel.
 - Can appear above other workspaces and alongside full-screen applications.
 - Displays complete briefing text without truncating it.
 - Opens from Today, Intelligence, Settings, the menu bar, and wake events.
-- Can be dismissed with its close action or Escape.
+- Requests are handled by the app-lifetime `AppCoordinator`, not the dashboard window. Menu-bar and wake briefings work with the window closed, and each request is presented exactly once.
+- Can be dismissed with its close action or Escape. Closing by any route, including the title-bar button, stops speech.
 - Opening animation has been removed to keep startup immediate and restrained.
 
-## 12. Startup, Login, Sleep, and Wake
+## 13. Startup, Login, Sleep, and Wake
 
 ### Launch at login
 
@@ -619,9 +688,9 @@ The application does not contain or distribute the copyrighted cinematic JARVIS 
 - Records sleep duration.
 - Optionally presents a wake briefing.
 - Supports minimum sleep thresholds of 5, 15, or 30 minutes, or 1 hour.
-- Wake detection requires JARVIS to remain running.
+- Wake detection requires JARVIS to remain running, but not its dashboard window. It is started once at launch by `AppCoordinator`.
 
-## 13. Menu-Bar Command Centre
+## 14. Menu-Bar Command Centre
 
 - Shows the current pending-task count.
 - Adds a quick Inbox task.
@@ -629,7 +698,7 @@ The application does not contain or distribute the copyrighted cinematic JARVIS 
 - Presents a briefing.
 - Quits JARVIS.
 
-## 14. Settings
+## 15. Settings
 
 ### Startup
 
@@ -659,6 +728,14 @@ The application does not contain or distribute the copyrighted cinematic JARVIS 
 - Removes the key.
 - Continues with RSS feeds when no key is present.
 
+### Philippines map · MapTiler preview
+
+- Saves or removes a MapTiler API key in Keychain. Without a key, Apple Maps remains available.
+
+### ICM · Obsidian vault
+
+- Shows and changes the Projects vault used for routing, capture, Cortex, and maintenance.
+
 ### Monitoring API
 
 - Configures the HTTPS API base URL.
@@ -687,7 +764,7 @@ The application does not contain or distribute the copyrighted cinematic JARVIS 
 - Refuses to fabricate unavailable spend information.
 - Explains which data is local and which services receive requests.
 
-## 15. Local Storage and Credential Security
+## 16. Local Storage and Credential Security
 
 ### SwiftData
 
@@ -718,9 +795,19 @@ Stored locally in preferences:
 Stored securely:
 
 - NewsAPI.org key
+- MapTiler API key
 - Monitoring read token
 - Monitoring site-registration/admin token
-- Per-project reporter tokens
+- Per-project reporter tokens, removed when their project is deleted
+
+`KeychainCache` reads each item at most once per launch. Saves and deletes keep the cache current; a cancelled password prompt is not cached.
+
+JARVIS is signed with a stable Apple Development identity (team `TRM376DDJX`). Its designated requirement, the bundle identifier plus that certificate, stays the same across builds, so Keychain **Always Allow** grants persist through updates. Ad-hoc signing would make every build a new app.
+
+### Data store safety
+
+- The SwiftData store is at `~/Library/Application Support/default.store`, SwiftData's shared default path. Moving it to an app-specific path is deferred, with a migration plan in the vault audit note.
+- A store or migration failure opens a recovery screen instead of crashing. It explains the error, opens the backups folder or shows the store, and changes nothing.
 
 ### Versioned backups
 
@@ -737,10 +824,13 @@ Stored securely:
 - Public earthquake data is requested from USGS.
 - Public news is requested from configured providers.
 - NewsAPI category requests occur only when a key is configured.
+- MapTiler and NOAA/NESDIS tiles load only while those basemaps are visible; the MapTiler key is sent in map requests.
+- City search uses Apple Maps; Mac location is requested only on "Use Mac location".
 - Git inspection remains entirely local.
 - Monitoring requests go only to the configured HTTPS API endpoint.
+- The Obsidian vault is read and written locally only.
 
-## 16. Native macOS Experience
+## 17. Native macOS Experience
 
 - SwiftUI interface.
 - SwiftData persistence.
@@ -753,9 +843,9 @@ Stored securely:
 - Reduced-motion support for animated monitoring gauges.
 - Universal Intel and Apple Silicon release build.
 
-## 17. Technical Foundation
+## 18. Technical Foundation
 
-- Swift 5
+- Swift 6 toolchain (`swift-tools-version: 6.0`) in the Swift 5 language mode
 - SwiftUI
 - SwiftData
 - AppKit
@@ -765,8 +855,11 @@ Stored securely:
 - ServiceManagement
 - Security framework and macOS Keychain
 - Local `/usr/bin/git` inspection
+- WebKit for the Synapse Map and MapTiler basemaps
+- `/usr/bin/python3` child processes (time-limited) for vault maintenance and prompt-capture filing
 - XcodeGen project generation
-- Unit tests using Swift Testing
+- Unit tests using Swift Testing (112 tests in 28 suites at 0.2.29)
+- `scripts/release.sh` for gated releases
 
 Current automated coverage includes:
 
@@ -783,8 +876,13 @@ Current automated coverage includes:
 - Monitoring-health scoring
 - Speech settings logic
 - Backup round trips, secret exclusion, validation, idempotent merge, replace safeguards, rotation, and migration from the 0.1.18 unversioned store
+- Task and project stores: reminder lifecycle, and project deletion that keeps backups restorable (with a contrast test showing a raw delete breaks them)
+- Alert identity and ordered dedupe memory; expired-SSL and down-versus-stale scoring
+- Malformed-input tolerance for NewsAPI, RSS (CDATA and bare ampersands), the monitoring platform, and weather
+- Cortex discovery rules, route problems, scan recording, and vault-health decoding
+- App coordinator briefing delivery, Keychain cache, prompt-capture queue detection, and process timeouts
 
-## 18. Product Boundaries
+## 19. Product Boundaries
 
 The current release intentionally does not provide:
 
@@ -797,18 +895,28 @@ The current release intentionally does not provide:
 - Automatic website code installation
 - Direct cloud-billing telemetry without a documented provider API
 - Official emergency-alert authority
-- An external generative-AI command backend
+- An external generative-AI command backend. A local assistant acting through JARVIS's tools is a roadmap goal, not a current feature.
+- Vault upkeep or prompt filing while JARVIS is not running; prompts wait in temporary storage until it opens
 
 The planned iOS application can reuse the Laravel Monitoring API later, but it is not part of the current macOS release.
 
-## 19. Installation and Release Artifact
+## 20. Installation and Release Artifact
 
 Current distributable archive:
 
-`dist/JARVIS-Dashboard-0.2.5.zip`
+`dist/JARVIS-Dashboard-0.2.29.zip`
 
 Installed application location:
 
 `/Applications/JARVIS Dashboard.app`
 
-The release is built as a universal macOS application for Apple Silicon and Intel Macs.
+The release is built as a universal macOS application for Apple Silicon and Intel Macs, signed with the Apple Development identity.
+
+Releases are made only with `scripts/release.sh X.Y.Z --commit`, which stops at the first failed check:
+1. Preconditions: clean tree, newer version, valid signing identity.
+2. Tests, then a universal build.
+3. Signature, architecture, and version checks, then the zip.
+4. A graceful quit, then byte-verified backups of the app and both stores with SQLite `quick_check`, in `dist/install-backups/pre-<version>-<date>/`.
+5. Install, binary compare, then launch, crash, and store checks.
+
+On success it prints the rollback command.
