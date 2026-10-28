@@ -17,8 +17,8 @@ settings:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Apple Development"
     DEVELOPMENT_TEAM: TRM376DDJX
-    MARKETING_VERSION: "0.2.27"
-    CURRENT_PROJECT_VERSION: "28"
+    MARKETING_VERSION: "0.2.28"
+    CURRENT_PROJECT_VERSION: "29"
 
 targets:
   JarvisDashboard:
