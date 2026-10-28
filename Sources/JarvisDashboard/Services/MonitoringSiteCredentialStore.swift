@@ -17,17 +17,7 @@ struct MonitoringSiteCredentialStore: Sendable {
     }
 
     private func read(account: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        KeychainCache.read(service: service, account: account)
     }
 
     private func save(_ token: String, account: String) throws {
@@ -53,6 +43,7 @@ struct MonitoringSiteCredentialStore: Sendable {
         } else if status != errSecSuccess {
             throw CredentialStoreError.keychain(status)
         }
+        KeychainCache.remember(trimmedToken, service: service, account: account)
     }
 
     private func delete(account: String) throws {
@@ -65,6 +56,7 @@ struct MonitoringSiteCredentialStore: Sendable {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw CredentialStoreError.keychain(status)
         }
+        KeychainCache.remember(nil, service: service, account: account)
     }
 }
 

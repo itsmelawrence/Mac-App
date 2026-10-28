@@ -6,17 +6,7 @@ struct MonitoringAPICredentialStore: Sendable {
     private let account = "Laravel Cloud API token"
 
     func read() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        KeychainCache.read(service: service, account: account)
     }
 
     func save(_ token: String) throws {
@@ -44,6 +34,7 @@ struct MonitoringAPICredentialStore: Sendable {
         } else if status != errSecSuccess {
             throw CredentialStoreError.keychain(status)
         }
+        KeychainCache.remember(trimmedToken, service: service, account: account)
     }
 
     func delete() throws {
@@ -56,6 +47,7 @@ struct MonitoringAPICredentialStore: Sendable {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw CredentialStoreError.keychain(status)
         }
+        KeychainCache.remember(nil, service: service, account: account)
     }
 
     enum CredentialStoreError: LocalizedError {

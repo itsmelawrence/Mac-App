@@ -6,17 +6,7 @@ struct MapTilerKeyStore: Sendable {
     private let account = "MapTiler API key"
 
     func read() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        KeychainCache.read(service: service, account: account)
     }
 
     func save(_ key: String) throws {
@@ -40,6 +30,7 @@ struct MapTilerKeyStore: Sendable {
         } else if status != errSecSuccess {
             throw KeyStoreError.keychain(status)
         }
+        KeychainCache.remember(value, service: service, account: account)
     }
 
     func delete() throws {
@@ -52,6 +43,7 @@ struct MapTilerKeyStore: Sendable {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeyStoreError.keychain(status)
         }
+        KeychainCache.remember(nil, service: service, account: account)
     }
 
     enum KeyStoreError: LocalizedError {
