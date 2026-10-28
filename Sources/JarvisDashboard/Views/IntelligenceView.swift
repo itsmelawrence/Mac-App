@@ -719,6 +719,8 @@ struct IntelligenceView: View {
         await refreshRepositorySnapshots()
         updateChangeSummary()
         lastRefreshedAt = .now
+        StateSnapshotService.shared.recordIntelligence(
+            alerts: intelligenceAlerts, weather: Array(savedWeather.values), earthquakes: earthquakes, news: newsByCategory)
 
         let successes = [results.0 != nil, results.1 != nil, results.2 != nil, results.3 != nil, results.4 != nil]
         errorMessage = successes.allSatisfy { $0 }

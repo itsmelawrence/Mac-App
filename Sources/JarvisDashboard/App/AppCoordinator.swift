@@ -58,5 +58,21 @@ final class AppCoordinator {
         tasks.append(Task { await backups.runAutomaticBackups(context: context) })
         tasks.append(Task.detached(priority: .background) { await VaultMaintenanceService.runWhileAppIsOpen() })
         tasks.append(Task.detached(priority: .utility) { await PromptCaptureService.runWhileAppIsOpen() })
+
+        // The assistant's state.json: tasks and projects on launch, on every save, and each minute
+        // (so overdue and due-today flags stay current). Views add sites, weather, and news as they fetch.
+        let snapshots = StateSnapshotService.shared
+        snapshots.refreshStore(context: context)
+        tasks.append(Task {
+            for await _ in NotificationCenter.default.notifications(named: ModelContext.didSave) {
+                snapshots.refreshStore(context: context)
+            }
+        })
+        tasks.append(Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                snapshots.refreshStore(context: context)
+            }
+        })
     }
 }

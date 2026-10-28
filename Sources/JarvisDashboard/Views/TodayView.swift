@@ -436,7 +436,9 @@ struct TodayView: View {
             // A duplicate site ID from the API must not crash; keep the last one, as ProjectsView does.
             monitoringSites = Dictionary(newMonitoringSites.map { ($0.id, $0) }) { _, latest in latest }
             monitoringError = nil
+            StateSnapshotService.shared.recordSites(monitoringSites)
         }
+        StateSnapshotService.shared.recordConditions(weather: newWeather, earthquakes: earthquakes)
         refreshError = newWeather == nil || newEarthquakes == nil
             ? "One or more intelligence sources could not be refreshed; available results remain visible."
             : nil

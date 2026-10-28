@@ -296,6 +296,7 @@ struct ProjectsView: View {
             }
             monitoringSites = detailed
             monitoringError = nil
+            StateSnapshotService.shared.recordSites(detailed)
         } catch {
             monitoringError = error.localizedDescription
         }
