@@ -30,6 +30,9 @@ targets:
       - path: Supporting/GraphifyViewer
         type: folder
         buildPhase: resources
+      - path: Supporting/NeuralMap
+        type: folder
+        buildPhase: resources
     info:
       path: Supporting/Info.plist
       properties:

@@ -23,6 +23,8 @@ struct RootView: View {
                 ProjectsView()
             case .connections:
                 ConnectionsView()
+            case .neuralMap:
+                NeuralMapView()
             case .intelligence:
                 IntelligenceView()
             case .settings:

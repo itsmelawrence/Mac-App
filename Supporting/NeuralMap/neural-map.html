@@ -1,0 +1,401 @@
+<title>JARVIS Neural Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a holographic lab plate — the brain sphere fills the stage; stats ride the top edge; lobe key and hub list sit beneath. Deliberately single-theme (dark), after the film's hologram. */
+:root {
+  color-scheme: dark;
+  --ink: #030915;          /* lab darkness, blue-black */
+  --ink-2: #08142a;        /* panels */
+  --line: #15294a;         /* hairlines */
+  --fg: #dff4ff;           /* holographic white-cyan text */
+  --fg-dim: #7f9bbd;       /* secondary text */
+  --hot: #fff3d6;          /* white-hot core and signal heads */
+  --cyan: #6fe3ff;         /* electric arcs */
+  --amber: #ff9a3c;        /* orange rings and fire */
+  --views: #ff8a3d; --services: #56d8ff; --tests: #c08cff; --models: #ffc35c; --app: #fff1c4; --scripts: #ffe08a; --framework: #9fe9ff;
+  --display: "Rajdhani", "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+html, body { height: 100%; }
+body { background: var(--ink); color: var(--fg); font-family: var(--body); font-size: 14px; line-height: 1.5; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 28px; max-width: 1320px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 4.4vw, 46px); line-height: 1; margin: 0; letter-spacing: 0.06em; text-transform: uppercase; text-wrap: balance; color: var(--fg); text-shadow: 0 0 18px rgba(111,227,255,.35); }
+.sub { color: var(--fg-dim); margin: 6px 0 0; max-width: 64ch; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 24px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.stat b { display: block; font-family: var(--display); font-size: 28px; font-weight: 600; color: var(--cyan); line-height: 1.1; text-shadow: 0 0 12px rgba(111,227,255,.4); }
+.stat span { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-dim); }
+.stage { position: relative; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: radial-gradient(70% 70% at 50% 50%, #0a1f3d 0%, #061025 45%, var(--ink) 80%); height: min(76vh, 800px); min-height: 440px; }
+canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+canvas:active { cursor: grabbing; }
+.controls { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; pointer-events: none; }
+.controls > * { pointer-events: auto; }
+.controls input[type=search] { flex: 1 1 180px; max-width: 260px; background: rgba(8,20,42,.8); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: 13px var(--body); }
+.controls button { background: rgba(8,20,42,.8); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; font: 12px var(--mono); cursor: pointer; }
+.controls button[aria-pressed="true"] { border-color: var(--cyan); color: var(--cyan); }
+.controls :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.tip { position: absolute; pointer-events: none; background: rgba(4,12,28,.94); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; max-width: 290px; font-size: 12.5px; box-shadow: 0 0 24px rgba(111,227,255,.15); }
+.tip .name { font-family: var(--mono); font-weight: 500; font-size: 13px; color: var(--hot); word-break: break-all; }
+.tip .path { color: var(--fg-dim); font-family: var(--mono); font-size: 11px; word-break: break-all; margin-bottom: 6px; }
+.tip dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-variant-numeric: tabular-nums; }
+.tip dt { color: var(--fg-dim); } .tip dd { margin: 0; text-align: right; font-family: var(--mono); }
+.hint { position: absolute; bottom: 10px; left: 12px; right: 12px; color: var(--fg-dim); font-size: 11.5px; pointer-events: none; }
+.below { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .below { grid-template-columns: 1fr; } .stage { height: 66vh; } }
+.panel { background: var(--ink-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.panel h2 { font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 10px; color: var(--fg); }
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 9px 14px; }
+.lobe { display: grid; grid-template-columns: 12px 1fr; gap: 0 8px; align-items: baseline; }
+.dot { width: 10px; height: 10px; border-radius: 50%; transform: translateY(1px); }
+.lobe b { font-weight: 500; } .lobe small { grid-column: 2; color: var(--fg-dim); font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+ol.hubs { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+ol.hubs li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-family: var(--mono); font-size: 12.5px; align-items: center; }
+ol.hubs li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ol.hubs .bar { height: 3px; border-radius: 2px; grid-column: 1 / -1; }
+.foot { color: var(--fg-dim); font-size: 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>JARVIS Neural Map</h1>
+      <p class="sub">JARVIS Dashboard's source as a living brain. Each file is a neuron, grouped into lobes by folder around the app core; the fibres between them are calls and references; signals travel along them like nerve impulses.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="brain" aria-label="Interactive 3D map of JARVIS source files and their connections"></canvas>
+    <div class="controls">
+      <input type="search" id="find" placeholder="Find a file…" aria-label="Find a file">
+      <button id="toggle-fire" aria-pressed="true">Firing on</button>
+      <button id="toggle-spin" aria-pressed="true">Rotation on</button>
+      <button id="toggle-fw" aria-pressed="false">Frameworks hidden</button>
+    </div>
+    <div class="tip" id="tip" hidden></div>
+    <div class="hint">Drag to turn the brain · scroll or pinch to zoom · hover a neuron to trace its fibres · click to fire it</div>
+  </div>
+
+  <div class="below">
+    <section class="panel"><h2>Lobes</h2><div class="legend" id="legend"></div></section>
+    <section class="panel"><h2>Most connected neurons</h2><ol class="hubs" id="hubs"></ol></section>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+const DATA = __DATA__;
+// Lobes: where each folder's neurons gather inside the unit sphere, and how widely they spread.
+const AREAS = {
+  App:       { color: "--app",       label: "Core · App", note: "entry, state, coordinator", c: [0, 0, 0],          s: 0.10 },
+  Models:    { color: "--models",    label: "Models",     note: "SwiftData records",          c: [0, 0.44, 0.06],    s: 0.12 },
+  Root:      { color: "--scripts",   label: "Root files", note: "manifests at the top level", c: [-0.12, -0.62, 0.28], s: 0.05 },
+  scripts:   { color: "--scripts",   label: "Scripts",    note: "release tooling",            c: [0.12, -0.62, 0.28], s: 0.07 },
+  Services:  { color: "--services",  label: "Services",   note: "logic, providers, stores",   c: [0.44, -0.02, 0.12], s: 0.30 },
+  Views:     { color: "--views",     label: "Views",      note: "SwiftUI screens",            c: [-0.46, 0.06, -0.04], s: 0.30 },
+  Tests:     { color: "--tests",     label: "Tests",      note: "Swift Testing suites",       c: [0.42, -0.32, -0.50], s: 0.22 },
+  Framework: { color: "--framework", label: "Frameworks", note: "Apple frameworks (outer ring)" },
+};
+const css = getComputedStyle(document.documentElement);
+const tok = name => css.getPropertyValue(name).trim();
+// Folders this map doesn't know yet (other projects) get their own lobe around a ring.
+const SPARE = ["--views", "--services", "--tests", "--models", "--scripts", "--framework"];
+[...new Set(DATA.nodes.map(n => n.area))].filter(a => !AREAS[a]).forEach((a, i, all) => {
+  const th = (i / all.length) * Math.PI * 2;
+  AREAS[a] = { color: SPARE[i % SPARE.length], label: a, note: "folder", c: [Math.cos(th) * 0.5, ((i % 3) - 1) * 0.3, Math.sin(th) * 0.5], s: 0.2 };
+});
+const colorOf = area => tok((AREAS[area] || AREAS.Framework).color);
+const rgbOf = hex => { const h = hex.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(","); };
+const HOT = tok("--hot"), AMBER = tok("--amber");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fmt = n => n.toLocaleString("en-US");
+function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rand = rng(1874);   // seeded, so the brain grows the same shape every load
+const gauss = () => { let u = 0, v = 0; while (!u) u = rand(); while (!v) v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+// ---------- data ----------
+const byId = new Map(DATA.nodes.map(n => [n.id, n]));
+DATA.links = DATA.links.filter(l => byId.has(l.source) && byId.has(l.target)).map(l => ({ ...l, source: byId.get(l.source), target: byId.get(l.target) }));
+const files = DATA.nodes.filter(n => n.area !== "Framework"), fws = DATA.nodes.filter(n => n.area === "Framework");
+const fileLinkList = DATA.links.filter(l => !l.kind), fwLinkList = DATA.links.filter(l => l.kind);
+files.forEach(n => n.deg = 0);
+fileLinkList.forEach(l => { l.source.deg += l.weight; l.target.deg += l.weight; });
+const neighbors = new Map(DATA.nodes.map(n => [n.id, []]));
+DATA.links.forEach(l => { neighbors.get(l.source.id).push(l); neighbors.get(l.target.id).push(l); });
+DATA.nodes.forEach(n => { n.rgb = rgbOf(colorOf(n.area)); n.flash = 0; });
+
+// ---------- layout: a tiny 3D force pass (lobe pull, spacing, link springs) ----------
+const add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const len = a => Math.hypot(a[0], a[1], a[2]) || 1e-6;
+const norm = a => { const l = len(a); return [a[0] / l, a[1] / l, a[2] / l]; };
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+files.forEach(n => { const A = AREAS[n.area]; n.p = [0, 1, 2].map(i => A.c[i] + gauss() * A.s * 0.6); n.r = 1.8 + Math.sqrt(n.loc) * 0.085; });
+for (let it = 0; it < 260; it++) {
+  for (let i = 0; i < files.length; i++) for (let j = i + 1; j < files.length; j++) {
+    const a = files[i], b = files[j], d = sub(b.p, a.p), l = len(d), min = 0.2;
+    if (l < min) { const k = (min - l) * 0.25 / l; a.p = add(a.p, d, -k); b.p = add(b.p, d, k); }
+  }
+  for (const L of fileLinkList) {
+    const d = sub(L.target.p, L.source.p), l = len(d), k = (l - 0.4) * 0.004 * Math.min(L.weight, 4) / l;
+    L.source.p = add(L.source.p, d, k); L.target.p = add(L.target.p, d, -k);
+  }
+  for (const n of files) {
+    n.p = add(n.p, sub(AREAS[n.area].c, n.p), 0.02);
+    const l = len(n.p); if (l > 0.98) n.p = n.p.map(v => v * 0.98 / l);
+  }
+}
+const golden = Math.PI * (3 - Math.sqrt(5));
+fws.sort((a, b) => b.users - a.users).forEach((n, i) => {
+  const y = 1 - (i + 0.5) / fws.length * 2, r = Math.sqrt(1 - y * y), th = golden * i;
+  n.p = [Math.cos(th) * r * 1.45, y * 1.1, Math.sin(th) * r * 1.45]; n.r = 1.6 + Math.sqrt(n.users) * 0.4;
+});
+
+// ---------- fibres: fixed, gently wandering 3D paths, like axons ----------
+const SEG = 26;
+function fibre(a, b, wander) {
+  const d = sub(b, a), dn = norm(d), u = norm(cross(dn, Math.abs(dn[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), v = cross(dn, u);
+  const bow = (rand() - 0.5) * 0.35 * len(d), f1 = 3 + rand() * 6, f2 = 3 + rand() * 6, p1 = rand() * 6, p2 = rand() * 6;
+  const pts = new Float32Array((SEG + 1) * 3);
+  for (let k = 0; k <= SEG; k++) {
+    const t = k / SEG, env = Math.sin(Math.PI * t);
+    let q = add(a, d, t); q = add(q, u, bow * env + Math.sin(t * f1 + p1) * wander * env); q = add(q, v, Math.sin(t * f2 + p2) * wander * env);
+    pts.set(q, k * 3);
+  }
+  return pts;
+}
+DATA.links.forEach(l => l.path = fibre(l.source.p, l.target.p, l.kind ? 0.05 : 0.03));
+// dendrites: short branching random walks out of each cell body
+const dendrites = [];
+function grow(start, dir, steps, step, n, depth) {
+  const pts = [start]; let p = start, d = dir;
+  for (let s = 0; s < steps; s++) {
+    d = norm(add(d, [gauss() * 0.45, gauss() * 0.45, gauss() * 0.45])); p = add(p, d, step); pts.push(p);
+    if (depth === 0 && s === Math.floor(steps / 2) && rand() < 0.7) grow(p, norm(add(d, [gauss(), gauss(), gauss()])), Math.ceil(steps * 0.6), step * 0.85, n, 1);
+  }
+  dendrites.push({ n, pts: new Float32Array(pts.flat()), depth });
+}
+files.forEach(n => { const count = 3 + Math.min(5, Math.round(n.symbols / 12)); for (let i = 0; i < count; i++) grow(n.p, norm([gauss(), gauss(), gauss()]), 6 + Math.floor(rand() * 4), 0.016 + n.r * 0.002, n, 0); });
+
+// ---------- panels ----------
+const totalLoc = files.reduce((s, n) => s + n.loc, 0);
+document.getElementById("stats").innerHTML = [[fmt(files.length), "neurons · files"], [fmt(totalLoc), "lines of code"], [fmt(fileLinkList.length), "fibres · links"], [fmt(fws.length), "frameworks"]]
+  .map(([v, k]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+const byArea = {};
+files.forEach(n => { (byArea[n.area] ||= { files: 0, loc: 0 }); byArea[n.area].files++; byArea[n.area].loc += n.loc; });
+document.getElementById("legend").innerHTML = [...Object.entries(byArea).sort((a, b) => b[1].loc - a[1].loc), ["Framework", { files: fws.length }]]
+  .map(([area, s]) => `<div class="lobe"><span class="dot" style="background:${colorOf(area)};box-shadow:0 0 8px ${colorOf(area)}"></span><b>${AREAS[area].label}</b>
+   <small>${area === "Framework" ? `${s.files} imported · ${AREAS[area].note}` : `${s.files} files · ${fmt(s.loc)} lines · ${AREAS[area].note}`}</small></div>`).join("");
+const hubs = [...files].sort((a, b) => b.deg - a.deg), maxDeg = hubs[0].deg || 1;
+document.getElementById("hubs").innerHTML = hubs.slice(0, 8).map(n => `<li><span title="${n.id}">${n.name}</span><span>${n.deg}</span><span class="bar" style="width:${(n.deg / maxDeg) * 100}%;background:${colorOf(n.area)};box-shadow:0 0 6px ${colorOf(n.area)}"></span></li>`).join("");
+const labelled = new Set(hubs.slice(0, 6).map(n => n.id));
+document.getElementById("foot").textContent = `Built from the Graphify code graph of JARVIS at commit ${DATA.generated}: symbol-level calls, references, and conformances rolled up to files. Cell size is lines of code; fibre strength is how many links run between two files.`;
+
+// ---------- glow sprite ----------
+function sprite(color) {
+  const s = 64, c = document.createElement("canvas"); c.width = c.height = s; const g = c.getContext("2d");
+  const grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  grd.addColorStop(0, "#ffffff"); grd.addColorStop(0.15, color); grd.addColorStop(0.4, color + "40"); grd.addColorStop(1, color + "00");
+  g.fillStyle = grd; g.fillRect(0, 0, s, s); return c;
+}
+const glow = {}; Object.keys(AREAS).forEach(a => glow[a] = sprite(colorOf(a)));
+const hotGlow = sprite(HOT);
+
+// ---------- 3D view ----------
+const stage = document.getElementById("stage"), canvas = document.getElementById("brain"), ctx = canvas.getContext("2d");
+let W = 0, H = 0, dpr = 1, rotY = 0.5, rotX = -0.22, zoom = 1, spin = !reduceMotion, firing = !reduceMotion, showFw = false, hover = null, query = "";
+let cy = 1, sy = 0, cx = 1, sx = 0, R = 1, dragging = false;
+function size() { const r = stage.getBoundingClientRect(); W = r.width; H = r.height; dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = W * dpr; canvas.height = H * dpr; }
+size(); addEventListener("resize", size);
+const P = { x: 0, y: 0, z: 0, s: 1 };
+function proj(x, y, z) {
+  const x1 = x * cy - z * sy, z1 = x * sy + z * cy, y2 = y * cx - z1 * sx, z2 = y * sx + z1 * cx, s = 3.4 / (3.4 + z2);
+  P.x = W / 2 + x1 * R * s; P.y = H / 2 + y2 * R * s; P.z = z2; P.s = s; return P;
+}
+const depthAlpha = z => 0.35 + 0.65 * Math.min(1, Math.max(0, (1.2 - z) / 2.4));
+function polyline(pts, from = 0, to = pts.length / 3 - 1) {
+  ctx.beginPath();
+  for (let k = from; k <= to; k++) { proj(pts[k * 3], pts[k * 3 + 1], pts[k * 3 + 2]); k === from ? ctx.moveTo(P.x, P.y) : ctx.lineTo(P.x, P.y); }
+  ctx.stroke();
+}
+function pointAt(path, t) {
+  const f = Math.max(0, Math.min(1, t)) * SEG, k = Math.min(SEG - 1, Math.floor(f)), r = f - k, i = k * 3;
+  return proj(path[i] + (path[i + 3] - path[i]) * r, path[i + 1] + (path[i + 4] - path[i + 1]) * r, path[i + 2] + (path[i + 5] - path[i + 2]) * r);
+}
+
+// ---------- firing: slow impulses, a few at a time ----------
+const pulses = [];
+function fire(node, strength = 1, from = null, fan = 3) {
+  node.flash = Math.min(1, node.flash + strength);
+  const out = neighbors.get(node.id).filter(l => (showFw || !l.kind) && (l.source === from || l.target === from) === false);
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  for (const l of out.slice(0, fan)) {
+    if (pulses.length > 36) break;
+    pulses.push({ l, forward: l.source === node, to: l.source === node ? l.target : l.source, from: node, t: 0, dur: 2600 + Math.random() * 1600, strength });
+  }
+}
+let lastSpark = 0, last = 0;
+function spark(now) {
+  if (!firing || now - lastSpark < 1700) return;
+  lastSpark = now;
+  let pick = Math.random() * files.reduce((s, n) => s + n.deg, 0);
+  for (const n of files) { pick -= n.deg; if (pick <= 0) { fire(n, 0.9); break; } }
+}
+
+// ---------- draw ----------
+const matches = n => query && n.name.toLowerCase().includes(query);
+function draw(now) {
+  const dt = Math.min(50, now - (last || now)); last = now;
+  if (spin && !dragging) rotY += dt * 0.00005;
+  cy = Math.cos(rotY); sy = Math.sin(rotY); cx = Math.cos(rotX); sx = Math.sin(rotX); R = Math.min(W, H) * 0.4 * zoom;
+  spark(now);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const focus = hover ? new Set([hover.id, ...neighbors.get(hover.id).map(l => (l.source === hover ? l.target : l.source).id)]) : null;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+  // holo frame: faint core and orbit rings
+  ctx.globalCompositeOperation = "lighter";
+  const c0 = proj(0, 0, 0), beat = 0.85 + 0.15 * Math.sin(now / 1400), cr = R * 0.32 * beat;
+  ctx.globalAlpha = 0.28; ctx.drawImage(hotGlow, c0.x - cr / 2, c0.y - cr / 2, cr, cr);
+  for (const [r, tilt, col] of [[1.12, 0.25, "255,154,60"], [1.16, 1.25, "255,154,60"], [1.22, -0.7, "111,227,255"]]) {
+    ctx.globalAlpha = 1; ctx.strokeStyle = `rgba(${col},0.10)`; ctx.lineWidth = 1; ctx.beginPath();
+    for (let k = 0; k <= 96; k++) { const a = k / 96 * Math.PI * 2; proj(Math.cos(a) * r, Math.sin(a) * r * Math.sin(tilt), Math.sin(a) * r * Math.cos(tilt)); k ? ctx.lineTo(P.x, P.y) : ctx.moveTo(P.x, P.y); }
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  // dendrites
+  ctx.lineWidth = 0.7;
+  for (const d of dendrites) {
+    const dim = focus && !focus.has(d.n.id);
+    proj(d.pts[0], d.pts[1], d.pts[2]);
+    ctx.strokeStyle = `rgba(${d.n.rgb},${(dim ? 0.06 : 0.42) * depthAlpha(P.z) * (d.depth ? 0.75 : 1)})`;
+    polyline(d.pts);
+  }
+  // fibres between files (and out to frameworks when shown)
+  const drawFibre = (l, lit) => {
+    const mid = SEG / 2 * 3; proj(l.path[mid], l.path[mid + 1], l.path[mid + 2]);
+    const a = depthAlpha(P.z);
+    if (lit) { ctx.strokeStyle = `rgba(255,243,214,${0.9 * a})`; ctx.lineWidth = 1.4; }
+    else { ctx.strokeStyle = `rgba(${l.source.rgb},${(focus ? 0.05 : (l.kind ? 0.10 : 0.16 + Math.min(0.3, l.weight * 0.03))) * a})`; ctx.lineWidth = l.kind ? 0.6 : 0.8 + Math.min(1, Math.sqrt(l.weight) * 0.2); }
+    polyline(l.path);
+    if (!l.kind) {  // beads along the fibre
+      ctx.fillStyle = lit ? `rgba(255,243,214,${a})` : `rgba(${l.target.rgb},${(focus ? 0.08 : 0.5) * a})`;
+      for (let k = 4; k < SEG; k += 5) { const i = k * 3; proj(l.path[i], l.path[i + 1], l.path[i + 2]); const b = 1.3 * P.s; ctx.fillRect(P.x - b / 2, P.y - b / 2, b, b); }
+    }
+  };
+  if (showFw) for (const l of fwLinkList) { const lit = hover && (l.source === hover || l.target === hover); if (!focus || lit) drawFibre(l, lit); }
+  for (const l of fileLinkList) drawFibre(l, hover && (l.source === hover || l.target === hover));
+
+  // cell bodies, back to front
+  const shown = DATA.nodes.filter(n => showFw || n.area !== "Framework");
+  for (const n of shown) { proj(n.p[0], n.p[1], n.p[2]); n.sx = P.x; n.sy = P.y; n.sz = P.z; n.ss = P.s; }
+  shown.sort((a, b) => b.sz - a.sz);
+  for (const n of shown) {
+    const dim = focus && !focus.has(n.id), a = depthAlpha(n.sz) * (dim ? 0.2 : 1), r = n.r * n.ss * zoom * (1 + n.flash * 0.5);
+    ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = a * (0.45 + n.flash * 0.55);
+    const g = r * 6; ctx.drawImage(n.flash > 0.2 ? hotGlow : glow[n.area], n.sx - g / 2, n.sy - g / 2, g, g);
+    ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = a;
+    ctx.fillStyle = n.flash > 0.2 ? HOT : `rgb(${n.rgb})`; ctx.beginPath(); ctx.arc(n.sx, n.sy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.beginPath(); ctx.arc(n.sx - r * 0.3, n.sy - r * 0.3, r * 0.38, 0, Math.PI * 2); ctx.fill();
+    n.flash *= Math.pow(0.5, dt / 450);
+  }
+  ctx.globalAlpha = 1;
+
+  // impulses: a bright head with a short fading tail
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = pulses.length - 1; i >= 0; i--) {
+    const p = pulses[i]; p.t += reduceMotion ? 1 : dt / p.dur;
+    for (let k = 4; k >= 0; k--) {
+      const tt = p.t - k * 0.025; if (tt < 0) continue;
+      pointAt(p.l.path, p.forward ? tt : 1 - tt);
+      const s = (k ? 5 : 11) * Math.sqrt(p.strength) * P.s * zoom;
+      ctx.globalAlpha = (1 - k / 5) * (0.5 + 0.5 * p.strength);
+      ctx.drawImage(hotGlow, P.x - s / 2, P.y - s / 2, s, s);
+    }
+    if (p.t >= 1) {
+      pulses.splice(i, 1);
+      p.to.flash = Math.max(p.to.flash, 0.8 * p.strength);
+      if (p.strength > 0.35 && p.to.area !== "Framework" && Math.random() < 0.35) fire(p.to, p.strength * 0.6, p.from, 2);
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+
+  // labels: top hubs by default; the hovered neuron and its partners on hover
+  ctx.textAlign = "center"; ctx.font = `11px "IBM Plex Mono", Menlo, monospace`;
+  for (const n of shown) {
+    const on = n === hover || matches(n) || (focus ? focus.has(n.id) && (n.deg > 25 || n.area === "Framework" || focus.size < 14) : labelled.has(n.id));
+    if (!on) continue;
+    const r = n.r * n.ss * zoom;
+    ctx.fillStyle = n === hover || matches(n) ? HOT : `rgba(223,244,255,${0.85 * depthAlpha(n.sz)})`;
+    ctx.fillText(n.name.replace(/\.swift$/, ""), n.sx, n.sy - r - 8);
+    if (matches(n)) { ctx.strokeStyle = HOT; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(n.sx, n.sy, r + 5, 0, Math.PI * 2); ctx.stroke(); }
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---------- interaction ----------
+const tip = document.getElementById("tip");
+let dragStart = null, moved = false;
+function nodeAt(px, py) {
+  let best = null, bestD = Infinity;
+  for (const n of DATA.nodes) {
+    if ((!showFw && n.area === "Framework") || n.sx === undefined) continue;
+    const d = Math.hypot(n.sx - px, n.sy - py) + (n.sz > 0 ? 1.5 : 0);
+    if (d < Math.max(9, n.r * n.ss * zoom * 2) && d < bestD) { best = n; bestD = d; }
+  }
+  return best;
+}
+function showTip(n, px, py) {
+  if (!n) { tip.hidden = true; return; }
+  const links = neighbors.get(n.id).filter(l => !l.kind), fw = neighbors.get(n.id).filter(l => l.kind).length;
+  tip.innerHTML = n.area === "Framework"
+    ? `<div class="name">${n.name}</div><div class="path">Apple framework</div><dl><dt>Imported by</dt><dd>${n.users} files</dd></dl>`
+    : `<div class="name">${n.name}</div><div class="path">${n.id}</div><dl>
+       <dt>Lobe</dt><dd>${AREAS[n.area]?.label || n.area}</dd><dt>Lines</dt><dd>${fmt(n.loc)}</dd>
+       <dt>Symbols</dt><dd>${n.symbols}</dd><dt>Connected files</dt><dd>${links.length}</dd>
+       <dt>Link strength</dt><dd>${n.deg}</dd><dt>Frameworks</dt><dd>${fw}</dd></dl>`;
+  tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(stage.clientWidth - tw - 8, px + 14)) + "px";
+  tip.style.top = Math.max(8, Math.min(stage.clientHeight - th - 8, py + 14)) + "px";
+}
+const local = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+canvas.addEventListener("pointerdown", e => { dragging = true; moved = false; dragStart = [e.clientX, e.clientY, rotY, rotX]; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", e => {
+  const [px, py] = local(e);
+  if (dragging && dragStart) {
+    const dx = e.clientX - dragStart[0], dy = e.clientY - dragStart[1];
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    rotY = dragStart[2] + dx * 0.007; rotX = Math.max(-1.3, Math.min(1.3, dragStart[3] + dy * 0.007));
+    tip.hidden = true; return;
+  }
+  hover = nodeAt(px, py); showTip(hover, px, py);
+});
+canvas.addEventListener("pointerup", e => {
+  dragging = false;
+  if (!moved) { const [px, py] = local(e); const n = nodeAt(px, py); if (n) fire(n, 1, null, 8); }
+});
+canvas.addEventListener("pointerleave", () => { hover = null; tip.hidden = true; });
+canvas.addEventListener("wheel", e => { e.preventDefault(); zoom = Math.max(0.6, Math.min(3.5, zoom * Math.exp(-e.deltaY * 0.0012))); }, { passive: false });
+let pinch = null;
+canvas.addEventListener("touchmove", e => {
+  if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    if (pinch) zoom = Math.max(0.6, Math.min(3.5, zoom * d / pinch)); pinch = d;
+  }
+}, { passive: true });
+canvas.addEventListener("touchend", () => { pinch = null; });
+function toggle(id, get, set, on, off) {
+  const b = document.getElementById(id), sync = () => { b.setAttribute("aria-pressed", String(get())); b.textContent = get() ? on : off; };
+  sync(); b.addEventListener("click", () => { set(!get()); sync(); });
+}
+toggle("toggle-fire", () => firing, v => firing = v, "Firing on", "Firing off");
+toggle("toggle-spin", () => spin, v => spin = v, "Rotation on", "Rotation off");
+toggle("toggle-fw", () => showFw, v => showFw = v, "Frameworks shown", "Frameworks hidden");
+document.getElementById("find").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); });
+</script>
