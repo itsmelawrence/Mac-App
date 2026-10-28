@@ -56,6 +56,7 @@
 		ADE3CFD2758AD27176B63D18 /* NewsAPIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */; };
 		B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DF1F9E077E514D300D8146 /* TodayView.swift */; };
 		B926C297CAE8CCFF614BC0D2 /* MonitoringSiteCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */; };
+		BA6E6D8E49D07048A52A7B15 /* VaultMaintenanceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502CF415AA5F7F5A9D0D8160 /* VaultMaintenanceServiceTests.swift */; };
 		BA9C638FBCE1407B654522E9 /* GraphifyHTMLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B5D0D6E57EAD013994D12D /* GraphifyHTMLView.swift */; };
 		BC3077CAC13F9B15FC0B352C /* GraphifyViewer in Resources */ = {isa = PBXBuildFile; fileRef = BF590F901D7F4447A3F3DDDA /* GraphifyViewer */; };
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
@@ -68,6 +69,7 @@
 		D8DBCAA1E7DB74F432DD485A /* NewsAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */; };
 		DBA2EB3D421963F5B225E7EC /* NewsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */; };
 		DDAE33EEC8D1C276092B865E /* IntelligenceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */; };
+		DDB7D5C22CC99A8419E8424A /* VaultMaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5CE0FDBA8DE9E552D78301 /* VaultMaintenanceService.swift */; };
 		E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */; };
 		E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */; };
 		E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */; };
@@ -113,6 +115,8 @@
 		463546401670CFBB95386BFC /* SpeechServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechServiceTests.swift; sourceTree = "<group>"; };
 		498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryService.swift; sourceTree = "<group>"; };
 		49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapTilerWeatherBasemap.swift; sourceTree = "<group>"; };
+		4B5CE0FDBA8DE9E552D78301 /* VaultMaintenanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultMaintenanceService.swift; sourceTree = "<group>"; };
+		502CF415AA5F7F5A9D0D8160 /* VaultMaintenanceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultMaintenanceServiceTests.swift; sourceTree = "<group>"; };
 		5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastService.swift; sourceTree = "<group>"; };
 		54F58FE3B6B29601D526900C /* JarvisBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupService.swift; sourceTree = "<group>"; };
 		5F41B209EF204B77186B9DFC /* MotivationalQuoteServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteServiceTests.swift; sourceTree = "<group>"; };
@@ -239,6 +243,7 @@
 				10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */,
 				463546401670CFBB95386BFC /* SpeechServiceTests.swift */,
 				3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */,
+				502CF415AA5F7F5A9D0D8160 /* VaultMaintenanceServiceTests.swift */,
 				F52E7EC04FF96A1A6A102393 /* WeatherBeaconModelTests.swift */,
 				E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */,
 				73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */,
@@ -310,6 +315,7 @@
 				5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */,
 				A962457DF4DD94ED621844A8 /* SpeechService.swift */,
 				D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */,
+				4B5CE0FDBA8DE9E552D78301 /* VaultMaintenanceService.swift */,
 				9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */,
 				80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */,
 				9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */,
@@ -439,6 +445,7 @@
 				302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */,
 				1B654DCF44418E45064FC3C9 /* SpeechServiceTests.swift in Sources */,
 				21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */,
+				BA6E6D8E49D07048A52A7B15 /* VaultMaintenanceServiceTests.swift in Sources */,
 				04F44315BC6B217B17D49E29 /* WeatherBeaconModelTests.swift in Sources */,
 				E3738D08057098463AF945BD /* WeatherLabelPlacementTests.swift in Sources */,
 				526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */,
@@ -492,6 +499,7 @@
 				A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */,
 				A9ADE8ED59F0E10599D961EF /* TasksView.swift in Sources */,
 				B200A2561CDD701ED1928C48 /* TodayView.swift in Sources */,
+				DDB7D5C22CC99A8419E8424A /* VaultMaintenanceService.swift in Sources */,
 				F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */,
 				4BCD012D6BC045A651C3C090 /* WeatherBeaconModel.swift in Sources */,
 				081F09DFF5C26EF416BD2EE9 /* WeatherFocusDashboardView.swift in Sources */,
@@ -546,7 +554,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -567,7 +575,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.23;
+				MARKETING_VERSION = 0.2.24;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -684,7 +692,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -699,7 +707,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.23;
+				MARKETING_VERSION = 0.2.24;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

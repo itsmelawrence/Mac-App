@@ -18,6 +18,8 @@ struct JarvisDashboardApp: App {
         } catch {
             fatalError("Unable to create the JARVIS data store: \(error.localizedDescription)")
         }
+        // App lifetime, not a view: the menu-bar app keeps running with its window closed.
+        Task { await VaultMaintenanceService.runWhileAppIsOpen() }
     }
 
     var body: some Scene {
