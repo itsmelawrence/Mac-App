@@ -12,6 +12,7 @@ struct ConnectionsView: View {
     @State private var isSearching = false
     @State private var errorMessage: String?
     @State private var routeIssues: [String] = []
+    @State private var health: VaultHealth?
 
     private var vaultURL: URL { ICMRoutingService.vaultURL(configuredPath: vaultPath) }
     private var project: ConnectionProject? { projects.first { $0.id == selectedProjectID } }
@@ -119,6 +120,7 @@ struct ConnectionsView: View {
                 }
                 .padding(16)
                 .background(Color.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
+                if let health { healthCard(health) }
                 if !routeIssues.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("ICM routes need attention", systemImage: "exclamationmark.triangle.fill")
@@ -234,11 +236,43 @@ struct ConnectionsView: View {
         }
     }
 
+    private func healthCard(_ health: VaultHealth) -> some View {
+        let isStale = Date.now.timeIntervalSince(health.checkedAt) > 86_400
+        let tint: Color = health.errors > 0 ? .red : health.warnings > 0 || isStale ? .orange : .green
+        let title = health.errors > 0 ? "Vault needs attention"
+            : health.warnings > 0 ? "Vault health: warnings" : "Vault healthy"
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label(title, systemImage: health.errors > 0 ? "xmark.octagon.fill"
+                      : health.warnings > 0 ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                    .font(.headline).foregroundStyle(tint)
+                Spacer()
+                Button("Open report") {
+                    NSWorkspace.shared.open(vaultURL.appendingPathComponent(VaultHealth.reportPath))
+                }
+            }
+            Text("\(health.errors) errors · \(health.warnings) warnings · checked \(health.checkedAt.formatted(.relative(presentation: .named)))")
+                .font(.caption).foregroundStyle(.secondary)
+            ForEach(health.issues.filter { $0.level != "info" }.prefix(3), id: \.self) { issue in
+                Text("\(issue.check): \(issue.message)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            if isStale {
+                Text("This report is over a day old. Check that the vault-maintenance job is running.")
+                    .font(.caption2).foregroundStyle(.orange)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
+    }
+
     private func reload() {
         do {
             let workspace = try ConnectionsService.workspace(in: vaultURL)
             projects = workspace.projects
             routeIssues = workspace.routeIssues
+            health = ConnectionsService.health(in: vaultURL)
+            ConnectionsService.recordScan(workspace.projects, in: vaultURL)
             if !projects.contains(where: { $0.id == selectedProjectID }) { selectedProjectID = nil }
             selectedFile = nil
             searchResults = []
@@ -247,6 +281,7 @@ struct ConnectionsView: View {
         } catch {
             projects = []
             routeIssues = []
+            health = nil
             errorMessage = error.localizedDescription
         }
     }

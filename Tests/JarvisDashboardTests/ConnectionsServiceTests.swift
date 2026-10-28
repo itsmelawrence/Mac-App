@@ -90,6 +90,61 @@ struct ConnectionsServiceTests {
         #expect(workspace.projects.contains { !$0.isRegistered && $0.route.projectPath == "Personal/Apps/Site" })
     }
 
+    @Test func discoveryFollowsSharedRulesFileAndFallsBackToDefaults() throws {
+        let vault = try fixture()
+        defer { try? FileManager.default.removeItem(at: vault) }
+        for (path, contents) in ["Work/Pixeld/New Site/index.html": "<!doctype html>", "Personal/Ideas/PLAN.md": "# Plan"] {
+            let url = vault.appendingPathComponent(path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try contents.write(to: url, atomically: true, encoding: .utf8)
+        }
+        let rulesURL = vault.appendingPathComponent("ICM/discovery.json")
+        try #"{"version": 1, "roots": ["Personal"], "markers": ["PLAN.md"], "excludedDirectories": [], "maxDepth": 6}"#
+            .write(to: rulesURL, atomically: true, encoding: .utf8)
+        var discovered = try ConnectionsService.projects(in: vault).filter { !$0.isRegistered }.map(\.route.projectPath)
+        #expect(discovered == ["Personal/Ideas"])
+
+        try "{broken".write(to: rulesURL, atomically: true, encoding: .utf8)
+        #expect(ConnectionsService.discoveryRules(in: vault) == .defaults)
+        discovered = try ConnectionsService.projects(in: vault).filter { !$0.isRegistered }.map(\.route.projectPath)
+        #expect(discovered == ["Work/Pixeld/New Site"])
+    }
+
+    @Test func scanRecordIsRewrittenOnlyWhenProjectsChange() throws {
+        let vault = try fixture()
+        defer { try? FileManager.default.removeItem(at: vault) }
+        let url = vault.appendingPathComponent("ICM/cortex-projects.json")
+        let projects = try ConnectionsService.projects(in: vault)
+        ConnectionsService.recordScan(projects, in: vault)
+        let written = try String(contentsOf: url, encoding: .utf8)
+        #expect(written.contains("\"Personal\\/Mac App\"") || written.contains("\"Personal/Mac App\""))
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 0)], ofItemAtPath: url.path)
+        ConnectionsService.recordScan(projects, in: vault)
+        let date = try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+        #expect(date == Date(timeIntervalSince1970: 0))
+    }
+
+    @Test func vaultHealthReadsDoctorReportAndToleratesItsAbsence() throws {
+        let vault = try fixture()
+        defer { try? FileManager.default.removeItem(at: vault) }
+        #expect(ConnectionsService.health(in: vault) == nil)
+
+        let report = """
+        {"version": 1, "checkedAt": "2026-10-28T18:26:13+08:00", "errors": 1, "warnings": 2,
+         "stats": {"projects": 47},
+         "issues": [{"level": "error", "check": "routes", "message": "JARVIS: project folder missing", "path": "Personal/Old"}]}
+        """
+        let url = vault.appendingPathComponent("ICM/health.json")
+        try report.write(to: url, atomically: true, encoding: .utf8)
+        let health = try #require(ConnectionsService.health(in: vault))
+        #expect(health.errors == 1 && health.warnings == 2)
+        #expect(health.issues.first?.path == "Personal/Old")
+        #expect(health.checkedAt == ISO8601DateFormatter().date(from: "2026-10-28T10:26:13Z"))
+
+        try "{not json".write(to: url, atomically: true, encoding: .utf8)
+        #expect(ConnectionsService.health(in: vault) == nil)
+    }
+
     private func fixture() throws -> URL {
         let vault = FileManager.default.temporaryDirectory.appendingPathComponent("jarvis-connections-\(UUID().uuidString)")
         let files: [String: String] = [

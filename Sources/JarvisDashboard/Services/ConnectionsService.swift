@@ -21,6 +21,23 @@ struct ConnectionsWorkspace {
     let routeIssues: [String]
 }
 
+/// The report written by the vault's `.tools/vault_doctor.py` to `ICM/health.json`.
+struct VaultHealth: Decodable {
+    struct Issue: Decodable, Hashable {
+        let level: String
+        let check: String
+        let message: String
+        let path: String
+    }
+
+    let checkedAt: Date
+    let errors: Int
+    let warnings: Int
+    let issues: [Issue]
+
+    static let reportPath = "Notes/Resources/Vault health.md"
+}
+
 struct ConnectionFile: Identifiable, Hashable {
     let url: URL
     let relativePath: String
@@ -45,14 +62,46 @@ enum ConnectionsService {
         ".git", ".build", ".next", ".cache", ".obsidian", "node_modules",
         "vendor", "dist", "build", "coverage", "DerivedData", "__pycache__"
     ]
-    private static let projectMarkers: Set<String> = [
-        ".git", "Package.swift", "package.json", "composer.json", "Cargo.toml",
-        "go.mod", "pyproject.toml", "Gemfile", "artisan", "project.yml", "PROJECT.md",
-        "wp-config.php", "public_html", "index.php", "index.html"
-    ]
-    private static let discoveryExcludedDirectories = excludedDirectories.union([
-        ".vscode", "Media", "JPC Assets", "output", "tmp", "uploads"
-    ])
+    /// Discovery rules shared with the vault's `.tools/project_hubs.py` through `ICM/discovery.json`.
+    struct DiscoveryRules: Decodable, Equatable {
+        let version: Int
+        let roots: [String]
+        let markers: Set<String>
+        let excludedDirectories: Set<String>
+        let maxDepth: Int
+
+        static let defaults = DiscoveryRules(
+            version: 1, roots: ["Work", "Personal"],
+            markers: [
+                ".git", "Package.swift", "package.json", "composer.json", "Cargo.toml",
+                "go.mod", "pyproject.toml", "Gemfile", "artisan", "project.yml", "PROJECT.md",
+                "wp-config.php", "public_html", "index.php", "index.html"
+            ],
+            excludedDirectories: ConnectionsService.excludedDirectories.union([
+                ".vscode", "Media", "JPC Assets", "output", "tmp", "uploads"
+            ]),
+            maxDepth: 6
+        )
+    }
+
+    /// Falls back to the built-in rules when the file is missing, malformed, or a newer version.
+    static func discoveryRules(in vaultURL: URL) -> DiscoveryRules {
+        guard let data = try? Data(contentsOf: vaultURL.appendingPathComponent("ICM/discovery.json")),
+              let rules = try? JSONDecoder().decode(DiscoveryRules.self, from: data),
+              rules.version == 1, !rules.markers.isEmpty, rules.maxDepth > 0 else { return .defaults }
+        return rules
+    }
+
+    /// Records the scan for the vault doctor's parity check; writes only when the list changes.
+    static func recordScan(_ projects: [ConnectionProject], in vaultURL: URL) {
+        struct Scan: Codable, Equatable { let version: Int; let paths: [String] }
+        let url = vaultURL.appendingPathComponent("ICM/cortex-projects.json")
+        let scan = Scan(version: 1, paths: projects.map(\.route.projectPath).sorted())
+        if let data = try? Data(contentsOf: url), (try? JSONDecoder().decode(Scan.self, from: data)) == scan { return }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try? encoder.encode(scan).write(to: url, options: .atomic)
+    }
 
     static func projects(in vaultURL: URL) throws -> [ConnectionProject] {
         try workspace(in: vaultURL).projects
@@ -91,11 +140,20 @@ enum ConnectionsService {
         return ConnectionsWorkspace(projects: projects, routeIssues: routeIssues)
     }
 
+    /// Missing or unreadable reports return nil; the doctor is optional.
+    static func health(in vaultURL: URL) -> VaultHealth? {
+        guard let data = try? Data(contentsOf: vaultURL.appendingPathComponent("ICM/health.json")) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(VaultHealth.self, from: data)
+    }
+
     private static func discoveredProjects(in vaultURL: URL, excluding registeredPaths: Set<String>) -> [ConnectionProject] {
         let manager = FileManager.default
         let keys: Set<URLResourceKey> = [.isDirectoryKey, .isSymbolicLinkKey]
         let vaultPath = canonicalPath(vaultURL)
-        var pending = ["Work", "Personal"].map { vaultURL.appendingPathComponent($0, isDirectory: true) }
+        let rules = discoveryRules(in: vaultURL)
+        var pending = rules.roots.compactMap { try? containedURL($0, under: vaultURL) }
         var candidates: [(path: String, hasGit: Bool)] = []
 
         while let directory = pending.popLast() {
@@ -105,14 +163,14 @@ enum ConnectionsService {
                   ) else { continue }
             let names = Set(entries.map(\.lastPathComponent))
             let relativePath = String(canonicalPath(directory).dropFirst(vaultPath.count + 1))
-            if !names.isDisjoint(with: projectMarkers) {
+            if !names.isDisjoint(with: rules.markers) {
                 candidates.append((relativePath, names.contains(".git")))
             }
             let depth = relativePath.split(separator: "/").count
-            guard depth < 6 else { continue }
+            guard depth < rules.maxDepth else { continue }
             for entry in entries {
                 guard !entry.lastPathComponent.hasPrefix("."),
-                      !discoveryExcludedDirectories.contains(entry.lastPathComponent),
+                      !rules.excludedDirectories.contains(entry.lastPathComponent),
                       let values = try? entry.resourceValues(forKeys: keys),
                       values.isDirectory == true, values.isSymbolicLink != true,
                       isContained(entry, under: vaultURL) else { continue }
