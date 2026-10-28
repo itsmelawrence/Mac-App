@@ -579,9 +579,8 @@ struct MonitoringAPIService: Sendable {
     }
 
     private func mapSite(_ site: SitePayload) throws -> MonitoringSite {
-        guard let platform = MonitoringPlatform(rawValue: site.platform) else {
-            throw MonitoringAPIError.invalidResponse
-        }
+        // A platform added on the backend later must not make every site disappear.
+        let platform = MonitoringPlatform(rawValue: site.platform) ?? .custom
         let snapshot = site.latestSnapshot.map { payload in
             MonitoringSnapshot(
                 checkedAt: Self.date(from: payload.checkedAt),

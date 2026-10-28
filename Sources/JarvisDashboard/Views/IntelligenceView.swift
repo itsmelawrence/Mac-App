@@ -49,6 +49,7 @@ struct IntelligenceView: View {
     @State private var repositorySnapshots: [UUID: RepositorySnapshot] = [:]
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var newsAPIMessage: String?
     @State private var showingLocationPicker = false
     @State private var lastRefreshedAt: Date?
     @State private var isNewsAPIEnhancementRunning = false
@@ -169,6 +170,11 @@ struct IntelligenceView: View {
 
                 if let errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 2)
+                }
+                if let newsAPIMessage {
+                    Label("NewsAPI: \(newsAPIMessage) Showing feed headlines instead.", systemImage: "newspaper")
                         .foregroundStyle(.orange)
                         .padding(.horizontal, 2)
                 }
@@ -749,13 +755,20 @@ struct IntelligenceView: View {
         }
     }
 
+    /// One failed location no longer discards the others; it throws only when every location fails.
     private func fetchWeather(for locations: [SavedLocationValue]) async throws -> [String: WeatherSnapshot] {
-        try await withThrowingTaskGroup(of: WeatherSnapshot.self) { group in
-            for location in locations { group.addTask { try await weatherService.currentWeather(for: location) } }
-            var output: [String: WeatherSnapshot] = [:]
-            for try await snapshot in group { output[snapshot.locationName] = snapshot }
-            return output
+        let results = await withTaskGroup(of: Result<WeatherSnapshot, Error>.self) { group in
+            for location in locations {
+                group.addTask { await capture { try await weatherService.currentWeather(for: location) } }
+            }
+            var collected: [Result<WeatherSnapshot, Error>] = []
+            for await result in group { collected.append(result) }
+            return collected
         }
+        var output: [String: WeatherSnapshot] = [:]
+        for case let .success(snapshot) in results { output[snapshot.locationName] = snapshot }
+        if output.isEmpty, case let .failure(error)? = results.first { throw error }
+        return output
     }
 
     private func fetchNews(category: NewsSource.Category) async throws -> [NewsArticle] {
@@ -776,11 +789,16 @@ struct IntelligenceView: View {
                 return
             }
 
-            async let philippines = try? newsAPIService.articles(category: .philippines, apiKey: apiKey)
-            async let world = try? newsAPIService.articles(category: .world, apiKey: apiKey)
+            // Results instead of try?, so a bad key or used-up quota is shown rather than silently ignored.
+            async let philippines = capture { try await newsAPIService.articles(category: .philippines, apiKey: apiKey) }
+            async let world = capture { try await newsAPIService.articles(category: .world, apiKey: apiKey) }
             let results = await (philippines, world)
-            if let articles = results.0, !articles.isEmpty { newsByCategory[.philippines] = articles }
-            if let articles = results.1, !articles.isEmpty { newsByCategory[.world] = articles }
+            if case let .success(articles) = results.0, !articles.isEmpty { newsByCategory[.philippines] = articles }
+            if case let .success(articles) = results.1, !articles.isEmpty { newsByCategory[.world] = articles }
+            newsAPIMessage = [results.0, results.1].compactMap { result -> String? in
+                if case let .failure(error) = result { return error.localizedDescription }
+                return nil
+            }.first
             isNewsAPIEnhancementRunning = false
         }
     }
@@ -1136,4 +1154,9 @@ private struct AddLocationView: View {
             }
         }
     }
+}
+
+/// Runs an async throwing operation and keeps its error, unlike `try?`.
+private func capture<T>(_ operation: () async throws -> T) async -> Result<T, Error> {
+    do { return .success(try await operation()) } catch { return .failure(error) }
 }

@@ -63,7 +63,7 @@ struct OpenMeteoWeatherService: WeatherProviding {
         }
 
         struct Hourly: Decodable {
-            let precipitationProbability: [Int]
+            let precipitationProbability: [Int?]  // Open-Meteo sends null for missing hours.
 
             enum CodingKeys: String, CodingKey {
                 case precipitationProbability = "precipitation_probability"
@@ -88,15 +88,17 @@ struct OpenMeteoWeatherService: WeatherProviding {
             throw URLError(.badServerResponse)
         }
 
-        let decoder = JSONDecoder()
-        let payload = try decoder.decode(Response.self, from: data)
+        return try Self.snapshot(from: data, locationName: location.name)
+    }
 
+    static func snapshot(from data: Data, locationName: String) throws -> WeatherSnapshot {
+        let payload = try JSONDecoder().decode(Response.self, from: data)
         return WeatherSnapshot(
-            locationName: location.name,
+            locationName: locationName,
             temperature: payload.current.temperature2m,
             apparentTemperature: payload.current.apparentTemperature,
             weatherCode: payload.current.weatherCode,
-            precipitationProbability: payload.hourly.precipitationProbability.first ?? 0
+            precipitationProbability: payload.hourly.precipitationProbability.first.flatMap { $0 } ?? 0
         )
     }
 }

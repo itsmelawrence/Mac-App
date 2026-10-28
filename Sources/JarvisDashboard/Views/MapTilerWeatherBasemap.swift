@@ -54,6 +54,12 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
             context.coordinator.lastCloudRefreshCounter = cloudRefreshCounter
             webView.evaluateJavaScript("window.jarvisRefreshClouds && window.jarvisRefreshClouds()", completionHandler: nil)
         }
+        // Forecast points often arrive after the page has loaded; push changes once the map has started.
+        if context.coordinator.didStartMap, let encoded = Coordinator.jsonData(points),
+           encoded != context.coordinator.lastSentPoints {
+            context.coordinator.lastSentPoints = encoded
+            webView.evaluateJavaScript("window.jarvisSetPoints && window.jarvisSetPoints(\(encoded))", completionHandler: nil)
+        }
     }
 
     static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
@@ -67,6 +73,8 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
         var lastResetCounter = 0
         var lastCloudRefreshCounter = 0
         var lastStyle: MapTilerBasemapStyle = .landscape
+        var didStartMap = false
+        var lastSentPoints: String?
 
         init(_ parent: MapTilerWeatherBasemap) { self.parent = parent }
 
@@ -76,6 +84,8 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
                 parent.onStatus("Could not prepare the MapTiler preview.")
                 return
             }
+            didStartMap = true
+            lastSentPoints = encodedPoints
             webView.evaluateJavaScript("window.jarvisStartMap(\(encodedKey), \(encodedPoints), '\(parent.style.rawValue)')") { [weak self] _, error in
                 if error != nil { self?.parent.onStatus("The MapTiler preview could not start.") }
             }
@@ -108,7 +118,7 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
 
         private static func jsonString(_ value: String) -> String? { jsonData(value) }
 
-        private static func jsonData<T: Encodable>(_ value: T) -> String? {
+        fileprivate static func jsonData<T: Encodable>(_ value: T) -> String? {
             guard let data = try? JSONEncoder().encode(value) else { return nil }
             return String(data: data, encoding: .utf8)
         }
@@ -169,6 +179,10 @@ struct MapTilerWeatherBasemap: NSViewRepresentable {
       if (jarvisMap.getLayer(cloudLayerID)) jarvisMap.removeLayer(cloudLayerID);
       if (jarvisMap.getSource(cloudSourceID)) jarvisMap.removeSource(cloudSourceID);
       addCloudLayer();
+    };
+    window.jarvisSetPoints = (points) => {
+      jarvisPoints = points;
+      if (jarvisMap) reportPositions();
     };
     window.jarvisStartMap = (key, points, style) => {
       if (typeof maptilersdk === 'undefined') { report('error'); return; }

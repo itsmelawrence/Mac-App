@@ -44,11 +44,7 @@ protocol NewsProviding: Sendable {
 struct NewsAPIService: Sendable {
     func articles(category: NewsSource.Category, apiKey: String) async throws -> [NewsArticle] {
         var components = URLComponents(string: "https://newsapi.org/v2/top-headlines")!
-        var queryItems = [URLQueryItem(name: "pageSize", value: "20")]
-        if category == .philippines {
-            queryItems.append(URLQueryItem(name: "country", value: "ph"))
-        }
-        components.queryItems = queryItems
+        components.queryItems = Self.queryItems(for: category)
 
         guard let url = components.url else { throw URLError(.badURL) }
         var request = URLRequest(url: url)
@@ -57,47 +53,72 @@ struct NewsAPIService: Sendable {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               200..<300 ~= httpResponse.statusCode else {
-            throw URLError(.badServerResponse)
+            // NewsAPI explains failures (bad key, quota, missing parameter) in the body.
+            let failure = try? JSONDecoder().decode(NewsAPIFailure.self, from: data)
+            throw NewsAPIError(message: failure?.message ?? "NewsAPI returned an unexpected response.")
         }
         return try parse(data: data)
     }
 
+    /// top-headlines requires a country, category, source, or query; "World" previously sent none.
+    static func queryItems(for category: NewsSource.Category) -> [URLQueryItem] {
+        var items = [URLQueryItem(name: "pageSize", value: "20")]
+        if category == .philippines {
+            items.append(URLQueryItem(name: "country", value: "ph"))
+        } else {
+            items.append(URLQueryItem(name: "category", value: "general"))
+            items.append(URLQueryItem(name: "language", value: "en"))
+        }
+        return items
+    }
+
+    /// One malformed or removed article is skipped rather than failing the whole response.
     func parse(data: Data) throws -> [NewsArticle] {
-        let response = try JSONDecoder.newsAPI.decode(NewsAPIResponse.self, from: data)
+        let response = try JSONDecoder().decode(NewsAPIResponse.self, from: data)
         guard response.status == "ok" else { throw URLError(.cannotParseResponse) }
 
         return response.articles.compactMap { article in
-            guard let url = URL(string: article.url), !article.title.isEmpty else { return nil }
+            guard let title = article.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !title.isEmpty, title != "[Removed]",
+                  let url = article.url.flatMap(URL.init(string:)) else { return nil }
             return NewsArticle(
                 id: url.absoluteString,
-                title: article.title,
+                title: title,
                 link: url,
-                publishedAt: article.publishedAt,
-                sourceName: article.source.name
+                publishedAt: article.publishedAt.flatMap(Self.date(from:)),
+                sourceName: article.source?.name ?? "NewsAPI"
             )
         }
     }
+
+    static func date(from text: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        if let date = formatter.date(from: text) { return date }
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: text)
+    }
+}
+
+struct NewsAPIError: LocalizedError, Equatable {
+    let message: String
+    var errorDescription: String? { message }
+}
+
+private struct NewsAPIFailure: Decodable {
+    let message: String?
 }
 
 private struct NewsAPIResponse: Decodable {
     struct Article: Decodable {
-        struct Source: Decodable { let name: String }
-        let source: Source
-        let title: String
-        let url: String
-        let publishedAt: Date?
+        struct Source: Decodable { let name: String? }
+        let source: Source?
+        let title: String?
+        let url: String?
+        let publishedAt: String?
     }
 
     let status: String
     let articles: [Article]
-}
-
-private extension JSONDecoder {
-    static let newsAPI: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
 }
 
 struct RSSNewsService: NewsProviding {
@@ -169,14 +190,31 @@ struct RSSNewsService: NewsProviding {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Escapes bare `&` that would break the XML parser, outside CDATA only:
+    /// CDATA text is never entity-decoded, so escaping there showed "&amp;" in headlines.
     private func sanitisedXMLData(_ data: Data) -> Data {
         let xml = String(decoding: data, as: UTF8.self)
-        let repaired = xml.replacingOccurrences(
+        var repaired = ""
+        var rest = xml[...]
+        while let start = rest.range(of: "<![CDATA[") {
+            repaired += Self.escapeBareAmpersands(rest[..<start.lowerBound])
+            guard let end = rest.range(of: "]]>", range: start.upperBound..<rest.endIndex) else {
+                repaired += rest[start.lowerBound...]
+                return Data(repaired.utf8)
+            }
+            repaired += rest[start.lowerBound..<end.upperBound]
+            rest = rest[end.upperBound...]
+        }
+        repaired += Self.escapeBareAmpersands(rest)
+        return Data(repaired.utf8)
+    }
+
+    private static func escapeBareAmpersands(_ text: Substring) -> String {
+        String(text).replacingOccurrences(
             of: #"&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9A-Fa-f]+);)"#,
             with: "&amp;",
             options: .regularExpression
         )
-        return Data(repaired.utf8)
     }
 }
 
@@ -210,6 +248,12 @@ private final class RSSParserDelegate: NSObject, XMLParserDelegate {
             currentGUID = ""
             currentDate = ""
         }
+    }
+
+    // Many feeds wrap titles and links in <![CDATA[...]]>, which arrives here, not in foundCharacters.
+    func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+        guard let string = String(data: CDATABlock, encoding: .utf8) else { return }
+        self.parser(parser, foundCharacters: string)
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {

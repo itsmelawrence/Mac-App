@@ -13,6 +13,7 @@ struct ConnectionsView: View {
     @State private var errorMessage: String?
     @State private var routeIssues: [String] = []
     @State private var health: VaultHealth?
+    @State private var isReloading = false
 
     private var vaultURL: URL { ICMRoutingService.vaultURL(configuredPath: vaultPath) }
     private var project: ConnectionProject? { projects.first { $0.id == selectedProjectID } }
@@ -266,29 +267,46 @@ struct ConnectionsView: View {
         .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
     }
 
+    /// The vault walk, file reads and scan record run off the main thread; a large vault
+    /// previously froze the UI on appear and every 30 seconds.
     private func reload() {
-        do {
-            let workspace = try ConnectionsService.workspace(in: vaultURL)
-            projects = workspace.projects
-            routeIssues = workspace.routeIssues
-            health = ConnectionsService.health(in: vaultURL)
-            ConnectionsService.recordScan(workspace.projects, in: vaultURL)
-            if !projects.contains(where: { $0.id == selectedProjectID }) { selectedProjectID = nil }
-            selectedFile = nil
-            searchResults = []
-            isSearching = false
-            errorMessage = nil
-        } catch {
-            projects = []
-            routeIssues = []
-            health = nil
-            errorMessage = error.localizedDescription
+        guard !isReloading else { return }
+        isReloading = true
+        let vault = vaultURL
+        Task {
+            let (result, latestHealth) = await Task.detached(priority: .userInitiated) {
+                let result = Result { try ConnectionsService.workspace(in: vault) }
+                if case let .success(workspace) = result { ConnectionsService.recordScan(workspace.projects, in: vault) }
+                return (result, ConnectionsService.health(in: vault))
+            }.value
+            isReloading = false
+            switch result {
+            case let .success(workspace):
+                projects = workspace.projects
+                routeIssues = workspace.routeIssues
+                health = latestHealth
+                if !projects.contains(where: { $0.id == selectedProjectID }) { selectedProjectID = nil }
+                selectedFile = nil
+                searchResults = []
+                isSearching = false
+                errorMessage = nil
+            case let .failure(error):
+                projects = []
+                routeIssues = []
+                health = nil
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
     private func runSearch(in project: ConnectionProject) {
-        searchResults = ConnectionsService.search(query, in: project)
+        let query = query
         isSearching = true
+        Task {
+            searchResults = await Task.detached(priority: .userInitiated) {
+                ConnectionsService.search(query, in: project)
+            }.value
+        }
     }
 }
 

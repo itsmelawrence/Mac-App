@@ -1,6 +1,6 @@
 import Foundation
 
-struct ICMRoute: Codable, Equatable {
+struct ICMRoute: Codable, Equatable, Sendable {
     let id: String
     let name: String
     let aliases: [String]

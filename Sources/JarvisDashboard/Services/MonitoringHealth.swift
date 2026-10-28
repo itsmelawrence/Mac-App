@@ -80,16 +80,17 @@ struct MonitoringHealth: Equatable, Sendable {
             .compactMap { $0 }
             .max()
 
+        // Down outranks stale: a site that went down and then stopped reporting is still down.
+        if site.status == .down {
+            return MonitoringHealth(score: 0, state: .down, deductions: [
+                Deduction(id: "down", points: 100, reason: "Confirmed unreachable")
+            ], lastObservedAt: observedAt)
+        }
         if let observedAt, now.timeIntervalSince(observedAt) > 48 * 60 * 60 {
             return MonitoringHealth(score: nil, state: .stale, deductions: [], lastObservedAt: observedAt)
         }
         if site.status == .maintenance {
             return MonitoringHealth(score: nil, state: .maintenance, deductions: [], lastObservedAt: observedAt)
-        }
-        if site.status == .down {
-            return MonitoringHealth(score: 0, state: .down, deductions: [
-                Deduction(id: "down", points: 100, reason: "Confirmed unreachable")
-            ], lastObservedAt: observedAt)
         }
 
         var deductions: [Deduction] = []

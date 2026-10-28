@@ -39,22 +39,36 @@ struct GraphifyHTMLView: View {
         }
         .background(Color.cyan.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .task(id: htmlURL.path) {
-            do {
+        // Keyed on the modification date too, so a regenerated graph.html is picked up.
+        .task(id: "\(htmlURL.path)|\(Self.modificationDate(of: htmlURL)?.timeIntervalSince1970 ?? 0)") {
+            viewerURL = nil  // Recreate the web view so it loads the new file.
+            let source = htmlURL
+            // Reading up to 35 MB and rewriting it ran on the main actor and froze the UI.
+            let result = await Task.detached(priority: .userInitiated) { () -> Result<URL, Error> in
                 guard let library = Bundle.main.url(forResource: "vis-network.min", withExtension: "js",
                                                      subdirectory: "GraphifyViewer") else {
-                    throw GraphifyHTMLError.missingViewerLibrary
+                    return .failure(GraphifyHTMLError.missingViewerLibrary)
                 }
-                viewerURL = try GraphifyHTMLService.prepare(
-                    sourceURL: htmlURL, libraryURL: library,
-                    cacheRoot: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-                        .appendingPathComponent("JARVIS Dashboard"))
+                return Result {
+                    try GraphifyHTMLService.prepare(
+                        sourceURL: source, libraryURL: library,
+                        cacheRoot: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+                            .appendingPathComponent("JARVIS Dashboard"))
+                }
+            }.value
+            switch result {
+            case let .success(url):
+                viewerURL = url
                 errorMessage = nil
-            } catch {
+            case let .failure(error):
                 viewerURL = nil
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private static func modificationDate(of url: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
     }
 }
 

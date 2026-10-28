@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-struct ConnectionProject: Identifiable, Hashable {
+struct ConnectionProject: Identifiable, Hashable, Sendable {
     let route: ICMRoute
     let rootURL: URL
     let contextURL: URL
@@ -15,15 +15,15 @@ struct ConnectionProject: Identifiable, Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
-struct ConnectionsWorkspace {
+struct ConnectionsWorkspace: Sendable {
     let projects: [ConnectionProject]
     /// Registered routes that could not be opened, described for display.
     let routeIssues: [String]
 }
 
 /// The report written by the vault's `.tools/vault_doctor.py` to `ICM/health.json`.
-struct VaultHealth: Decodable {
-    struct Issue: Decodable, Hashable {
+struct VaultHealth: Decodable, Sendable {
+    struct Issue: Decodable, Hashable, Sendable {
         let level: String
         let check: String
         let message: String
@@ -38,7 +38,7 @@ struct VaultHealth: Decodable {
     static let reportPath = "Notes/Resources/Vault health.md"
 }
 
-struct ConnectionFile: Identifiable, Hashable {
+struct ConnectionFile: Identifiable, Hashable, Sendable {
     let url: URL
     let relativePath: String
     let isDirectory: Bool
