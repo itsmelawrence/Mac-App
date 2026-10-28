@@ -27,6 +27,7 @@
 		302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */; };
 		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
 		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
+		3414B53BFE06BE0F45B4FB35 /* StateSnapshotServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A7FE5304F31CDF9A7ED932 /* StateSnapshotServiceTests.swift */; };
 		343108046F415B870B70645F /* JarvisDataSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */; };
 		37C02990498719991D18C541 /* TaskAndProjectStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6376314B02879845B7136C78 /* TaskAndProjectStoreTests.swift */; };
 		39FD65A8C15F0D3D9989C601 /* MotivationalQuoteServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F41B209EF204B77186B9DFC /* MotivationalQuoteServiceTests.swift */; };
@@ -59,6 +60,7 @@
 		999E9E3FC6F99036C44E9FDE /* ProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1676D6679B29E4122F6E3E /* ProjectsView.swift */; };
 		9B014AA708572162BF677B1F /* JarvisCommandEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */; };
 		9CC54BFA367BF803357360B3 /* MonitoringHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AECC040E2CE1B8AD502271 /* MonitoringHealth.swift */; };
+		9F2B618CC3071B8EBAD32CE3 /* StateSnapshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9030BDED153AD284119200CF /* StateSnapshotService.swift */; };
 		A035E86236F77399BA88B212 /* MonitoringAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */; };
 		A3C05E2892F9859A12FDB80E /* KeychainCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6FA9B60C4FA586054009EA /* KeychainCacheTests.swift */; };
 		A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */; };
@@ -164,8 +166,10 @@
 		7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		80CA6A66DB009431EF09C8CB /* WeatherBeaconModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherBeaconModel.swift; sourceTree = "<group>"; };
 		87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIKeyStore.swift; sourceTree = "<group>"; };
+		87A7FE5304F31CDF9A7ED932 /* StateSnapshotServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateSnapshotServiceTests.swift; sourceTree = "<group>"; };
 		8E664AC10761E65E6FED7D18 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8EA2DF20E35C891DB8E9DFA5 /* GraphifyHTMLServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyHTMLServiceTests.swift; sourceTree = "<group>"; };
+		9030BDED153AD284119200CF /* StateSnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateSnapshotService.swift; sourceTree = "<group>"; };
 		929151532C0ADDCF47913F8B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingComposerTests.swift; sourceTree = "<group>"; };
 		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
@@ -284,6 +288,7 @@
 				10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */,
 				090543F19935FA409CC316BE /* PromptCaptureServiceTests.swift */,
 				463546401670CFBB95386BFC /* SpeechServiceTests.swift */,
+				87A7FE5304F31CDF9A7ED932 /* StateSnapshotServiceTests.swift */,
 				6376314B02879845B7136C78 /* TaskAndProjectStoreTests.swift */,
 				3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */,
 				502CF415AA5F7F5A9D0D8160 /* VaultMaintenanceServiceTests.swift */,
@@ -364,6 +369,7 @@
 				1B2D4704BCF29B9C13A64EC0 /* PromptCaptureService.swift */,
 				FBDB288883A089D2754C2672 /* RecentAlertIDs.swift */,
 				A962457DF4DD94ED621844A8 /* SpeechService.swift */,
+				9030BDED153AD284119200CF /* StateSnapshotService.swift */,
 				D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */,
 				B0397F0438367EDF0F066574 /* TaskStore.swift */,
 				4B5CE0FDBA8DE9E552D78301 /* VaultMaintenanceService.swift */,
@@ -502,6 +508,7 @@
 				302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */,
 				84C602F87547A53090ADE266 /* PromptCaptureServiceTests.swift in Sources */,
 				1B654DCF44418E45064FC3C9 /* SpeechServiceTests.swift in Sources */,
+				3414B53BFE06BE0F45B4FB35 /* StateSnapshotServiceTests.swift in Sources */,
 				37C02990498719991D18C541 /* TaskAndProjectStoreTests.swift in Sources */,
 				21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */,
 				BA6E6D8E49D07048A52A7B15 /* VaultMaintenanceServiceTests.swift in Sources */,
@@ -561,6 +568,7 @@
 				73E90DA7F5A420582754AF22 /* SavedLocation.swift in Sources */,
 				E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */,
 				C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */,
+				9F2B618CC3071B8EBAD32CE3 /* StateSnapshotService.swift in Sources */,
 				FB0EA75949B541527829E816 /* StoreRecoveryView.swift in Sources */,
 				1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */,
 				A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */,
@@ -623,7 +631,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 32;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -644,7 +652,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.30;
+				MARKETING_VERSION = 0.2.31;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -762,7 +770,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 32;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -777,7 +785,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.30;
+				MARKETING_VERSION = 0.2.31;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
