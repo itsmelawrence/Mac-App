@@ -12,10 +12,13 @@ settings:
     SWIFT_VERSION: "5.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     ENABLE_HARDENED_RUNTIME: YES
-    CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: ""
-    MARKETING_VERSION: "0.2.26"
-    CURRENT_PROJECT_VERSION: "27"
+    # A stable identity keeps Keychain "Always Allow" grants across updates;
+    # ad-hoc signing made every build a new app to macOS.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    DEVELOPMENT_TEAM: TRM376DDJX
+    MARKETING_VERSION: "0.2.27"
+    CURRENT_PROJECT_VERSION: "28"
 
 targets:
   JarvisDashboard:
