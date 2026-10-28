@@ -62,82 +62,45 @@ enum ConnectionsService {
         ".git", ".build", ".next", ".cache", ".obsidian", "node_modules",
         "vendor", "dist", "build", "coverage", "DerivedData", "__pycache__"
     ]
-    /// Discovery rules shared with the vault's `.tools/project_hubs.py` through `ICM/discovery.json`.
-    struct DiscoveryRules: Decodable, Equatable {
-        let version: Int
-        let roots: [String]
-        let markers: Set<String>
-        let excludedDirectories: Set<String>
-        let maxDepth: Int
-
-        static let defaults = DiscoveryRules(
-            version: 1, roots: ["Work", "Personal"],
-            markers: [
-                ".git", "Package.swift", "package.json", "composer.json", "Cargo.toml",
-                "go.mod", "pyproject.toml", "Gemfile", "artisan", "project.yml", "PROJECT.md",
-                "wp-config.php", "public_html", "index.php", "index.html"
-            ],
-            excludedDirectories: ConnectionsService.excludedDirectories.union([
-                ".vscode", "Media", "JPC Assets", "output", "tmp", "uploads"
-            ]),
-            maxDepth: 6
-        )
-    }
-
-    /// Falls back to the built-in rules when the file is missing, malformed, or a newer version.
-    static func discoveryRules(in vaultURL: URL) -> DiscoveryRules {
-        guard let data = try? Data(contentsOf: vaultURL.appendingPathComponent("ICM/discovery.json")),
-              let rules = try? JSONDecoder().decode(DiscoveryRules.self, from: data),
-              rules.version == 1, !rules.markers.isEmpty, rules.maxDepth > 0 else { return .defaults }
-        return rules
-    }
-
-    /// Records the scan for the vault doctor's parity check; writes only when the list changes.
-    static func recordScan(_ projects: [ConnectionProject], in vaultURL: URL) {
-        struct Scan: Codable, Equatable { let version: Int; let paths: [String] }
-        let url = vaultURL.appendingPathComponent("ICM/cortex-projects.json")
-        let scan = Scan(version: 1, paths: projects.map(\.route.projectPath).sorted())
-        if let data = try? Data(contentsOf: url), (try? JSONDecoder().decode(Scan.self, from: data)) == scan { return }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try? encoder.encode(scan).write(to: url, options: .atomic)
-    }
-
     static func projects(in vaultURL: URL) throws -> [ConnectionProject] {
         try workspace(in: vaultURL).projects
     }
 
-    /// A stale or unsafe route is reported and skipped so it cannot hide the rest of the vault.
-    static func workspace(in vaultURL: URL) throws -> ConnectionsWorkspace {
-        let manifestURL = vaultURL.appendingPathComponent("ICM/routes.json")
-        guard FileManager.default.fileExists(atPath: vaultURL.appendingPathComponent("CONTEXT.md").path),
-              let data = try? Data(contentsOf: manifestURL),
-              let manifest = try? JSONDecoder().decode(ICMManifest.self, from: data),
-              manifest.version == 1 else { throw ICMRoutingError.invalidVault }
+    private struct WorkspaceReply: Decodable {
+        struct Entry: Decodable {
+            let route: ICMRoute
+            let registered: Bool
 
-        var registered: [ConnectionProject] = []
-        var routeIssues: [String] = []
-        for route in manifest.routes {
-            do {
-                let root = try containedURL(route.projectPath, under: vaultURL)
-                let context = try containedURL(route.contextPath, under: vaultURL)
-                let graph = try containedURL(route.graphPath, under: vaultURL)
-                guard isDirectory(root) else { throw ICMRoutingError.missingProject(route.projectPath) }
-                registered.append(ConnectionProject(route: route, rootURL: root, contextURL: context,
-                                                    graphURL: graph, isRegistered: true))
-            } catch {
-                routeIssues.append("\(route.name): \(error.localizedDescription)")
+            private enum CodingKeys: String, CodingKey { case registered }
+
+            init(from decoder: Decoder) throws {
+                route = try ICMRoute(from: decoder)
+                registered = try decoder.container(keyedBy: CodingKeys.self).decode(Bool.self, forKey: .registered)
             }
         }
-        let registeredPaths = Set(registered.map(\.route.projectPath))
-        let projects = (registered + discoveredProjects(in: vaultURL, excluding: registeredPaths))
-            .sorted {
-                let byName = $0.name.localizedStandardCompare($1.name)
-                return byName == .orderedSame
-                    ? $0.route.projectPath < $1.route.projectPath
-                    : byName == .orderedAscending
-            }
-        return ConnectionsWorkspace(projects: projects, routeIssues: routeIssues)
+
+        let status: String
+        let message: String?
+        let projects: [Entry]?
+        let routeIssues: [String]?
+    }
+
+    /// Every vault project from `.tools/icm.py`, which owns discovery: valid routes plus marked folders.
+    /// A stale or unsafe route is reported there and skipped, so it cannot hide the rest of the vault.
+    /// Blocks while the script runs; call off the main actor.
+    static func workspace(in vaultURL: URL) throws -> ConnectionsWorkspace {
+        let reply = try ICMRoutingService.runICM("workspace", vaultURL: vaultURL, as: WorkspaceReply.self)
+        guard reply.status == "ok", let entries = reply.projects else {
+            throw ICMRoutingError.vaultTools(reply.message ?? "Vault discovery failed.")
+        }
+        let projects = entries.compactMap { entry -> ConnectionProject? in
+            guard let root = try? containedURL(entry.route.projectPath, under: vaultURL),
+                  let context = try? containedURL(entry.route.contextPath, under: vaultURL),
+                  let graph = try? containedURL(entry.route.graphPath, under: vaultURL) else { return nil }
+            return ConnectionProject(route: entry.route, rootURL: root, contextURL: context,
+                                     graphURL: graph, isRegistered: entry.registered)
+        }
+        return ConnectionsWorkspace(projects: projects, routeIssues: reply.routeIssues ?? [])
     }
 
     /// Missing or unreadable reports return nil; the doctor is optional.
@@ -146,62 +109,6 @@ enum ConnectionsService {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try? decoder.decode(VaultHealth.self, from: data)
-    }
-
-    private static func discoveredProjects(in vaultURL: URL, excluding registeredPaths: Set<String>) -> [ConnectionProject] {
-        let manager = FileManager.default
-        let keys: Set<URLResourceKey> = [.isDirectoryKey, .isSymbolicLinkKey]
-        let vaultPath = canonicalPath(vaultURL)
-        let rules = discoveryRules(in: vaultURL)
-        var pending = rules.roots.compactMap { try? containedURL($0, under: vaultURL) }
-        var candidates: [(path: String, hasGit: Bool)] = []
-
-        while let directory = pending.popLast() {
-            guard isDirectory(directory), isContained(directory, under: vaultURL),
-                  let entries = try? manager.contentsOfDirectory(
-                    at: directory, includingPropertiesForKeys: Array(keys), options: [.skipsPackageDescendants]
-                  ) else { continue }
-            let names = Set(entries.map(\.lastPathComponent))
-            let relativePath = String(canonicalPath(directory).dropFirst(vaultPath.count + 1))
-            if !names.isDisjoint(with: rules.markers) {
-                candidates.append((relativePath, names.contains(".git")))
-            }
-            let depth = relativePath.split(separator: "/").count
-            guard depth < rules.maxDepth else { continue }
-            for entry in entries {
-                guard !entry.lastPathComponent.hasPrefix("."),
-                      !rules.excludedDirectories.contains(entry.lastPathComponent),
-                      let values = try? entry.resourceValues(forKeys: keys),
-                      values.isDirectory == true, values.isSymbolicLink != true,
-                      isContained(entry, under: vaultURL) else { continue }
-                pending.append(entry)
-            }
-        }
-
-        let candidatePaths = Set(candidates.map(\.path)).union(registeredPaths)
-        return candidates.compactMap { candidate in
-            let path = candidate.path
-            guard !registeredPaths.contains(path),
-                  (candidate.hasGit || !hasCandidateAncestor(path, in: candidatePaths)) else { return nil }
-            let route = ICMRoute(
-                id: "discovered:\(path)", name: URL(fileURLWithPath: path).lastPathComponent,
-                aliases: [], projectPath: path,
-                contextPath: "Notes/Projects/\(path)/PROJECT.md",
-                graphPath: "Graphify/_discovered/\(path.replacingOccurrences(of: "/", with: "__"))",
-                entrypoints: [], graphNotes: []
-            )
-            guard let root = try? containedURL(route.projectPath, under: vaultURL),
-                  let context = try? containedURL(route.contextPath, under: vaultURL),
-                  let graph = try? containedURL(route.graphPath, under: vaultURL) else { return nil }
-            return ConnectionProject(route: route, rootURL: root, contextURL: context,
-                                     graphURL: graph, isRegistered: false)
-        }
-    }
-
-    private static func hasCandidateAncestor(_ path: String, in paths: Set<String>) -> Bool {
-        let parts = path.split(separator: "/")
-        guard parts.count > 1 else { return false }
-        return (1..<parts.count).contains { paths.contains(parts.prefix($0).joined(separator: "/")) }
     }
 
     static func children(of directory: URL, in project: ConnectionProject) -> [ConnectionFile] {

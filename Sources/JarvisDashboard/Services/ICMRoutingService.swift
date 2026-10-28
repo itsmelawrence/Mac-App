@@ -33,6 +33,8 @@ enum ICMRoutingError: LocalizedError {
     case ambiguous([String])
     case captureFailed
     case missingProjectHub(String)
+    case vaultToolsMissing(String)
+    case vaultTools(String)
 
     var errorDescription: String? {
         switch self {
@@ -52,6 +54,10 @@ enum ICMRoutingError: LocalizedError {
             "JARVIS could not save this prompt in the Obsidian vault."
         case let .missingProjectHub(path):
             "The PARA project note is missing: \(path)."
+        case let .vaultToolsMissing(path):
+            "JARVIS needs the vault tools to find projects: \(path) is missing."
+        case let .vaultTools(message):
+            message
         }
     }
 }
@@ -75,47 +81,57 @@ enum ICMRoutingService {
         return !Set(words(in: prompt)).isDisjoint(with: actionWords)
     }
 
+    /// `.tools/icm.py` beside the vault owns discovery and routing (one implementation, shared with
+    /// the vault tools and the assistant's MCP server). JARVIS runs it and reads its JSON reply.
+    static func icmScriptURL(vaultURL: URL) -> URL {
+        vaultURL.deletingLastPathComponent().appendingPathComponent(".tools/icm.py")
+    }
+
+    /// Runs one `icm.py` command and decodes the JSON on the last line of its output. Blocks; call off the main actor.
+    static func runICM<Reply: Decodable>(_ command: String, vaultURL: URL, input: String? = nil,
+                                         as type: Reply.Type) throws -> Reply {
+        let script = icmScriptURL(vaultURL: vaultURL)
+        guard FileManager.default.fileExists(atPath: script.path) else {
+            throw ICMRoutingError.vaultToolsMissing(script.path)
+        }
+        let result = try VaultMaintenanceService.run(
+            script: script, arguments: [command, "--vault", vaultURL.path], timeout: 60, input: input.map { Data($0.utf8) })
+        let lastLine = result.output.split(separator: "\n").last { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard result.status == 0, let lastLine,
+              let reply = try? JSONDecoder().decode(Reply.self, from: Data(lastLine.utf8)) else {
+            throw ICMRoutingError.vaultTools("Vault routing failed: \(result.output.suffix(300))")
+        }
+        return reply
+    }
+
+    private struct RouteReply: Decodable {
+        let status: String
+        let message: String?
+        let candidates: [String]?
+        let route: ICMRoute?
+        let projectRoot: String?
+        let context: String?
+        let graphNotes: [String]?
+        let handoff: String?
+    }
+
+    /// The project a work request names, with its agent handoff; nil when no route matches.
     static func prepare(prompt: String, vaultURL: URL) throws -> ICMPreparedRoute? {
-        let manifest = try loadManifest(vaultURL: vaultURL)
-        let promptWords = words(in: prompt)
-        let matches = manifest.routes.filter { route in
-            ([route.name] + route.aliases).contains { alias in
-                let aliasWords = words(in: alias)
-                return !aliasWords.isEmpty && promptWords.windows(of: aliasWords).contains(aliasWords)
-            }
+        let reply = try runICM("route", vaultURL: vaultURL, input: prompt, as: RouteReply.self)
+        switch reply.status {
+        case "unmatched":
+            return nil
+        case "ambiguous":
+            throw ICMRoutingError.ambiguous(reply.candidates ?? [])
+        case "routed":
+            guard let route = reply.route, let root = reply.projectRoot, let context = reply.context,
+                  let handoff = reply.handoff else { throw ICMRoutingError.vaultTools("Vault routing returned an incomplete route.") }
+            return ICMPreparedRoute(route: route, projectURL: URL(fileURLWithPath: root, isDirectory: true),
+                                    contextURL: URL(fileURLWithPath: context),
+                                    graphURLs: (reply.graphNotes ?? []).map { URL(fileURLWithPath: $0) }, handoff: handoff)
+        default:
+            throw ICMRoutingError.vaultTools(reply.message ?? "Vault routing failed.")
         }
-        guard !matches.isEmpty else { return nil }
-        guard matches.count == 1, let route = matches.first else {
-            throw ICMRoutingError.ambiguous(matches.map(\.name).sorted())
-        }
-
-        let projectURL = try safeURL(route.projectPath, under: vaultURL)
-        let contextURL = try safeURL(route.contextPath, under: vaultURL)
-        guard isDirectory(projectURL) else { throw ICMRoutingError.missingProject(route.projectPath) }
-        guard FileManager.default.fileExists(atPath: contextURL.path) else {
-            throw ICMRoutingError.missingContext(route.contextPath)
-        }
-        let graphDirectory = try safeURL(route.graphPath, under: vaultURL)
-        let graphURLs = try suggestedGraphNotes(route: route, directory: graphDirectory, prompt: prompt)
-        let sourceURLs = try route.entrypoints.map { try safeURL($0, under: projectURL) }
-        let graphLines = graphURLs.map { "- \($0.path)" }.joined(separator: "\n")
-        let sourceLines = sourceURLs.map { "- \($0.path)" }.joined(separator: "\n")
-        let handoff = """
-        Task: \(prompt.trimmingCharacters(in: .whitespacesAndNewlines))
-
-        ICM route: \(route.name)
-        Project root: \(projectURL.path)
-        Read the vault router: \(vaultURL.appendingPathComponent("CONTEXT.md").path)
-        Read the project context: \(contextURL.path)
-        Start with these source files when relevant:
-        \(sourceLines)
-        Graphify navigation hints:
-        \(graphLines.isEmpty ? "- No graph notes available yet." : graphLines)
-
-        Read only the context needed for this task. Check current source and local project instructions before editing. Treat Graphify edges as leads, then verify them in code. Record durable decisions in the vault after the work.
-        """
-        return ICMPreparedRoute(route: route, projectURL: projectURL, contextURL: contextURL,
-                                graphURLs: graphURLs, handoff: handoff)
     }
 
     @discardableResult
@@ -206,19 +222,6 @@ enum ICMRoutingService {
         return note
     }
 
-    private static func loadManifest(vaultURL: URL) throws -> ICMManifest {
-        guard FileManager.default.fileExists(atPath: vaultURL.appendingPathComponent("CONTEXT.md").path) else {
-            throw ICMRoutingError.invalidVault
-        }
-        let path = vaultURL.appendingPathComponent("ICM/routes.json")
-        guard let data = try? Data(contentsOf: path),
-              let manifest = try? JSONDecoder().decode(ICMManifest.self, from: data) else {
-            throw ICMRoutingError.invalidVault
-        }
-        guard manifest.version == 1 else { throw ICMRoutingError.unsupportedManifest }
-        return manifest
-    }
-
     private static func safeURL(_ relativePath: String, under root: URL) throws -> URL {
         let components = relativePath.split(separator: "/", omittingEmptySubsequences: false)
         guard !relativePath.hasPrefix("/"), !components.isEmpty,
@@ -233,48 +236,7 @@ enum ICMRoutingService {
         return result
     }
 
-    private static func isDirectory(_ url: URL) -> Bool {
-        var isDirectory: ObjCBool = false
-        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
-    }
-
-    private static func suggestedGraphNotes(route: ICMRoute, directory: URL, prompt: String) throws -> [URL] {
-        guard isDirectory(directory) else { return [] }
-        let seedNames = route.graphNotes
-        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
-        let promptTokens: Set<String> = Set(words(in: prompt).filter { $0.count >= 4 })
-        var scored: [(url: URL, score: Int)] = []
-        for url in files where url.pathExtension == "md" && !url.lastPathComponent.hasPrefix("_COMMUNITY") {
-            let filename = url.deletingPathExtension().lastPathComponent
-            let filenameTokens: Set<String> = Set(words(in: filename))
-            let score: Int = filenameTokens.intersection(promptTokens).count
-            if score > 0 { scored.append((url: url, score: score)) }
-        }
-        scored.sort {
-            if $0.score == $1.score { return $0.url.lastPathComponent < $1.url.lastPathComponent }
-            return $0.score > $1.score
-        }
-        let ranked = Array(scored.prefix(3)).map(\.url)
-        let seeded = try seedNames.map { try safeURL($0, under: directory) }
-            .filter { FileManager.default.fileExists(atPath: $0.path) }
-        return Array((ranked + seeded).uniqued().prefix(4))
-    }
-
     private static func words(in text: String) -> [String] {
         text.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
-    }
-}
-
-private extension Array where Element == String {
-    func windows(of pattern: [String]) -> [[String]] {
-        guard count >= pattern.count else { return [] }
-        return (0...(count - pattern.count)).map { Array(self[$0..<($0 + pattern.count)]) }
-    }
-}
-
-private extension Array where Element == URL {
-    func uniqued() -> [URL] {
-        var seen: Set<String> = []
-        return filter { seen.insert($0.path).inserted }
     }
 }

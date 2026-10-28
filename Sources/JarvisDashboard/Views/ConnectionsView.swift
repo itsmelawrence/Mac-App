@@ -267,7 +267,7 @@ struct ConnectionsView: View {
         .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
     }
 
-    /// The vault walk, file reads and scan record run off the main thread; a large vault
+    /// The vault scan (icm.py) and file reads run off the main thread; a large vault
     /// previously froze the UI on appear and every 30 seconds.
     private func reload() {
         guard !isReloading else { return }
@@ -276,7 +276,6 @@ struct ConnectionsView: View {
         Task {
             let (result, latestHealth) = await Task.detached(priority: .userInitiated) {
                 let result = Result { try ConnectionsService.workspace(in: vault) }
-                if case let .success(workspace) = result { ConnectionsService.recordScan(workspace.projects, in: vault) }
                 return (result, ConnectionsService.health(in: vault))
             }.value
             isReloading = false

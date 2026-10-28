@@ -20,13 +20,15 @@ enum VaultMaintenanceService {
 
     /// Runs the script and returns its exit status and combined output. Blocks; call off the main actor.
     /// A run longer than `timeout` is terminated, so a hung script (e.g. a stalled network
-    /// folder) cannot block the caller's loop forever.
+    /// folder) cannot block the caller's loop forever. `input` is sent on standard input, which
+    /// keeps text such as prompts out of the process list.
     static func run(
-        script: URL, arguments: [String] = [], timeout: TimeInterval = 600,
+        script: URL, arguments: [String] = [], timeout: TimeInterval = 600, input: Data? = nil,
         python: URL = URL(fileURLWithPath: "/usr/bin/python3")
     ) throws -> (status: Int32, output: String) {
         let process = Process()
         let pipe = Pipe()
+        let inputPipe = Pipe()
         process.executableURL = python
         process.arguments = [script.path] + arguments
         process.currentDirectoryURL = FileManager.default.temporaryDirectory
@@ -35,7 +37,15 @@ enum VaultMaintenanceService {
         ]) { _, enforcedValue in enforcedValue }
         process.standardOutput = pipe
         process.standardError = pipe
+        process.standardInput = input == nil ? FileHandle.nullDevice : inputPipe
         try process.run()
+        if let input {
+            // Written from another thread: a reply larger than the pipe buffer must not deadlock the write.
+            DispatchQueue.global().async {
+                try? inputPipe.fileHandleForWriting.write(contentsOf: input)
+                try? inputPipe.fileHandleForWriting.close()
+            }
+        }
         let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
         DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: watchdog)
         let data = pipe.fileHandleForReading.readDataToEndOfFile()

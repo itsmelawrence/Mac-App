@@ -701,17 +701,23 @@ private struct JarvisCommandConsole: View {
         activityNoteURL = nil
         captureStatus = nil
         if ICMRoutingService.isWorkRequest(prompt) {
-            do {
-                let route = try ICMRoutingService.prepare(prompt: prompt, vaultURL: vaultURL)
-                preparedRoute = route
-                lastResult = nil
-                response = route.map { "Routed to \($0.route.name). The agent handoff is ready to copy." }
-                    ?? "No project route matched. Add an alias in ICM/routes.json or name a configured project."
-            } catch {
-                lastResult = nil
-                response = error.localizedDescription
+            lastResult = nil
+            response = "Routing…"
+            // Routing runs the vault's icm.py, so it stays off the main thread.
+            Task {
+                let result = await Task.detached(priority: .userInitiated) {
+                    Result { try ICMRoutingService.prepare(prompt: prompt, vaultURL: vaultURL) }
+                }.value
+                switch result {
+                case let .success(route):
+                    preparedRoute = route
+                    response = route.map { "Routed to \($0.route.name). The agent handoff is ready to copy." }
+                        ?? "No project route matched. Add an alias in ICM/routes.json or name a configured project."
+                case let .failure(error):
+                    response = error.localizedDescription
+                }
+                capture(prompt: prompt, route: preparedRoute?.route, vaultURL: vaultURL)
             }
-            capture(prompt: prompt, route: preparedRoute?.route, vaultURL: vaultURL)
             return
         }
         let result = JarvisCommandEngine.execute(prompt, context: context)
