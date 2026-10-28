@@ -138,10 +138,13 @@ struct MonitoringHealth: Equatable, Sendable {
             }
         }
 
-        if let expiry = site.sslExpiresAt,
-           expiry > now,
-           expiry.timeIntervalSince(now) <= 14 * 24 * 60 * 60 {
-            deductions.append(Deduction(id: "ssl", points: 15, reason: "SSL certificate expires within 14 days"))
+        if let expiry = site.sslExpiresAt {
+            if expiry <= now {
+                // Browsers already reject the site, so weigh it like a critical finding.
+                deductions.append(Deduction(id: "ssl", points: 40, reason: "SSL certificate has expired"))
+            } else if expiry.timeIntervalSince(now) <= 14 * 24 * 60 * 60 {
+                deductions.append(Deduction(id: "ssl", points: 15, reason: "SSL certificate expires within 14 days"))
+            }
         }
 
         if [.up, .degraded].contains(site.status),

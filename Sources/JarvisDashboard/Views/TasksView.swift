@@ -57,7 +57,7 @@ struct TasksView: View {
         .sheet(isPresented: $showingNewTask) { NewTaskView() }
         .alert("Delete this task?", isPresented: deletionAlertBinding, presenting: taskPendingDeletion) { task in
             Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) { modelContext.delete(task) }
+            Button("Delete", role: .destructive) { TaskStore.delete(task, from: modelContext) }
         } message: { task in
             Text("“\(task.title)” will be permanently removed.")
         }
@@ -158,7 +158,7 @@ struct TasksView: View {
                     }
                     Spacer()
                     Button("Mark Complete", systemImage: "checkmark.circle.fill") {
-                        task.isCompleted = true
+                        TaskStore.setCompleted(task, true)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.green)
@@ -343,7 +343,7 @@ private struct MissionTaskRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            Button { task.isCompleted.toggle() } label: {
+            Button { TaskStore.setCompleted(task, !task.isCompleted) } label: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
                     .foregroundStyle(task.isCompleted ? Color.green : priorityColor)
@@ -516,8 +516,7 @@ struct NewTaskView: View {
             isBlocked: isBlocked,
             blockedReason: blockedReason.trimmingCharacters(in: .whitespacesAndNewlines)
         )
-        modelContext.insert(task)
-        if hasDueDate { Task { try? await NotificationService().scheduleReminder(for: task) } }
+        TaskStore.add(task, to: modelContext)
         dismiss()
     }
 }

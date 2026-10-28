@@ -18,6 +18,7 @@ struct ProjectsView: View {
     @State private var projectPendingDeletion: ProjectItem?
     @State private var monitoringSites: [String: MonitoringSite] = [:]
     @State private var monitoringError: String?
+    @State private var deletionError: String?
     @State private var isRefreshingMonitoring = false
     @State private var needsAttentionOnly = false
     @State private var sortBySiteHealth = false
@@ -78,13 +79,24 @@ struct ProjectsView: View {
             Button("Delete Project", role: .destructive) {
                 guard let projectPendingDeletion else { return }
                 if selectedProject === projectPendingDeletion { selectedProject = nil }
-                modelContext.delete(projectPendingDeletion)
-                try? modelContext.save()
+                do {
+                    try ProjectStore.delete(projectPendingDeletion, from: modelContext)
+                } catch {
+                    deletionError = error.localizedDescription
+                }
                 self.projectPendingDeletion = nil
             }
             Button("Cancel", role: .cancel) { projectPendingDeletion = nil }
         } message: {
-            Text("This permanently removes the project from this Mac. This action cannot be undone.")
+            Text("This permanently removes the project from this Mac. Its tasks move to the inbox. This action cannot be undone.")
+        }
+        .alert("Project not deleted", isPresented: Binding(
+            get: { deletionError != nil },
+            set: { if !$0 { deletionError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deletionError ?? "")
         }
         .task {
             await refreshMonitoring()
@@ -714,7 +726,7 @@ private struct ProjectDetailView: View {
                 ForEach(tasks.prefix(8)) { task in
                     HStack(spacing: 10) {
                         Button {
-                            task.isCompleted.toggle()
+                            TaskStore.setCompleted(task, !task.isCompleted)
                             try? modelContext.save()
                         } label: {
                             Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")

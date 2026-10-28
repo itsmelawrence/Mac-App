@@ -433,7 +433,8 @@ struct TodayView: View {
         if let newWeather { weather = newWeather }
         if let newEarthquakes { earthquakes = newEarthquakes }
         if let newMonitoringSites {
-            monitoringSites = Dictionary(uniqueKeysWithValues: newMonitoringSites.map { ($0.id, $0) })
+            // A duplicate site ID from the API must not crash; keep the last one, as ProjectsView does.
+            monitoringSites = Dictionary(newMonitoringSites.map { ($0.id, $0) }) { _, latest in latest }
             monitoringError = nil
         }
         refreshError = newWeather == nil || newEarthquakes == nil
@@ -746,7 +747,7 @@ private struct TodayTaskRow: View {
     @Bindable var task: TaskItem
     var body: some View {
         HStack(spacing: 11) {
-            Button { task.isCompleted.toggle() } label: {
+            Button { TaskStore.setCompleted(task, !task.isCompleted) } label: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(task.isCompleted ? .green : .secondary)
             }

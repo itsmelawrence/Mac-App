@@ -19,11 +19,11 @@ enum VaultMaintenanceService {
     }
 
     /// Runs the script and returns its exit status and combined output. Blocks; call off the main actor.
-    static func run(script: URL, python: URL = URL(fileURLWithPath: "/usr/bin/python3")) throws -> (status: Int32, output: String) {
+    static func run(script: URL, arguments: [String] = [], python: URL = URL(fileURLWithPath: "/usr/bin/python3")) throws -> (status: Int32, output: String) {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = python
-        process.arguments = [script.path]
+        process.arguments = [script.path] + arguments
         process.currentDirectoryURL = FileManager.default.temporaryDirectory
         process.environment = ProcessInfo.processInfo.environment.merging([
             "PYTHONDONTWRITEBYTECODE": "1"
@@ -43,7 +43,7 @@ enum VaultMaintenanceService {
                 let vault = ICMRoutingService.vaultURL(configuredPath: defaults.string(forKey: "icm.vaultPath") ?? "")
                 let script = scriptURL(vaultURL: vault)
                 if FileManager.default.fileExists(atPath: script.path) {
-                    let result = await Task.detached(priority: .background) { try? run(script: script) }.value
+                    let result = await Task.detached(priority: .background) { try? run(script: script, arguments: ["--vault", vault.path]) }.value
                     log(result.map { "exit \($0.status)\n\($0.output)" } ?? "could not start /usr/bin/python3\n")
                     defaults.set(Date.now, forKey: lastRunKey)
                 }

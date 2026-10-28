@@ -124,14 +124,13 @@ final class SpeechService: NSObject, ObservableObject {
     ) {
         guard isEnabled, speakCriticalAlerts, !isQuietHour(now: now, calendar: calendar) else { return }
 
-        let key = Keys.spokenCriticalAlertIDs
-        var spoken = Set(defaults.stringArray(forKey: key) ?? [])
+        let memory = RecentAlertIDs(key: Keys.spokenCriticalAlertIDs, defaults: defaults)
+        let spoken = Set(memory.load())
         guard let alert = alerts.first(where: { $0.severity == .critical && !spoken.contains($0.id) }) else {
             return
         }
 
-        spoken.insert(alert.id)
-        defaults.set(Array(spoken.suffix(100)), forKey: key)
+        memory.remember([alert.id])
         speak("Critical alert. \(alert.title). \(alert.detail)")
     }
 

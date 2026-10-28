@@ -47,7 +47,7 @@ struct MenuBarView: View {
     private func addQuickTask() {
         let cleanTitle = quickTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else { return }
-        modelContext.insert(TaskItem(title: cleanTitle))
+        TaskStore.add(TaskItem(title: cleanTitle), to: modelContext)
         quickTaskTitle = ""
     }
 }

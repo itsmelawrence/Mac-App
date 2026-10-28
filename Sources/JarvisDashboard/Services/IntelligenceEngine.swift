@@ -73,12 +73,16 @@ enum IntelligenceEngine {
         now: Date = .now
     ) -> [IntelligenceAlert] {
         var output: [IntelligenceAlert] = []
+        // Weather alerts are keyed per location per day: a new storm tomorrow alerts again,
+        // but readings that drift during the day (rain %, apparent heat) do not re-alert.
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: now)
+        let day = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
 
         for snapshot in weather {
             if (95...99).contains(snapshot.weatherCode) {
                 output.append(
                     IntelligenceAlert(
-                        id: "weather-storm-\(snapshot.locationName)",
+                        id: "weather-storm-\(snapshot.locationName)-\(day)",
                         title: "Thunderstorm conditions in \(snapshot.locationName)",
                         detail: "Current conditions report \(snapshot.condition.lowercased()) with a \(snapshot.precipitationProbability)% precipitation probability.",
                         severity: .warning,
@@ -91,7 +95,7 @@ enum IntelligenceEngine {
             } else if snapshot.precipitationProbability >= rainThreshold {
                 output.append(
                     IntelligenceAlert(
-                        id: "weather-rain-\(snapshot.locationName)-\(snapshot.precipitationProbability)",
+                        id: "weather-rain-\(snapshot.locationName)-\(day)",
                         title: "High rain probability in \(snapshot.locationName)",
                         detail: "Precipitation probability is \(snapshot.precipitationProbability)% for the current forecast hour.",
                         severity: .advisory,
@@ -106,7 +110,7 @@ enum IntelligenceEngine {
             if snapshot.apparentTemperature >= 42 {
                 output.append(
                     IntelligenceAlert(
-                        id: "weather-heat-\(snapshot.locationName)-\(Int(snapshot.apparentTemperature))",
+                        id: "weather-heat-\(snapshot.locationName)-\(day)",
                         title: "Dangerous apparent heat in \(snapshot.locationName)",
                         detail: "It currently feels like \(Int(snapshot.apparentTemperature.rounded()))°C.",
                         severity: .warning,

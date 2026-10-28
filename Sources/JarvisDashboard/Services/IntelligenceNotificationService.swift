@@ -19,11 +19,11 @@ struct IntelligenceNotificationService: Sendable {
             end: quietEndHour
         ) else { return }
 
-        let defaults = UserDefaults.standard
-        let key = "intelligence.notifiedAlertIDs"
-        var delivered = Set(defaults.stringArray(forKey: key) ?? [])
+        let memory = RecentAlertIDs(key: "intelligence.notifiedAlertIDs")
+        let delivered = Set(memory.load())
         let candidates = alerts.filter { $0.severity >= .warning && !delivered.contains($0.id) }
 
+        var sent: [String] = []
         for alert in candidates.prefix(3) {
             let content = UNMutableNotificationContent()
             content.title = alert.title
@@ -31,10 +31,9 @@ struct IntelligenceNotificationService: Sendable {
             content.sound = .default
             let request = UNNotificationRequest(identifier: alert.id, content: content, trigger: nil)
             try? await UNUserNotificationCenter.current().add(request)
-            delivered.insert(alert.id)
+            sent.append(alert.id)
         }
-
-        defaults.set(Array(delivered.suffix(100)), forKey: key)
+        memory.remember(sent)
     }
 
     static func isQuietHour(_ hour: Int, start: Int, end: Int) -> Bool {
