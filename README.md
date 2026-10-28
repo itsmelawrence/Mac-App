@@ -36,6 +36,23 @@ swift run JarvisDashboard
 
 Select the `JarvisDashboard` application scheme in Xcode to run the signed app bundle. Login-item registration requires the application bundle; it is not available when launched with `swift run`.
 
+### Releasing
+
+Commit your changes, then run:
+
+```sh
+scripts/release.sh 0.2.29 --commit   # or --no-install to stop after packaging
+```
+
+The script stops at the first failed check:
+- It requires a clean tree, a newer version, and a valid Apple Development signing identity.
+- It bumps `project.yml`, runs the tests, and builds a universal Release.
+- It checks the signature, both architectures, and the version, then writes `dist/JARVIS-Dashboard-<version>.zip`.
+- It quits JARVIS and backs up the installed app and both SwiftData stores to `dist/install-backups/`, verified byte for byte and with SQLite `quick_check`.
+- It installs, launches, and checks that JARVIS is running, with no new crash report and healthy stores.
+
+Builds are signed with a stable Apple Development identity, so Keychain "Always Allow" grants carry over between releases. Ad-hoc signing would make each build look like a new app.
+
 ## Obsidian ICM handoff
 
 The **Cortex** sidebar automatically discovers projects under the vault's `Work/` and `Personal/` folders when they contain a Git directory, project manifest, `PROJECT.md`, or an index file. It refreshes when opened and every 30 seconds while the overview is visible. Projects explicitly listed in `ICM/routes.json` also appear, without duplicates. If a route's folder is missing or a path is unsafe, the overview lists that route under **ICM routes need attention** and shows the other projects as normal. Discovery rules come from the vault's `ICM/discovery.json`, which the vault's `.tools/project_hubs.py` also reads; if the file is missing or malformed, JARVIS uses built-in defaults. After each scan, Cortex writes the project list to `ICM/cortex-projects.json`, only when it has changed, so the vault doctor can compare the two. A health card shows the latest `ICM/health.json` report from `.tools/vault_doctor.py` and warns when that report is more than a day old. While JARVIS is open, it runs the vault's `.tools/vault_maintenance.py` every 3 hours, starting at launch, and logs to `~/Library/Logs/vault-maintenance.log`. It runs as a child process of JARVIS because macOS doesn't let launchd jobs list `~/Documents`, so the job shares JARVIS's access to the vault. Choose a project to browse its source tree, search folder and file paths. The **Synapse Map** embeds Graphify's own generated `graph.html` viewer, including its search, node inspector, community filters, and force-directed layout. Keep `.graphify_labels.json` beside `graph.json` when regenerating the HTML so Graphify includes its community list. After `graphify export obsidian`, run the vault's `.tools/graphify_vault_links.py` on the export; without it, Graphify's bare wikilinks don't resolve and selecting a source file lists no connection notes. JARVIS adds subtle travelling signal pulses over Graphify's links. Selecting a source file focuses its Graphify node when one exists. The source and note links remain available below the map. JARVIS reads the Graphify export locally and does not alter project files. Generated builds, dependency folders and hidden folders are omitted from the source tree. Add an `ICM/routes.json` entry when the Ask JARVIS console should route requests to a project; discovery alone does not configure that handoff.
