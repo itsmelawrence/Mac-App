@@ -11,6 +11,7 @@ struct ConnectionsView: View {
     @State private var searchResults: [ConnectionFile] = []
     @State private var isSearching = false
     @State private var errorMessage: String?
+    @State private var routeIssues: [String] = []
 
     private var vaultURL: URL { ICMRoutingService.vaultURL(configuredPath: vaultPath) }
     private var project: ConnectionProject? { projects.first { $0.id == selectedProjectID } }
@@ -118,6 +119,20 @@ struct ConnectionsView: View {
                 }
                 .padding(16)
                 .background(Color.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
+                if !routeIssues.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("ICM routes need attention", systemImage: "exclamationmark.triangle.fill")
+                            .font(.headline).foregroundStyle(.orange)
+                        ForEach(routeIssues, id: \.self) { issue in
+                            Text(issue).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Text("Update ICM/routes.json. Other projects remain available.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(Color.orange.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
+                }
                 ForEach(projects) { item in
                     Button { selectedProjectID = item.id } label: {
                         HStack(spacing: 14) {
@@ -221,7 +236,9 @@ struct ConnectionsView: View {
 
     private func reload() {
         do {
-            projects = try ConnectionsService.projects(in: vaultURL)
+            let workspace = try ConnectionsService.workspace(in: vaultURL)
+            projects = workspace.projects
+            routeIssues = workspace.routeIssues
             if !projects.contains(where: { $0.id == selectedProjectID }) { selectedProjectID = nil }
             selectedFile = nil
             searchResults = []
@@ -229,6 +246,7 @@ struct ConnectionsView: View {
             errorMessage = nil
         } catch {
             projects = []
+            routeIssues = []
             errorMessage = error.localizedDescription
         }
     }

@@ -50,7 +50,7 @@ struct ConnectionsServiceTests {
             try manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try contents.write(to: url, atomically: true, encoding: .utf8)
         }
-        let registeredGit = vault.appendingPathComponent("Personal/ChatGPT/Mac App/.git")
+        let registeredGit = vault.appendingPathComponent("Personal/Mac App/.git")
         try manager.createDirectory(at: registeredGit, withIntermediateDirectories: true)
 
         let projects = try ConnectionsService.projects(in: vault)
@@ -63,13 +63,40 @@ struct ConnectionsServiceTests {
         #expect(!projects.contains { $0.route.projectPath.contains("node_modules") })
     }
 
+    @Test func brokenRoutesAreReportedWithoutHidingOtherProjects() throws {
+        let vault = try fixture()
+        defer { try? FileManager.default.removeItem(at: vault) }
+        let site = vault.appendingPathComponent("Personal/Apps/Site/index.html")
+        try FileManager.default.createDirectory(at: site.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "<!doctype html>".write(to: site, atomically: true, encoding: .utf8)
+        let manifest = ICMManifest(version: 1, routes: [
+            ICMRoute(id: "jarvis", name: "JARVIS", aliases: [], projectPath: "Personal/Mac App",
+                     contextPath: "Notes/Projects/Personal/Mac App/PROJECT.md",
+                     graphPath: "Graphify/JARVIS", entrypoints: [], graphNotes: []),
+            ICMRoute(id: "moved", name: "Moved", aliases: [], projectPath: "Personal/ChatGPT/Moved",
+                     contextPath: "Notes/Projects/Personal/ChatGPT/Moved/PROJECT.md",
+                     graphPath: "Graphify/Moved", entrypoints: [], graphNotes: []),
+            ICMRoute(id: "unsafe", name: "Unsafe", aliases: [], projectPath: "Personal/Apps",
+                     contextPath: "../outside.md", graphPath: "Graphify/Apps", entrypoints: [], graphNotes: [])
+        ])
+        try JSONEncoder().encode(manifest).write(to: vault.appendingPathComponent("ICM/routes.json"))
+
+        let workspace = try ConnectionsService.workspace(in: vault)
+        #expect(workspace.routeIssues == [
+            "Moved: The routed project folder is missing: Personal/ChatGPT/Moved.",
+            "Unsafe: The ICM routes file contains an unsafe path: ../outside.md."
+        ])
+        #expect(workspace.projects.filter(\.isRegistered).map(\.name) == ["JARVIS"])
+        #expect(workspace.projects.contains { !$0.isRegistered && $0.route.projectPath == "Personal/Apps/Site" })
+    }
+
     private func fixture() throws -> URL {
         let vault = FileManager.default.temporaryDirectory.appendingPathComponent("jarvis-connections-\(UUID().uuidString)")
         let files: [String: String] = [
             "CONTEXT.md": "# Router",
-            "Personal/ChatGPT/Mac App/Sources/TodayView.swift": "// source",
-            "Personal/ChatGPT/Mac App/.build/generated.txt": "ignored",
-            "Notes/Projects/Personal/ChatGPT/Mac App/PROJECT.md": "# Project",
+            "Personal/Mac App/Sources/TodayView.swift": "// source",
+            "Personal/Mac App/.build/generated.txt": "ignored",
+            "Notes/Projects/Personal/Mac App/PROJECT.md": "# Project",
             "Graphify/JARVIS/TodayView.swift.md": "---\nsource_file: \"Sources/TodayView.swift\"\n---\n## Connections\n- [[Graphify/JARVIS/CommandPanel|CommandPanel]] - `contains` [EXTRACTED]",
             "Graphify/JARVIS/CommandPanel.md": "# CommandPanel"
         ]
@@ -80,8 +107,8 @@ struct ConnectionsServiceTests {
         }
         let manifest = ICMManifest(version: 1, routes: [
             ICMRoute(id: "jarvis", name: "JARVIS", aliases: ["Mac App"],
-                     projectPath: "Personal/ChatGPT/Mac App",
-                     contextPath: "Notes/Projects/Personal/ChatGPT/Mac App/PROJECT.md",
+                     projectPath: "Personal/Mac App",
+                     contextPath: "Notes/Projects/Personal/Mac App/PROJECT.md",
                      graphPath: "Graphify/JARVIS", entrypoints: [], graphNotes: [])
         ])
         let url = vault.appendingPathComponent("ICM/routes.json")

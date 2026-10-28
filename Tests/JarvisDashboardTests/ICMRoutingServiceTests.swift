@@ -29,7 +29,7 @@ struct ICMRoutingServiceTests {
         let result = try ICMRoutingService.prepare(prompt: "Fix JARVIS", vaultURL: vault)
         let route = try #require(result).route
         let file = try ICMRoutingService.capture(prompt: "Fix JARVIS", route: route, vaultURL: vault)
-        #expect(file.path.contains("Memory/01_intake/Personal/ChatGPT/Mac App/"))
+        #expect(file.path.contains("Memory/01_intake/Personal/Mac App/"))
         #expect(try String(contentsOf: file, encoding: .utf8).contains("Fix JARVIS"))
     }
 
@@ -43,7 +43,7 @@ struct ICMRoutingServiceTests {
             prompt: "Fix JARVIS", route: route, rawPromptURL: raw, vaultURL: vault
         )
         let contents = try String(contentsOf: activity, encoding: .utf8)
-        #expect(activity.path.contains("Notes/Projects/Personal/ChatGPT/Mac App/Activities/"))
+        #expect(activity.path.contains("Notes/Projects/Personal/Mac App/Activities/"))
         #expect(contents.contains("status: requested"))
         #expect(contents.contains("Raw prompt: [[Memory/01_intake/"))
         #expect(contents.contains("Pending agent work."))
@@ -53,11 +53,11 @@ struct ICMRoutingServiceTests {
         let vault = FileManager.default.temporaryDirectory.appendingPathComponent("jarvis-icm-\(UUID().uuidString)")
         let files: [String: String] = [
             "CONTEXT.md": "# Router",
-            "Personal/ChatGPT/Mac App/Sources/ProjectsView.swift": "// source",
+            "Personal/Mac App/Sources/ProjectsView.swift": "// source",
             "Personal/Skeema/LawrencePortfolio1/routes/web.php": "<?php",
             "Memory/03_references/JARVIS.md": "# JARVIS",
             "Memory/03_references/LawrencePortfolio.md": "# Portfolio",
-            "Notes/Projects/Personal/ChatGPT/Mac App/PROJECT.md": "# JARVIS",
+            "Notes/Projects/Personal/Mac App/PROJECT.md": "# JARVIS",
             "Notes/Projects/Personal/Skeema/LawrencePortfolio1/PROJECT.md": "# Portfolio",
             "Graphify/JARVIS/ProjectsView.swift.md": "# ProjectsView",
         ]
@@ -68,7 +68,7 @@ struct ICMRoutingServiceTests {
         }
         let routes = ICMManifest(version: 1, routes: [
             ICMRoute(id: "jarvis", name: "JARVIS", aliases: ["Mac App"],
-                     projectPath: "Personal/ChatGPT/Mac App", contextPath: "Notes/Projects/Personal/ChatGPT/Mac App/PROJECT.md",
+                     projectPath: "Personal/Mac App", contextPath: "Notes/Projects/Personal/Mac App/PROJECT.md",
                      graphPath: "Graphify/JARVIS", entrypoints: ["Sources/ProjectsView.swift"],
                      graphNotes: ["ProjectsView.swift.md"]),
             ICMRoute(id: "portfolio", name: "LawrencePortfolio", aliases: ["portfolio"],

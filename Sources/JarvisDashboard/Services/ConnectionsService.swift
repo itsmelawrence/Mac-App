@@ -15,6 +15,12 @@ struct ConnectionProject: Identifiable, Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
+struct ConnectionsWorkspace {
+    let projects: [ConnectionProject]
+    /// Registered routes that could not be opened, described for display.
+    let routeIssues: [String]
+}
+
 struct ConnectionFile: Identifiable, Hashable {
     let url: URL
     let relativePath: String
@@ -49,28 +55,40 @@ enum ConnectionsService {
     ])
 
     static func projects(in vaultURL: URL) throws -> [ConnectionProject] {
+        try workspace(in: vaultURL).projects
+    }
+
+    /// A stale or unsafe route is reported and skipped so it cannot hide the rest of the vault.
+    static func workspace(in vaultURL: URL) throws -> ConnectionsWorkspace {
         let manifestURL = vaultURL.appendingPathComponent("ICM/routes.json")
         guard FileManager.default.fileExists(atPath: vaultURL.appendingPathComponent("CONTEXT.md").path),
               let data = try? Data(contentsOf: manifestURL),
               let manifest = try? JSONDecoder().decode(ICMManifest.self, from: data),
               manifest.version == 1 else { throw ICMRoutingError.invalidVault }
 
-        let registered = try manifest.routes.map { route in
-            let root = try containedURL(route.projectPath, under: vaultURL)
-            let context = try containedURL(route.contextPath, under: vaultURL)
-            let graph = try containedURL(route.graphPath, under: vaultURL)
-            guard isDirectory(root) else { throw ICMRoutingError.missingProject(route.projectPath) }
-            return ConnectionProject(route: route, rootURL: root, contextURL: context,
-                                     graphURL: graph, isRegistered: true)
+        var registered: [ConnectionProject] = []
+        var routeIssues: [String] = []
+        for route in manifest.routes {
+            do {
+                let root = try containedURL(route.projectPath, under: vaultURL)
+                let context = try containedURL(route.contextPath, under: vaultURL)
+                let graph = try containedURL(route.graphPath, under: vaultURL)
+                guard isDirectory(root) else { throw ICMRoutingError.missingProject(route.projectPath) }
+                registered.append(ConnectionProject(route: route, rootURL: root, contextURL: context,
+                                                    graphURL: graph, isRegistered: true))
+            } catch {
+                routeIssues.append("\(route.name): \(error.localizedDescription)")
+            }
         }
-        let registeredPaths = Set(manifest.routes.map(\.projectPath))
-        return (registered + discoveredProjects(in: vaultURL, excluding: registeredPaths))
+        let registeredPaths = Set(registered.map(\.route.projectPath))
+        let projects = (registered + discoveredProjects(in: vaultURL, excluding: registeredPaths))
             .sorted {
                 let byName = $0.name.localizedStandardCompare($1.name)
                 return byName == .orderedSame
                     ? $0.route.projectPath < $1.route.projectPath
                     : byName == .orderedAscending
             }
+        return ConnectionsWorkspace(projects: projects, routeIssues: routeIssues)
     }
 
     private static func discoveredProjects(in vaultURL: URL, excluding registeredPaths: Set<String>) -> [ConnectionProject] {
