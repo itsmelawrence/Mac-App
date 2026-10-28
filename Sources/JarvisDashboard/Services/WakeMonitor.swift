@@ -3,8 +3,9 @@ import Foundation
 
 @MainActor
 final class WakeMonitor: ObservableObject {
-    private var sleepObserver: NSObjectProtocol?
-    private var wakeObserver: NSObjectProtocol?
+    // Only written on the main actor in start(); deinit reads them once nothing else can.
+    nonisolated(unsafe) private var sleepObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var wakeObserver: NSObjectProtocol?
     private var lastSleepDate: Date?
     private var onWake: ((TimeInterval) -> Void)?
 

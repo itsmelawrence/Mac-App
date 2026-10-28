@@ -6,6 +6,7 @@ final class BriefingPanelController {
     static let shared = BriefingPanelController()
 
     private var panel: NSPanel?
+    private var closeObserver: NSObjectProtocol?
 
     func show(reason: AppState.BriefingReason, message: String? = nil) {
         panel?.close()
@@ -36,6 +37,14 @@ final class BriefingPanelController {
         panel.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
         self.panel = panel
+
+        // The title-bar close button bypasses "Dismiss"; any close must also stop the voice.
+        if let closeObserver { NotificationCenter.default.removeObserver(closeObserver) }
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: panel, queue: .main
+        ) { _ in
+            Task { @MainActor in SpeechService.shared.stop() }
+        }
 
         if reason == .wake {
             SpeechService.shared.speakWakeBriefing(displayMessage)

@@ -4,8 +4,6 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var backupCoordinator: BackupCoordinator
-    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         NavigationSplitView {
@@ -33,9 +31,7 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(WindowFirstPaintConfigurator())
-        .task {
-            await backupCoordinator.runAutomaticBackups(context: modelContext)
-        }
+        // Automatic backups run in AppCoordinator, so they continue with this window closed.
     }
 }
 

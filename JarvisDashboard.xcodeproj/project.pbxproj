@@ -19,6 +19,7 @@
 		21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */; };
 		2300284192FBE27A0396330F /* PhilippineForecastService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */; };
 		29BF022C497B29BF6FCECD19 /* ICMRoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E0231110CC215074D454FD /* ICMRoutingService.swift */; };
+		2BB7E43B446F0EE57B3508CF /* AppCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */; };
 		302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */; };
 		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
 		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
@@ -38,6 +39,7 @@
 		51A37F652CB4E6DFB044CB05 /* MotivationalQuoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED09AD3EE3606647297A1CE /* MotivationalQuoteService.swift */; };
 		526C07236D21430724B76E16 /* WeatherSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */; };
 		54164EBA15AF7AC20428D114 /* GraphifyHTMLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31A6FFE0E92B946FC556DA5 /* GraphifyHTMLService.swift */; };
+		569AEE7D62A1EA12E7D0FEE5 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA3014E40B3E1BB04A5051C /* AppCoordinator.swift */; };
 		58435D26AD40A47D83E67778 /* PhilippineWeatherMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD5538F71885821F15EBBAB /* PhilippineWeatherMapView.swift */; };
 		5942F2D1ECDF49474F263900 /* ProjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546651AFED44CD38B196EC04 /* ProjectStore.swift */; };
 		5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129B4602808BAD0764F88928 /* AppStateTests.swift */; };
@@ -84,6 +86,7 @@
 		EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */; };
 		F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */; };
 		F8A0C0E00BBBEB1B54682D53 /* MapTilerKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */; };
+		FB0EA75949B541527829E816 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C18399618DAAD944A957B81 /* StoreRecoveryView.swift */; };
 		FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */; };
 /* End PBXBuildFile section */
 
@@ -104,6 +107,7 @@
 		129B4602808BAD0764F88928 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		12DF1F9E077E514D300D8146 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICMRoutingServiceTests.swift; sourceTree = "<group>"; };
+		28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinatorTests.swift; sourceTree = "<group>"; };
 		2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIServiceTests.swift; sourceTree = "<group>"; };
 		2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryServiceTests.swift; sourceTree = "<group>"; };
@@ -114,6 +118,7 @@
 		39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringSiteCredentialStore.swift; sourceTree = "<group>"; };
 		3B1676D6679B29E4122F6E3E /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
 		3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueEngineTests.swift; sourceTree = "<group>"; };
+		3CA3014E40B3E1BB04A5051C /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPIService.swift; sourceTree = "<group>"; };
 		3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupServiceTests.swift; sourceTree = "<group>"; };
 		42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDataSchema.swift; sourceTree = "<group>"; };
@@ -121,6 +126,7 @@
 		498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryService.swift; sourceTree = "<group>"; };
 		49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapTilerWeatherBasemap.swift; sourceTree = "<group>"; };
 		4B5CE0FDBA8DE9E552D78301 /* VaultMaintenanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultMaintenanceService.swift; sourceTree = "<group>"; };
+		4C18399618DAAD944A957B81 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
 		502CF415AA5F7F5A9D0D8160 /* VaultMaintenanceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultMaintenanceServiceTests.swift; sourceTree = "<group>"; };
 		5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastService.swift; sourceTree = "<group>"; };
 		546651AFED44CD38B196EC04 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
@@ -196,6 +202,7 @@
 				3B1676D6679B29E4122F6E3E /* ProjectsView.swift */,
 				929151532C0ADDCF47913F8B /* RootView.swift */,
 				7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */,
+				4C18399618DAAD944A957B81 /* StoreRecoveryView.swift */,
 				2EE0303E41DC4C80F1F68571 /* TasksView.swift */,
 				12DF1F9E077E514D300D8146 /* TodayView.swift */,
 				6E2ACC1A3C15A094D6D8FBCC /* WeatherFocusDashboardView.swift */,
@@ -236,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				7BBA6E94BC0D75E977D137E6 /* AlertReliabilityTests.swift */,
+				28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */,
 				129B4602808BAD0764F88928 /* AppStateTests.swift */,
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
 				7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */,
@@ -266,6 +274,7 @@
 		A33DD5C0F3D99F2A66A990D5 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				3CA3014E40B3E1BB04A5051C /* AppCoordinator.swift */,
 				C39902BB88D836CA9896FAE1 /* AppState.swift */,
 			);
 			path = App;
@@ -443,6 +452,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				78F1CAAC879FF1DCB34A8794 /* AlertReliabilityTests.swift in Sources */,
+				2BB7E43B446F0EE57B3508CF /* AppCoordinatorTests.swift in Sources */,
 				5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */,
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
 				42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */,
@@ -474,6 +484,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1821F8301E67E4E27BBAD5DD /* AnimatedWeatherGlyph.swift in Sources */,
+				569AEE7D62A1EA12E7D0FEE5 /* AppCoordinator.swift in Sources */,
 				86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */,
 				EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */,
 				721999F6EF250D7B692A3EDF /* BriefingComposer.swift in Sources */,
@@ -514,6 +525,7 @@
 				73E90DA7F5A420582754AF22 /* SavedLocation.swift in Sources */,
 				E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */,
 				C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */,
+				FB0EA75949B541527829E816 /* StoreRecoveryView.swift in Sources */,
 				1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */,
 				A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */,
 				723C92172AE5B40FB9FA3BBD /* TaskStore.swift in Sources */,
@@ -574,7 +586,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -595,7 +607,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.25;
+				MARKETING_VERSION = 0.2.26;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -712,7 +724,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -727,7 +739,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.25;
+				MARKETING_VERSION = 0.2.26;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
