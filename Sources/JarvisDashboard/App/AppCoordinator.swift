@@ -57,5 +57,6 @@ final class AppCoordinator {
         let backups = backupCoordinator
         tasks.append(Task { await backups.runAutomaticBackups(context: context) })
         tasks.append(Task.detached(priority: .background) { await VaultMaintenanceService.runWhileAppIsOpen() })
+        tasks.append(Task.detached(priority: .utility) { await PromptCaptureService.runWhileAppIsOpen() })
     }
 }

@@ -19,7 +19,12 @@ enum VaultMaintenanceService {
     }
 
     /// Runs the script and returns its exit status and combined output. Blocks; call off the main actor.
-    static func run(script: URL, arguments: [String] = [], python: URL = URL(fileURLWithPath: "/usr/bin/python3")) throws -> (status: Int32, output: String) {
+    /// A run longer than `timeout` is terminated, so a hung script (e.g. a stalled network
+    /// folder) cannot block the caller's loop forever.
+    static func run(
+        script: URL, arguments: [String] = [], timeout: TimeInterval = 600,
+        python: URL = URL(fileURLWithPath: "/usr/bin/python3")
+    ) throws -> (status: Int32, output: String) {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = python
@@ -31,8 +36,11 @@ enum VaultMaintenanceService {
         process.standardOutput = pipe
         process.standardError = pipe
         try process.run()
+        let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
+        DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: watchdog)
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
+        watchdog.cancel()
         return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
     }
 
