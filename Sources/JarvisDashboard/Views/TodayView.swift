@@ -330,13 +330,23 @@ struct TodayView: View {
         }
     }
 
+    private func reviewDotColor(_ level: String?) -> Color {
+        switch level {
+        case "urgent": .red
+        case "soon": .orange
+        case "info": .secondary
+        default: .cyan
+        }
+    }
+
     private var dailyReviewCard: some View {
         CommandPanel(title: "Daily review", systemImage: "list.bullet.clipboard") {
             if let review = dailyReview.review {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array(review.summary.enumerated()), id: \.offset) { _, line in
+                    ForEach(Array(review.summary.enumerated()), id: \.offset) { index, line in
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Circle().fill(.cyan).frame(width: 5, height: 5).alignmentGuide(.firstTextBaseline) { $0[.bottom] + 1 }
+                            Circle().fill(reviewDotColor(review.level(at: index))).frame(width: 6, height: 6)
+                                .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 1 }
                             Text(line).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                         }
                     }

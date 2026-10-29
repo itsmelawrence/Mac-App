@@ -38,6 +38,13 @@ struct DailyReviewServiceTests {
         #expect(review.counts.sitesDown == 1 && review.counts.proposals == 1)
         #expect(review.sourceLine == "Facts only: the local model isn't running")
         #expect(review.proposals.first?.status == "awaiting_approval")
+        #expect(review.level(at: 0) == nil)  // a review from before 0.2.47 has no levels
+    }
+
+    @Test func readsEachBulletsUrgency() throws {
+        let withLevels = Self.reply.replacingOccurrences(of: "\"summary_source\"", with: "\"levels\": [\"urgent\", \"info\"], \"summary_source\"")
+        let review = try DailyReview.decoder.decode(DailyReview.self, from: Data(withLevels.utf8))
+        #expect(review.level(at: 0) == "urgent" && review.level(at: 1) == "info" && review.level(at: 2) == nil)
     }
 
     @Test func runningRecordsTheDayKeepsTheReviewAndAnnouncesItOnce() async throws {

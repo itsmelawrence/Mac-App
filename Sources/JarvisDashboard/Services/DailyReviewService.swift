@@ -23,11 +23,19 @@ struct DailyReview: Decodable, Equatable, Sendable {
     let generatedAt: Date
     let note: String
     let summary: [String]
+    /// Each bullet's urgency (`urgent`, `soon`, `info`), decided by the script from the facts it names.
+    /// Missing in reviews written before 0.2.47.
+    let levels: [String]?
     let summarySource: String
     let model: String?
     let fallbackReason: String?
     let counts: Counts
     let proposals: [Proposal]
+
+    func level(at index: Int) -> String? {
+        guard let levels, levels.indices.contains(index) else { return nil }
+        return levels[index]
+    }
 
     var sourceLine: String {
         if summarySource == "model", let model { return "Written by \(model) from today's facts" }
