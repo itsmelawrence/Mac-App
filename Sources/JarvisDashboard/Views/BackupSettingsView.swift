@@ -18,55 +18,56 @@ struct BackupSettingsView: View {
 
     private let service = JarvisBackupService()
 
+    /// Two form sections: automatic backups, then export and restore.
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Export includes tasks, projects, saved locations, and non-secret preferences. API keys, monitoring tokens, and reporter tokens are never included.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack {
-                Button("Export Data…") { exportData() }
-                Button("Import or Restore…") { showingImporter = true }
-                Spacer()
-                if let lastBackupAt {
-                    Text("Last backup: \(lastBackupAt.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("No automatic backup yet")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        Group {
+            Section {
+                LabeledContent("Last backup") {
+                    HStack(spacing: 10) {
+                        Text(lastBackupAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "None yet")
+                            .foregroundStyle(.secondary)
+                        Button("Back Up Now") { backUpNow() }
+                    }
                 }
+                LabeledContent("Folder") {
+                    HStack(spacing: 10) {
+                        Text(backupFolder)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                            .help(backupFolder)
+                        Button("Change…") { chooseFolder() }
+                        Button("Show in Finder", systemImage: "folder") { revealBackups() }
+                            .labelStyle(.iconOnly)
+                            .help("Show in Finder")
+                    }
+                }
+                Stepper(value: $retentionCount, in: 1...60) {
+                    Text("Keep the last \(retentionCount) backups")
+                }
+                if let statusMessage {
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(isError ? .red : .secondary)
+                }
+            } header: {
+                Text("Backups")
+            } footer: {
+                Text("JARVIS creates a snapshot once per day and before data-schema migrations.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
-            Divider()
-
-            LabeledContent("Backup folder") {
-                Text(backupFolder)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .frame(maxWidth: 330, alignment: .trailing)
-            }
-
-            HStack {
-                Button("Back Up Now") { backUpNow() }
-                Button("Choose Folder…") { chooseFolder() }
-                Button("Reveal in Finder") { revealBackups() }
-                Spacer()
-                Stepper("Keep \(retentionCount) backups", value: $retentionCount, in: 1...60)
-                    .frame(width: 190)
-            }
-
-            Text("JARVIS creates a snapshot once per day and before data-schema migrations. Restoring on another Mac requires you to reconnect local repositories and re-enter all API and reporter tokens.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if let statusMessage {
-                Text(statusMessage)
-                    .font(.caption)
-                    .foregroundStyle(isError ? .red : .secondary)
+            Section {
+                HStack {
+                    Button("Export Data…") { exportData() }
+                    Button("Import or Restore…") { showingImporter = true }
+                    Spacer()
+                }
+            } header: {
+                Text("Export and restore")
+            } footer: {
+                Text("Exports include tasks, projects, saved locations, and non-secret preferences. API keys are never included: restoring on another Mac means re-entering them and reconnecting local repositories.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
         .onAppear { refreshState() }
@@ -184,7 +185,7 @@ struct BackupSettingsView: View {
 
     private func refreshState() {
         lastBackupAt = UserDefaults.standard.object(forKey: "backup.lastBackupAt") as? Date
-        backupFolder = (try? service.backupFolderURL().path) ?? "Unavailable"
+        backupFolder = (try? service.backupFolderURL().path).map { ($0 as NSString).abbreviatingWithTildeInPath } ?? "Unavailable"
     }
 
     private func showStatus(_ message: String) {
