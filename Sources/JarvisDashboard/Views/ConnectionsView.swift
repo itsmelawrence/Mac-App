@@ -14,11 +14,33 @@ struct ConnectionsView: View {
     @State private var routeIssues: [String] = []
     @State private var health: VaultHealth?
     @State private var isReloading = false
+    @State private var mappedIDs: Set<String> = []
+    @State private var scope = CortexScope.all
+    @State private var searchText = ""
+    @State private var collapsedGroups: Set<String> = []
+    @State private var showingVaultIssues = false
 
     private var vaultURL: URL { ICMRoutingService.vaultURL(configuredPath: vaultPath) }
     private var project: ConnectionProject? { projects.first { $0.id == selectedProjectID } }
 
     var body: some View {
+        Group {
+            if errorMessage == nil, !projects.isEmpty, project == nil {
+                overview
+            } else {
+                compactLayout
+            }
+        }
+        .navigationTitle("Cortex")
+        .onAppear(perform: reload)
+        .onChange(of: vaultPath) { _, _ in reload() }
+        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+            if selectedProjectID == nil { reload() }
+        }
+    }
+
+    /// Errors, the empty state, and a selected project's split view.
+    private var compactLayout: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -44,15 +66,7 @@ struct ConnectionsView: View {
                     detail(for: project)
                         .frame(minWidth: 450)
                 }
-            } else {
-                overview
             }
-        }
-        .navigationTitle("Cortex")
-        .onAppear(perform: reload)
-        .onChange(of: vaultPath) { _, _ in reload() }
-        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
-            if selectedProjectID == nil { reload() }
         }
     }
 
@@ -107,64 +121,160 @@ struct ConnectionsView: View {
         .padding(16)
     }
 
+    // MARK: Overview
+
     private var overview: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Workspace map").font(.title3.bold())
-                Text("\(projects.count) projects found · choose one to inspect its source tree and connections.")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    Image(systemName: "square.stack.3d.up.fill").foregroundStyle(.cyan)
-                    Text("Obsidian Projects vault").font(.headline)
-                    Spacer()
-                    Button("Open vault") { NSWorkspace.shared.open(vaultURL) }
-                }
-                .padding(16)
-                .background(Color.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
-                if let health { healthCard(health) }
-                if !routeIssues.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("ICM routes need attention", systemImage: "exclamationmark.triangle.fill")
-                            .font(.headline).foregroundStyle(.orange)
-                        ForEach(routeIssues, id: \.self) { issue in
-                            Text(issue).font(.caption).foregroundStyle(.secondary)
-                        }
-                        Text("Update ICM/routes.json. Other projects remain available.")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color.orange.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
-                }
-                ForEach(projects) { item in
-                    Button { selectedProjectID = item.id } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "point.3.connected.trianglepath.dotted")
-                                .font(.title2).foregroundStyle(.cyan)
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(item.name).font(.headline)
-                                Text(item.route.projectPath).font(.caption).foregroundStyle(.secondary)
-                                Text(item.isRegistered ? "ICM route" : "Discovered from vault")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                                Text(FileManager.default.fileExists(atPath: item.graphURL.path)
-                                     ? "Graphify export available" : "No Graphify export yet")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right").foregroundStyle(.secondary)
-                        }
-                        .padding(16)
-                        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
-                }
+            VStack(alignment: .leading, spacing: 26) {
+                overviewHeader
+                statusRail
+                listSection
                 Text("Projects under Work and Personal appear automatically when they contain a source marker such as Git, a project manifest, or an index file. ICM/routes.json adds command handoff context. Each project view omits hidden, generated and dependency folders.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            .padding(22)
-            .frame(maxWidth: 800, alignment: .leading)
+            .padding(.horizontal, 36)
+            .padding(.vertical, 32)
+            .frame(maxWidth: 1_180)
             .frame(maxWidth: .infinity)
         }
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.012, green: 0.028, blue: 0.052), Color(nsColor: .windowBackgroundColor)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
+        .searchable(text: $searchText, prompt: "Search projects or paths")
+    }
+
+    private var overviewHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Cortex")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                Text("\(projects.count) projects · \(mappedIDs.count) mapped · \(projects.count - mappedIDs.count) without a map")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            vaultCapsule
+            Button("Open Vault", systemImage: "square.stack.3d.up") { NSWorkspace.shared.open(vaultURL) }
+            Button("Refresh", systemImage: "arrow.clockwise", action: reload)
+                .labelStyle(.iconOnly)
+                .disabled(isReloading)
+                .help("Rescan the vault")
+        }
+    }
+
+    private var statusRail: some View {
+        let registered = projects.filter(\.isRegistered).count
+        return HStack(spacing: 0) {
+            ProjectMetric(title: "Projects", value: "\(projects.count)", tint: .primary)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Mapped by Graphify", value: "\(mappedIDs.count)",
+                          tint: mappedIDs.isEmpty ? .secondary : .cyan)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Without a map", value: "\(projects.count - mappedIDs.count)", tint: .secondary)
+            ProjectMetricDivider()
+            ProjectMetric(title: "ICM routes", value: "\(registered)", tint: registered > 0 ? .primary : .secondary)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Vault checked",
+                          value: health.map { $0.checkedAt.formatted(.relative(presentation: .named)) } ?? "—",
+                          tint: vaultIsStale ? .orange : .secondary)
+        }
+        .padding(.vertical, 18)
+        .projectSurface(cornerRadius: 16)
+    }
+
+    private var listSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                ForEach(CortexScope.allCases) { item in
+                    CortexScopeChip(scope: item, count: count(for: item), isSelected: scope == item) {
+                        scope = item
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            let groups = visibleGroups
+            if groups.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "magnifyingglass").font(.system(size: 32)).foregroundStyle(.tertiary)
+                    Text("No matching projects").font(.headline)
+                    Text("Try a broader search or another filter.").font(.subheadline).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 220)
+                .projectSurface(cornerRadius: 16)
+            } else {
+                ForEach(groups) { group in
+                    groupSection(group)
+                }
+            }
+        }
+    }
+
+    private func groupSection(_ group: CortexGroup) -> some View {
+        let isCollapsed = collapsedGroups.contains(group.id) && searchText.isEmpty
+        return VStack(alignment: .leading, spacing: 8) {
+            Button {
+                if collapsedGroups.contains(group.id) { collapsedGroups.remove(group.id) } else { collapsedGroups.insert(group.id) }
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                    Text(group.title.uppercased())
+                        .font(.caption.weight(.semibold))
+                    Text("\(group.projects.count)")
+                        .font(.caption.monospacedDigit())
+                    Spacer()
+                }
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if !isCollapsed {
+                VStack(spacing: 0) {
+                    ForEach(Array(group.projects.enumerated()), id: \.element.id) { index, item in
+                        if index > 0 { Divider().padding(.leading, 46) }
+                        CortexProjectRow(project: item, isMapped: mappedIDs.contains(item.id)) {
+                            selectedProjectID = item.id
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+                .projectSurface(cornerRadius: 14)
+            }
+        }
+    }
+
+    /// Grouped by the folder above each project (Work/Pixeld, Personal, …): Work first, then Personal.
+    /// Within a group, mapped projects lead because they have a synapse map to explore.
+    private var visibleGroups: [CortexGroup] {
+        let filtered = projects.filter { item in
+            scope.matches(item, isMapped: mappedIDs.contains(item.id))
+                && (searchText.isEmpty
+                    || item.name.localizedCaseInsensitiveContains(searchText)
+                    || item.route.projectPath.localizedCaseInsensitiveContains(searchText))
+        }
+        return Dictionary(grouping: filtered) { CortexGroup.key(for: $0.route.projectPath) }
+            .map { key, items in
+                CortexGroup(id: key, projects: items.sorted { lhs, rhs in
+                    let lhsMapped = mappedIDs.contains(lhs.id), rhsMapped = mappedIDs.contains(rhs.id)
+                    if lhsMapped != rhsMapped { return lhsMapped }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                })
+            }
+            .sorted { lhs, rhs in
+                let lhsWork = lhs.id.hasPrefix("Work"), rhsWork = rhs.id.hasPrefix("Work")
+                if lhsWork != rhsWork { return lhsWork }
+                return lhs.id.localizedCaseInsensitiveCompare(rhs.id) == .orderedAscending
+            }
+    }
+
+    private func count(for scope: CortexScope) -> Int {
+        projects.filter { scope.matches($0, isMapped: mappedIDs.contains($0.id)) }.count
     }
 
     private func fileButton(_ item: ConnectionFile, indent: CGFloat) -> some View {
@@ -237,34 +347,92 @@ struct ConnectionsView: View {
         }
     }
 
-    private func healthCard(_ health: VaultHealth) -> some View {
-        let isStale = Date.now.timeIntervalSince(health.checkedAt) > 86_400
-        let tint: Color = health.errors > 0 ? .red : health.warnings > 0 || isStale ? .orange : .green
-        let title = health.errors > 0 ? "Vault needs attention"
-            : health.warnings > 0 ? "Vault health: warnings" : "Vault healthy"
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label(title, systemImage: health.errors > 0 ? "xmark.octagon.fill"
-                      : health.warnings > 0 ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
-                    .font(.headline).foregroundStyle(tint)
-                Spacer()
-                Button("Open report") {
-                    NSWorkspace.shared.open(vaultURL.appendingPathComponent(VaultHealth.reportPath))
+    // MARK: Vault health
+
+    private var vaultIsStale: Bool {
+        health.map { Date.now.timeIntervalSince($0.checkedAt) > 86_400 } ?? false
+    }
+
+    private var vaultIssues: [VaultHealth.Issue] {
+        health?.issues.filter { $0.level != "info" } ?? []
+    }
+
+    /// The doctor's verdict as one capsule; its issues and route problems open in a popover.
+    private var vaultCapsule: some View {
+        let errors = health?.errors ?? 0
+        let warnings = (health?.warnings ?? 0) + routeIssues.count
+        let (title, image, tint): (String, String, Color) =
+            if health == nil && routeIssues.isEmpty {
+                ("No vault report", "questionmark.circle", .secondary)
+            } else if errors > 0 {
+                ("\(errors) vault error\(errors == 1 ? "" : "s")", "xmark.octagon.fill", .red)
+            } else if warnings > 0 {
+                ("\(warnings) vault warning\(warnings == 1 ? "" : "s")", "exclamationmark.triangle.fill", .orange)
+            } else if vaultIsStale {
+                ("Vault report is stale", "clock.badge.exclamationmark", .orange)
+            } else {
+                ("Vault healthy", "checkmark.seal.fill", .green)
+            }
+        return Button { showingVaultIssues = true } label: {
+            Label(title, systemImage: image)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(tint)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(tint.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showingVaultIssues, arrowEdge: .bottom) { vaultPopover }
+    }
+
+    private var vaultPopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let health {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Vault health").font(.headline)
+                    Text("\(health.errors) errors · \(health.warnings) warnings · checked \(health.checkedAt.formatted(.relative(presentation: .named)))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if vaultIsStale {
+                    Text("This report is over a day old. Check that the vault-maintenance job is running.")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+                ForEach(vaultIssues, id: \.self) { issue in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: issue.level == "error" ? "xmark.octagon.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(issue.level == "error" ? .red : .orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(issue.check).font(.caption.weight(.semibold))
+                            Text(issue.message).font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            } else {
+                Text("No vault health report was found. The vault doctor writes ICM/health.json.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if !routeIssues.isEmpty {
+                Divider()
+                Label("ICM routes need attention", systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.orange)
+                ForEach(routeIssues, id: \.self) { issue in
+                    Text(issue).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text("Update ICM/routes.json. Other projects remain available.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            if health != nil {
+                HStack {
+                    Spacer()
+                    Button("Open Report") {
+                        NSWorkspace.shared.open(vaultURL.appendingPathComponent(VaultHealth.reportPath))
+                    }
                 }
             }
-            Text("\(health.errors) errors · \(health.warnings) warnings · checked \(health.checkedAt.formatted(.relative(presentation: .named)))")
-                .font(.caption).foregroundStyle(.secondary)
-            ForEach(health.issues.filter { $0.level != "info" }.prefix(3), id: \.self) { issue in
-                Text("\(issue.check): \(issue.message)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
-            if isStale {
-                Text("This report is over a day old. Check that the vault-maintenance job is running.")
-                    .font(.caption2).foregroundStyle(.orange)
-            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
+        .frame(width: 440)
     }
 
     /// The vault scan (icm.py) and file reads run off the main thread; a large vault
@@ -275,13 +443,20 @@ struct ConnectionsView: View {
         let vault = vaultURL
         Task {
             let (result, latestHealth) = await Task.detached(priority: .userInitiated) {
-                let result = Result { try ConnectionsService.workspace(in: vault) }
+                let result = Result { () throws -> (ConnectionsWorkspace, Set<String>) in
+                    let workspace = try ConnectionsService.workspace(in: vault)
+                    let mapped = workspace.projects
+                        .filter { FileManager.default.fileExists(atPath: $0.graphURL.path) }
+                        .map(\.id)
+                    return (workspace, Set(mapped))
+                }
                 return (result, ConnectionsService.health(in: vault))
             }.value
             isReloading = false
             switch result {
-            case let .success(workspace):
+            case let .success((workspace, mapped)):
                 projects = workspace.projects
+                mappedIDs = mapped
                 routeIssues = workspace.routeIssues
                 health = latestHealth
                 if !projects.contains(where: { $0.id == selectedProjectID }) { selectedProjectID = nil }
@@ -346,5 +521,136 @@ private struct ConnectionTreeRow: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Overview parts
+
+enum CortexScope: String, CaseIterable, Identifiable {
+    case all, work, personal, mapped, unmapped
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .all: "All"
+        case .work: "Work"
+        case .personal: "Personal"
+        case .mapped: "Mapped"
+        case .unmapped: "No map"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .all: "square.stack.3d.up"
+        case .work: "briefcase"
+        case .personal: "person"
+        case .mapped: "point.3.connected.trianglepath.dotted"
+        case .unmapped: "circle.dashed"
+        }
+    }
+
+    func matches(_ project: ConnectionProject, isMapped: Bool) -> Bool {
+        switch self {
+        case .all: true
+        case .work: project.route.projectPath.hasPrefix("Work/")
+        case .personal: project.route.projectPath.hasPrefix("Personal/")
+        case .mapped: isMapped
+        case .unmapped: !isMapped
+        }
+    }
+}
+
+struct CortexGroup: Identifiable {
+    /// The folder path above the project, e.g. "Work/Pixeld".
+    let id: String
+    let projects: [ConnectionProject]
+
+    var title: String { id.replacingOccurrences(of: "/", with: " · ") }
+
+    static func key(for projectPath: String) -> String {
+        let parts = projectPath.split(separator: "/")
+        return parts.count > 1 ? parts.dropLast().joined(separator: "/") : "Other"
+    }
+}
+
+private struct CortexScopeChip: View {
+    let scope: CortexScope
+    let count: Int
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: scope.systemImage).font(.caption)
+                Text(scope.title).font(.subheadline.weight(isSelected ? .semibold : .regular))
+                Text("\(count)")
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .padding(.horizontal, 6).padding(.vertical, 1)
+                    .background((isSelected ? Color.cyan : Color.secondary).opacity(0.18), in: Capsule())
+            }
+            .padding(.horizontal, 13).padding(.vertical, 8)
+            .foregroundStyle(isSelected ? Color.cyan : Color.primary)
+            .background(
+                Capsule().fill(isSelected ? Color.cyan.opacity(0.14) : Color.white.opacity(isHovering ? 0.07 : 0.035))
+            )
+            .overlay(Capsule().stroke(isSelected ? Color.cyan.opacity(0.45) : Color.white.opacity(0.08)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+    }
+}
+
+/// One project as a single line. A click anywhere opens its source tree and synapse map.
+private struct CortexProjectRow: View {
+    let project: ConnectionProject
+    let isMapped: Bool
+    let onOpen: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: onOpen) {
+            HStack(spacing: 12) {
+                Image(systemName: isMapped ? "point.3.connected.trianglepath.dotted" : "circle.dashed")
+                    .font(.body)
+                    .foregroundStyle(isMapped ? Color.cyan : Color.secondary.opacity(0.6))
+                    .frame(width: 22)
+                Text(project.name)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+                Spacer(minLength: 12)
+                if project.isRegistered {
+                    badge("ICM route", tint: .purple)
+                }
+                if isMapped {
+                    badge("Mapped", tint: .cyan)
+                } else {
+                    Text("No map").font(.caption).foregroundStyle(.tertiary)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .opacity(isHovering ? 1 : 0.35)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(Color.white.opacity(isHovering ? 0.05 : 0))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .help(project.route.projectPath)
+    }
+
+    private func badge(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8).padding(.vertical, 2)
+            .background(tint.opacity(0.13), in: Capsule())
     }
 }

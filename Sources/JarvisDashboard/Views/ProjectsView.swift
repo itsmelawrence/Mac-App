@@ -709,7 +709,7 @@ private struct SiteStatusIcon: View {
     }
 }
 
-private struct ProjectMetric: View {
+struct ProjectMetric: View {
     let title: String
     let value: String
     let tint: Color
@@ -724,7 +724,7 @@ private struct ProjectMetric: View {
     }
 }
 
-private struct ProjectMetricDivider: View {
+struct ProjectMetricDivider: View {
     var body: some View { Divider().frame(height: 38) }
 }
 
@@ -1677,7 +1677,7 @@ private func websiteHost(_ urlText: String) -> String {
     return host.replacingOccurrences(of: "www.", with: "", options: .anchored) + path
 }
 
-private extension View {
+extension View {
     func projectSurface(cornerRadius: CGFloat, highlighted: Bool = false) -> some View {
         background(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
