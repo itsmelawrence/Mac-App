@@ -33,20 +33,26 @@ struct StateSnapshotServiceTests {
         #expect(snapshot.intelligence == nil)
     }
 
-    @Test func sitesAreScoredAndLinkedToTheirProject() {
+    @Test func sitesAreLinkedToTheirProject() {
         let (service, _) = makeService()
         let project = ProjectItem(name: "Clinic site")
-        project.monitoringSiteID = "site-1"
+        project.monitoringWebsiteURL = "https://example.com"
         service.recordStore(tasks: [], projects: [project], now: now)
-        let site = MonitoringSite(id: "site-1", name: "Clinic", url: "https://example.com", platform: .wordpress,
-                                  status: .down, lastCheckAt: now)
+        var record = SiteRecord(url: "https://example.com/")
+        record.record(SiteCheck(checkedAt: now.addingTimeInterval(-60), outcome: .failed, error: "HTTP 503"))
+        record.record(SiteCheck(checkedAt: now, outcome: .failed, statusCode: 503, error: "HTTP 503"))
 
-        service.recordSites(["site-1": site], now: now)
-        let entry = service.snapshot(now: now).sites?.items.first
+        service.recordSites([project.id: record], now: now)
+        let snapshot = service.snapshot(now: now)
+        let entry = snapshot.sites?.items.first
 
+        #expect(snapshot.store?.projects.first?.monitoringSiteId == project.id.uuidString)
+        #expect(entry?.siteId == project.id.uuidString)
         #expect(entry?.project == "Clinic site")
-        #expect(entry?.state == MonitoringHealth.evaluate(site: site, connected: true, now: now).label)
+        #expect(entry?.state == "Down")
         #expect(entry?.needsAttention == true)
+        #expect(entry?.downSince == now.addingTimeInterval(-60))
+        #expect(entry?.uptimePercent == 0)
     }
 
     @Test func writesPrivateSnakeCaseJSONForTheTools() throws {

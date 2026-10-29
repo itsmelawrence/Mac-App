@@ -8,7 +8,6 @@ struct JarvisCommandContext: Equatable, Sendable {
     let monitoredSites: Int
     let unhealthySites: Int
     let unverifiedSites: Int
-    let maintenanceSites: Int
     let monitoringAvailable: Bool
     let priorityTask: String?
     let blockedTaskNames: [String]
@@ -67,8 +66,7 @@ enum JarvisCommandEngine {
             if !context.blockedTaskNames.isEmpty { items.append("\(context.blockedTaskNames.count) blocked \(plural("task", context.blockedTaskNames.count))") }
             if !context.waitingProjectNames.isEmpty { items.append("\(context.waitingProjectNames.count) \(plural("project", context.waitingProjectNames.count)) waiting on a client") }
             if context.unverifiedSites > 0 { items.append("\(context.unverifiedSites) \(plural("site", context.unverifiedSites)) awaiting checks") }
-            if context.maintenanceSites > 0 { items.append("\(context.maintenanceSites) \(plural("site", context.maintenanceSites)) in maintenance") }
-            if context.monitoredSites > 0 && !context.monitoringAvailable { items.append("monitoring data is unavailable") }
+            if context.monitoredSites > 0 && !context.monitoringAvailable { items.append("site checks have not run yet") }
             let message = items.isEmpty ? "Nothing currently requires attention in the available dashboard data." : "Attention required: \(items.joined(separator: "; "))."
             return result(message)
         }
@@ -87,13 +85,12 @@ enum JarvisCommandEngine {
             return result(context.weatherReport ?? "Weather data is unavailable. Refresh Today and try again.")
         }
         if contains(input, ["site health", "sites healthy", "websites healthy", "sites down", "which sites", "how are my websites", "how are my sites", "monitoring status"]) {
-            guard context.monitoredSites > 0 else { return result("No monitored websites are connected.") }
-            guard context.monitoringAvailable else { return result("Monitoring data is unavailable. I cannot confirm whether your websites are healthy. Check the API connection in Settings.") }
+            guard context.monitoredSites > 0 else { return result("No project has a website to check. Add one in Projects.") }
+            guard context.monitoringAvailable else { return result("Site checks have not completed yet, so I cannot confirm whether your websites are up. Try again in a moment.") }
             var parts: [String] = []
             if !context.unhealthySiteNames.isEmpty { parts.append(namedSummary(context.unhealthySiteNames, empty: "", prefix: "Needs attention")) }
             if context.unverifiedSites > 0 { parts.append("\(context.unverifiedSites) \(plural("site", context.unverifiedSites)) awaiting checks.") }
-            if context.maintenanceSites > 0 { parts.append("\(context.maintenanceSites) \(plural("site", context.maintenanceSites)) in maintenance.") }
-            return result(parts.isEmpty ? "All \(context.monitoredSites) monitored websites are healthy." : parts.joined(separator: " "))
+            return result(parts.isEmpty ? "All \(context.monitoredSites) monitored websites are up." : parts.joined(separator: " "))
         }
         if let projectAnswer = projectAnswer(for: input, projects: context.projects) {
             return projectAnswer

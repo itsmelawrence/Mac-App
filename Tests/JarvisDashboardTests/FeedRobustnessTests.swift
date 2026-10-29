@@ -50,24 +50,6 @@ struct FeedRobustnessTests {
         #expect(articles.first?.link.absoluteString == "https://example.com/roads?a=1&b=2")
     }
 
-    @Test func unknownMonitoringPlatformKeepsTheSitesList() throws {
-        let data = Data(#"""
-        {"data": [
-          {"id": "s1", "name": "Shop", "url": "https://shop.example.com", "platform": "shopify"},
-          {"id": "s2", "name": "Portfolio", "url": "https://portfolio.example.com", "platform": "laravel"}
-        ]}
-        """#.utf8)
-        let sites = try MonitoringAPIService().parseSites(data: data)
-        #expect(sites.map(\.platform) == [.custom, .laravel])
-    }
-
-    @Test func downOutranksStale() {
-        let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let site = MonitoringSite(id: "s", name: "Site", url: "https://example.com", platform: .custom, status: .down,
-                                  lastCheckAt: now.addingTimeInterval(-72 * 3_600))
-        #expect(MonitoringHealth.evaluate(site: site, connected: true, now: now).state == .down)
-    }
-
     @Test func weatherDecodesNullPrecipitation() throws {
         let data = Data(#"""
         {"current": {"temperature_2m": 31.5, "apparent_temperature": 36.0, "weather_code": 3},

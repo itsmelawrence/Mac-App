@@ -88,13 +88,11 @@ struct TaskAndProjectStoreTests {
         context.insert(other)
         try context.save()
 
-        var deletedCredentials: [UUID] = []
-        try ProjectStore.delete(project, from: context) { deletedCredentials.append($0) }
+        try ProjectStore.delete(project, from: context)
 
         #expect(try context.fetch(FetchDescriptor<ProjectItem>()).isEmpty)
         #expect(linked.projectID == nil)
         #expect(try context.fetch(FetchDescriptor<TaskItem>()).count == 2)
-        #expect(deletedCredentials == [project.id])
 
         // The bug this fixes: a backup taken now must import into a store that lacks the project.
         let service = JarvisBackupService(defaults: UserDefaults(suiteName: "store-test-\(UUID().uuidString)")!)
@@ -115,15 +113,5 @@ struct TaskAndProjectStoreTests {
         let service = JarvisBackupService(defaults: UserDefaults(suiteName: "store-test-\(UUID().uuidString)")!)
         let document = try service.makeDocument(context: context)
         #expect(throws: JarvisBackupError.self) { try service.preview(document, context: try self.context()) }
-    }
-
-    @Test func credentialFailureDoesNotUndoDeletion() throws {
-        let context = try context()
-        let project = ProjectItem(name: "Old site")
-        context.insert(project)
-        try context.save()
-        struct KeychainDown: Error {}
-        try ProjectStore.delete(project, from: context) { _ in throw KeychainDown() }
-        #expect(try context.fetch(FetchDescriptor<ProjectItem>()).isEmpty)
     }
 }

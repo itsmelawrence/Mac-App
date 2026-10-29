@@ -4,9 +4,9 @@ import SwiftData
 /// What JARVIS knows, as versioned JSON for the assistant's read-only `app_*` tools
 /// (`.tools/jarvis_mcp`). The logic stays here in Swift; the tools only read the file.
 ///
-/// Tasks and projects come from the store. Site health, weather, quakes, and news exist only
-/// once a view has fetched them, so each section carries its own `as_of`: a section nobody
-/// has refreshed yet is absent rather than invented.
+/// Tasks and projects come from the store, site checks from `SiteMonitor`. Weather, quakes, and
+/// news exist only once a view has fetched them, so each section carries its own `as_of`: a
+/// section nobody has refreshed yet is absent rather than invented.
 struct StateSnapshot: Codable, Equatable {
     struct Store: Codable, Equatable {
         var asOf: Date
@@ -42,6 +42,7 @@ struct StateSnapshot: Codable, Equatable {
         var updatedAt: Date
         var isArchived: Bool
         var repositoryPath: String?
+        /// Matches the project's `SiteEntry.siteId` when it has a website.
         var monitoringSiteId: String?
         var openTasks: Int
     }
@@ -57,11 +58,7 @@ struct StateSnapshot: Codable, Equatable {
     }
 
     struct SiteEntry: Codable, Equatable {
-        struct Deduction: Codable, Equatable {
-            var points: Int
-            var reason: String
-        }
-
+        /// The project's ID: each project has at most one website.
         var siteId: String
         var name: String
         var url: String
@@ -69,14 +66,13 @@ struct StateSnapshot: Codable, Equatable {
         var project: String?
         var state: String
         var needsAttention: Bool
-        var score: Int?
-        var deductions: [Deduction]
         var lastCheck: Date?
-        var sslExpires: Date?
-        /// 30-day uptime.
+        var statusCode: Int?
+        var responseMs: Int?
+        var error: String?
+        var downSince: Date?
+        /// 30-day uptime, as a percentage.
         var uptimePercent: Double?
-        var openIncidents: Int
-        var openFindings: Int
     }
 
     struct Intelligence: Codable, Equatable {
@@ -143,7 +139,7 @@ final class StateSnapshotService {
     private let appVersion: String
     private let writeDelay: Duration
     private var store: StateSnapshot.Store?
-    private var sites: [String: MonitoringSite]?
+    private var sites: [UUID: SiteRecord]?
     private var sitesAsOf: Date?
     private var primaryWeather: WeatherSnapshot?
     private var earthquakes: [EarthquakeEvent] = []
@@ -191,14 +187,14 @@ final class StateSnapshotService {
                     progress: project.progress, nextAction: project.nextAction, due: project.dueDate,
                     updatedAt: project.updatedAt, isArchived: project.isArchived,
                     repositoryPath: project.repositoryPath.isEmpty ? nil : project.repositoryPath,
-                    monitoringSiteId: project.monitoringSiteID.isEmpty ? nil : project.monitoringSiteID,
+                    monitoringSiteId: project.hasWebsite ? project.id.uuidString : nil,
                     openTasks: tasks.count { $0.projectID == project.id && !$0.isCompleted })
             })
         scheduleWrite()
     }
 
-    /// Monitoring API results, keyed by site ID (Today and Projects both fetch them).
-    func recordSites(_ sites: [String: MonitoringSite], now: Date = .now) {
+    /// Site check history, keyed by project ID.
+    func recordSites(_ sites: [UUID: SiteRecord], now: Date = .now) {
         self.sites = sites
         sitesAsOf = now
         scheduleWrite()
@@ -255,17 +251,18 @@ final class StateSnapshotService {
         }
         var siteSection: StateSnapshot.Sites?
         if let sites, let sitesAsOf {
-            let owners = Dictionary((store?.projects ?? []).compactMap { p in p.monitoringSiteId.map { ($0, p) } }) { first, _ in first }
-            siteSection = StateSnapshot.Sites(asOf: sitesAsOf, items: sites.values.map { site in
-                let health = MonitoringHealth.evaluate(site: site, connected: true, now: now)
+            let projects = Dictionary((store?.projects ?? []).map { ($0.id, $0) }) { first, _ in first }
+            siteSection = StateSnapshot.Sites(asOf: sitesAsOf, items: sites.map { id, record in
+                let project = projects[id]
+                let health = SiteHealth.evaluate(record: record, hasWebsite: true)
+                let last = record.lastCheck
                 return StateSnapshot.SiteEntry(
-                    siteId: site.id, name: site.name, url: site.url,
-                    projectId: owners[site.id]?.id, project: owners[site.id]?.name,
-                    state: health.label, needsAttention: health.needsAttention, score: health.score,
-                    deductions: health.deductions.map { .init(points: $0.points, reason: $0.reason) },
-                    lastCheck: site.lastCheckAt, sslExpires: site.sslExpiresAt,
-                    uptimePercent: site.uptime30DayPercent,
-                    openIncidents: site.openIncidentsCount, openFindings: site.openFindingsCount)
+                    siteId: id.uuidString, name: project?.name ?? record.url, url: record.url,
+                    projectId: project?.id, project: project?.name,
+                    state: health.label, needsAttention: health.needsAttention,
+                    lastCheck: last?.checkedAt, statusCode: last?.statusCode, responseMs: last?.responseMilliseconds,
+                    error: last?.error, downSince: health.downSince,
+                    uptimePercent: record.uptime.map { ($0 * 10_000).rounded() / 100 })
             }.sorted { ($0.needsAttention ? 0 : 1, $0.name) < ($1.needsAttention ? 0 : 1, $1.name) })
         }
         return StateSnapshot(appVersion: appVersion, asOf: now, store: store, briefing: briefing,

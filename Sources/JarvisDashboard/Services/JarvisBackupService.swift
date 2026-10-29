@@ -207,8 +207,8 @@ enum PreferenceBackupStore {
     private static let keys: [(String, ValueKind)] = [
         ("showWakeBriefing", .bool),
         ("minimumSleepForBriefing", .double),
-        ("projects.showArchived", .bool),
-        ("monitoring.apiBaseURL", .string),
+        ("projects.sort", .string),
+        ("sites.notifyOnChange", .bool),
         ("intelligence.selectedPage", .string),
         ("intelligence.newsCategory", .string),
         ("intelligence.watchlist", .string),

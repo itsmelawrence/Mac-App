@@ -68,7 +68,7 @@ struct ProjectItemTests {
         #expect(copy.tags == ["WordPress", "SEO"])
         #expect(copy.status == .notStarted)
         #expect(copy.id != project.id)
-        #expect(!copy.hasMonitoringSite)
+        #expect(!copy.hasWebsite)
     }
 
     @Test func persistsPhaseOneFieldsInSwiftData() throws {

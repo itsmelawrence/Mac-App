@@ -9,22 +9,17 @@ struct TodayView: View {
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
     @Query(sort: \SavedLocation.name) private var savedLocations: [SavedLocation]
 
-    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
+    @ObservedObject private var siteMonitor = SiteMonitor.shared
     @State private var weather: WeatherSnapshot?
     @State private var hasFreshWeather = false
     @State private var earthquakes: [EarthquakeEvent] = []
-    @State private var monitoringSites: [String: MonitoringSite] = [:]
-    @State private var hasLoadedMonitoring = false
     @State private var isRefreshing = false
     @State private var refreshError: String?
-    @State private var monitoringError: String?
     @State private var quoteOffset = 0
     @State private var showingCommandConsole = false
 
     private let weatherService = OpenMeteoWeatherService()
     private let earthquakeService = USGSEarthquakeService()
-    private let monitoringService = MonitoringAPIService()
-    private let monitoringCredentialStore = MonitoringAPICredentialStore()
 
     private var pendingTasks: [TaskItem] { tasks.filter { !$0.isCompleted } }
     private var completedTasks: [TaskItem] { tasks.filter(\.isCompleted) }
@@ -57,16 +52,17 @@ struct TodayView: View {
     }
     private var sortedProjects: [ProjectItem] {
         operationalProjects.sorted { lhs, rhs in
-            let lhsHealth = monitoringHealth(for: lhs)
-            let rhsHealth = monitoringHealth(for: rhs)
+            let lhsHealth = siteHealth(for: lhs)
+            let rhsHealth = siteHealth(for: rhs)
             if lhsHealth.sortRank != rhsHealth.sortRank { return lhsHealth.sortRank < rhsHealth.sortRank }
             if lhs.priority != rhs.priority { return priorityRank(lhs.priority) > priorityRank(rhs.priority) }
             return lhs.updatedAt > rhs.updatedAt
         }
     }
-    private var monitoredProjects: [ProjectItem] { projects.filter(\.hasMonitoringSite) }
-    private var unhealthySiteCount: Int { monitoredProjects.filter { monitoringHealth(for: $0).needsAttention }.count }
-    private var healthySiteCount: Int { monitoredProjects.filter { monitoringHealth(for: $0).state == .healthy }.count }
+    private var monitoredProjects: [ProjectItem] { projects.filter { $0.hasWebsite && !$0.isArchived } }
+    private var unhealthySiteCount: Int { monitoredProjects.filter { siteHealth(for: $0).needsAttention }.count }
+    private var healthySiteCount: Int { monitoredProjects.filter { siteHealth(for: $0).state == .up }.count }
+    private var hasSiteResults: Bool { siteMonitor.lastPassAt != nil || !siteMonitor.records.isEmpty }
     private var attentionCount: Int { overdueTasks.count + blockedTasks.count + waitingProjects.count + unhealthySiteCount }
     private var completionRatio: Double {
         guard !tasks.isEmpty else { return 0 }
@@ -89,15 +85,11 @@ struct TodayView: View {
         )
     }
     private var commandContext: JarvisCommandContext {
-        let unhealthy = monitoredProjects.filter {
-            let state = monitoringHealth(for: $0).state
-            return state == .down || state == .critical || state == .needsAttention
-        }
+        let unhealthy = monitoredProjects.filter { siteHealth(for: $0).needsAttention }
         let unverified = monitoredProjects.filter {
-            let state = monitoringHealth(for: $0).state
-            return state == .stale || state == .awaitingChecks
+            let state = siteHealth(for: $0).state
+            return state == .awaitingCheck || state == .retrying
         }
-        let maintenance = monitoredProjects.filter { monitoringHealth(for: $0).state == .maintenance }
         let weatherReport = (hasFreshWeather ? weather : nil).map {
             "In \($0.locationName), it is \(Int($0.temperature.rounded()))°C and \($0.condition.lowercased()). Rain probability is \($0.precipitationProbability)%."
         }
@@ -109,8 +101,7 @@ struct TodayView: View {
             monitoredSites: monitoredProjects.count,
             unhealthySites: unhealthy.count,
             unverifiedSites: unverified.count,
-            maintenanceSites: maintenance.count,
-            monitoringAvailable: hasLoadedMonitoring,
+            monitoringAvailable: hasSiteResults,
             priorityTask: TaskQueueEngine.focusTask(from: pendingTasks.filter { !$0.isBlocked })?.title,
             blockedTaskNames: TaskQueueEngine.sorted(blockedTasks).map(\.title),
             waitingProjectNames: waitingProjects.map(\.name),
@@ -118,20 +109,7 @@ struct TodayView: View {
             weatherReport: weatherReport,
             projects: projects.map { project in
                 let projectTasks = tasks.filter { $0.projectID == project.id && !$0.isCompleted }
-                let site = hasLoadedMonitoring ? monitoringSite(for: project) : nil
-                let siteHealth: String
-                let monitoringSource: String
-                if !project.hasMonitoringSite {
-                    siteHealth = "Not connected"
-                    monitoringSource = "no monitored site"
-                } else if !hasLoadedMonitoring {
-                    siteHealth = "Unavailable — monitoring could not be refreshed"
-                    monitoringSource = "monitoring unavailable"
-                } else {
-                    siteHealth = site.map { MonitoringHealth.evaluate(site: $0, connected: true).label }
-                        ?? "Unavailable — site was not returned by Monitoring API"
-                    monitoringSource = "Monitoring API"
-                }
+                let health = siteHealth(for: project)
                 return JarvisProjectBrief(
                     id: project.id,
                     name: project.name,
@@ -142,9 +120,9 @@ struct TodayView: View {
                     openTasks: projectTasks.count,
                     overdueTasks: projectTasks.count { ($0.dueDate ?? .distantFuture) < .now },
                     blockedTasks: projectTasks.count(where: \.isBlocked),
-                    siteHealth: siteHealth,
-                    siteCheckedAt: site?.lastCheckAt,
-                    monitoringSource: monitoringSource
+                    siteHealth: health.state == .noWebsite ? "No website" : health.detail,
+                    siteCheckedAt: health.lastCheck?.checkedAt,
+                    monitoringSource: project.hasWebsite ? "JARVIS site checks" : "no website"
                 )
             }
         )
@@ -291,7 +269,7 @@ struct TodayView: View {
                     ForEach(Array(sortedProjects.prefix(4).enumerated()), id: \.element.id) { index, project in
                         OperationRow(
                             project: project,
-                            health: monitoringHealth(for: project),
+                            health: siteHealth(for: project),
                             taskCount: pendingTasks.filter { $0.projectID == project.id }.count
                         ) { appState.selection = .projects }
                         if index < min(sortedProjects.count, 4) - 1 { Divider().opacity(0.45) }
@@ -360,12 +338,14 @@ struct TodayView: View {
 
     private var systemStatusCard: some View {
         CommandPanel(title: "System status", systemImage: "server.rack") {
-            statusLine(label: "Monitoring API", value: monitoringError == nil ? "Online" : "Attention", colour: monitoringError == nil ? .green : .orange)
+            statusLine(label: "Site checks", value: siteMonitor.isOffline ? "Paused · offline" : "Every 5 min",
+                       colour: siteMonitor.isOffline ? .orange : .green)
             statusLine(label: "Monitored sites", value: "\(monitoredProjects.count)", colour: .secondary)
-            statusLine(label: "Healthy", value: "\(healthySiteCount)", colour: .green)
+            statusLine(label: "Up", value: "\(healthySiteCount)", colour: .green)
             if unhealthySiteCount > 0 { statusLine(label: "Attention", value: "\(unhealthySiteCount)", colour: .orange) }
-            if let monitoringError {
-                Text(monitoringError).font(.caption2).foregroundStyle(.orange).lineLimit(3)
+            if let lastPassAt = siteMonitor.lastPassAt {
+                Text("Last checked \(lastPassAt.formatted(.relative(presentation: .named)))")
+                    .font(.caption2).foregroundStyle(.tertiary)
             }
         }
     }
@@ -425,54 +405,19 @@ struct TodayView: View {
 
         async let weatherRequest = try? weatherService.currentWeather(for: primaryLocation)
         async let earthquakeRequest = try? earthquakeService.recentPhilippineEvents()
-        async let monitoringRequest: [MonitoringSite]? = refreshMonitoringSites()
-        let (newWeather, newEarthquakes, newMonitoringSites) = await (weatherRequest, earthquakeRequest, monitoringRequest)
+        let (newWeather, newEarthquakes) = await (weatherRequest, earthquakeRequest)
 
         hasFreshWeather = newWeather != nil
-        hasLoadedMonitoring = newMonitoringSites != nil
         if let newWeather { weather = newWeather }
         if let newEarthquakes { earthquakes = newEarthquakes }
-        if let newMonitoringSites {
-            // A duplicate site ID from the API must not crash; keep the last one, as ProjectsView does.
-            monitoringSites = Dictionary(newMonitoringSites.map { ($0.id, $0) }) { _, latest in latest }
-            monitoringError = nil
-            StateSnapshotService.shared.recordSites(monitoringSites)
-        }
         StateSnapshotService.shared.recordConditions(weather: newWeather, earthquakes: earthquakes)
         refreshError = newWeather == nil || newEarthquakes == nil
             ? "One or more intelligence sources could not be refreshed; available results remain visible."
             : nil
     }
 
-    private func refreshMonitoringSites() async -> [MonitoringSite]? {
-        guard let token = monitoringCredentialStore.read() else {
-            await MainActor.run { monitoringError = "Add a monitoring read token in Settings." }
-            return nil
-        }
-        do {
-            let summaries = try await monitoringService.sites(baseURLText: monitoringAPIBaseURL, readToken: token)
-            return try await withThrowingTaskGroup(of: MonitoringSite.self) { group in
-                for summary in summaries {
-                    group.addTask {
-                        try await monitoringService.site(baseURLText: monitoringAPIBaseURL, readToken: token, siteID: summary.id)
-                    }
-                }
-                var details: [MonitoringSite] = []
-                for try await site in group { details.append(site) }
-                return details
-            }
-        } catch {
-            await MainActor.run { monitoringError = error.localizedDescription }
-            return nil
-        }
-    }
-
-    private func monitoringSite(for project: ProjectItem) -> MonitoringSite? {
-        guard !project.monitoringSiteID.isEmpty else { return nil }
-        return monitoringSites[project.monitoringSiteID]
-    }
-    private func monitoringHealth(for project: ProjectItem) -> MonitoringHealth {
-        MonitoringHealth.evaluate(site: monitoringSite(for: project), connected: project.hasMonitoringSite)
+    private func siteHealth(for project: ProjectItem) -> SiteHealth {
+        siteMonitor.health(for: project)
     }
     private var greeting: String {
         switch Calendar.current.component(.hour, from: .now) {
@@ -524,7 +469,7 @@ private struct CommandPanel<Content: View>: View {
 
 private struct OperationRow: View {
     let project: ProjectItem
-    let health: MonitoringHealth
+    let health: SiteHealth
     let taskCount: Int
     let action: () -> Void
     var body: some View {
@@ -549,12 +494,12 @@ private struct OperationRow: View {
     private var statusText: String {
         if project.status == .waitingOnClient { return "Waiting on client" }
         if project.status == .onHold { return "Blocked" }
-        if project.hasMonitoringSite { return health.label }
+        if project.hasWebsite { return health.label }
         return project.status.title
     }
     private var statusColour: Color {
         if project.status == .waitingOnClient || project.status == .onHold { return .orange }
-        return project.hasMonitoringSite ? health.colour : .secondary
+        return project.hasWebsite ? health.colour : .secondary
     }
     private var detailText: String {
         if !project.nextAction.isEmpty { return project.nextAction }

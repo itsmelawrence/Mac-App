@@ -34,7 +34,7 @@ It also includes:
 
 ## 1. Today — Command Centre
 
-The Today screen is a fixed-hierarchy command centre rather than a collection of unrelated widgets. It keeps the briefing and active work dominant, with weather, regional intelligence, monitoring health, and momentum in a consistent secondary rail.
+The Today screen is a fixed-hierarchy command centre rather than a collection of unrelated widgets. It keeps the briefing and active work dominant, with weather, regional intelligence, website-check status, and momentum in a consistent secondary rail.
 
 ### Command interface
 
@@ -44,7 +44,7 @@ The Today screen is a fixed-hierarchy command centre rather than a collection of
 - Opens Tasks, Projects, Intelligence, weather/news signals, and Settings from plain-language commands.
 - Answers task-count and project/website-health requests using current dashboard data.
 - Identifies attention items, the next actionable task, blocked tasks, and projects waiting on clients.
-- Reports observed weather and refuses to label sites healthy when monitoring checks are unavailable.
+- Reports observed weather, says "All N monitored websites are up" only when site checks have completed, and otherwise says checks have not completed yet.
 - Answers named-project questions in a sourced response card with status, site check, task counts, next action, and a **View project** action.
 - Provides explicit capability guidance for commands that are not yet supported.
 
@@ -63,8 +63,13 @@ The Today screen is a fixed-hierarchy command centre rather than a collection of
 - Pending tasks
 - Overdue tasks
 - Active operations
-- Healthy monitored sites
+- Monitored sites that are up
 - Significant regional alerts
+
+### System status
+
+- Shows **Site checks: Every 5 min**, or **Paused · offline** while the Mac has no connection.
+- Shows the number of monitored sites, how many are up, how many need attention, and when sites were last checked.
 
 ### Next actions
 
@@ -84,8 +89,8 @@ The Today screen is a fixed-hierarchy command centre rather than a collection of
 - Displays one locally curated philosophical quote each day, focused on discipline, endurance, and purposeful action.
 - Allows another quote to be shown without refreshing live data.
 - Keeps quotes local so the Today screen does not depend on another network service.
-- Ranks ongoing operations by site health, status, priority, and recent activity.
-- Shows each operation's next action, open task count, and monitoring state without decorative gauges.
+- Ranks ongoing operations by website status, project status, priority, and recent activity.
+- Shows each operation's next action, open task count, and website status.
 - Uses green for healthy states and reserves orange/red for actionable conditions.
 - Shows overall task completion, tasks due today, and blocked-task count in **Momentum**.
 
@@ -138,6 +143,33 @@ The Tasks section is an operational mission queue rather than a passive checklis
 
 The Projects section manages both defined-scope work and long-term client relationships.
 
+### Operations layout
+
+- **Operations** header with a subtitle, an attention capsule, and a **New Project** button.
+- Status rail: Active, Waiting on client, Due within 7 days, Sites up (x/y), Down, and average 30-day uptime with the last check time.
+- Filter chips with counts: Active, Needs attention, Waiting on client, Completed, Archived. A project needs attention when its site is Down or Slow, it is waiting on the client, its due date has passed, or it has overdue tasks.
+- Sort menu: Needs attention first, Recently updated, Due date, Name. The choice is remembered.
+- A **Check all sites** button and search across name, client, type, website, and tags.
+- Each project is a full-width card showing:
+  - site status icon, name, and client;
+  - next action;
+  - chips for status, priority, due date, task progress, overdue tasks, days waiting, and Ongoing;
+  - a progress bar for fixed projects;
+  - site status, host, and 30-day uptime on the right;
+  - an **Edit** button and a **⋯** menu (open, edit, status, check site now, open website, duplicate, archive/restore, delete).
+- A single click opens the project. A priority accent marks the left edge, and the card has a red border when its site is down.
+
+### Project detail
+
+- **Back to Operations**, inline name and client editing, and Status, Priority, and Mode pickers.
+- Metrics rail: Progress and Tasks done for fixed projects, or Repository health and Commits for ongoing clients; Deadline; Website; 30-day uptime.
+- Main column:
+  - **Website** panel: status, link, **Check Now**, last check, HTTP status, response time, uptime, a 30-day bar strip, and recent outages;
+  - **Tasks**: up to 10 linked tasks, each opening its editor on click, then a link to Tasks;
+  - **Local repository** (ongoing clients only);
+  - **Description**.
+- Side column: **Next action** and **Details** (type, mode, dates, tags, created and updated times).
+
 ### Project records
 
 Each project can store:
@@ -155,7 +187,7 @@ Each project can store:
 - Next action
 - Progress value for fixed projects
 - Optional local Git repository connection for ongoing clients
-- Optional monitored website URL, platform, backend site ID, and connection date
+- Optional website address for up/down checks
 
 ### Project statuses
 
@@ -206,41 +238,22 @@ Each project can store:
 
 Repository checks run with Git optional locks and terminal prompts disabled. JARVIS does not automatically scan folders and does not commit, pull, push, or modify a connected client repository.
 
-### Website monitoring settings
+### Website checks
 
-- Lives inside each project's detail/settings view.
-- Registers a new HTTPS website with the JARVIS Monitoring API.
-- Accepts plain HTTPS URLs and Markdown-formatted links copied from chat or documentation.
-- Attaches an already registered website through the saved read-only API connection instead of creating a duplicate.
-- Supports Generic, WordPress, Laravel, Node, Static, and Custom platforms.
-- Uses a separate site-registration credential with admin scope.
-- Can remember that registration credential in macOS Keychain for future projects.
-- Stores each returned reporter token separately in Keychain under the local project ID.
-- Provides a copy action for transferring the reporter token into the website host's secret manager.
-- Allows an existing monitored website's URL and platform to be corrected through project Connection Settings.
-- Updates the same backend site record so its Site ID, reporter token, snapshots, incidents, and history remain intact.
-- Registers the site only; it never installs reporter code or changes hosting settings without explicit approval.
-
-### Site health and Security & Maintenance
-
-- Fetches the monitoring fleet on entry, every 15 minutes while Projects remains active, and on manual refresh.
-- Shows fleet totals and working **Needs attention** and **Sort: Site health** controls.
-- Adds a semicircular site-health gauge to every project card without replacing delivery progress or repository health.
-- Scores only when the backend has completed an outside reachability check; unknown, stale, offline, maintenance and disconnected states remain explicit and never masquerade as healthy.
-- Uses the specified 100-point deductions for vulnerabilities, updates, unsupported PHP, SSL, missing heartbeats and failed application health checks.
-  - SSL expiring within 14 days costs 15 points.
-  - An already-expired certificate costs 40 points, the same as a critical finding.
-- A site reported down stays **Down** even when its readings are stale; down outranks stale.
-- A platform value the app doesn't recognise is shown as Custom rather than hiding every site.
-- Opens a dedicated **Security & Maintenance** project section containing:
-  - Open vulnerabilities and reference links
-  - Component updates and uncovered inventory
-  - Reporter application/database/scheduler health checks
-  - Environment, response, uptime, SSL and heartbeat data
-  - Explainable score deductions
-  - Incident history
-- Animates the gauge needle unless Reduce Motion is enabled.
-- Keeps health collection read-only: the Mac app reads the backend and does not contact or alter client sites. Explicit registration and settings changes update only the JARVIS Monitoring API record.
+- Free, local up/down checks run from the Mac; no hosted service or account is involved.
+- The website address is entered in the project editor's **Website** field or in the project detail **Website** panel, which also offers **Change Address** and **Stop Checking**.
+- Addresses are normalised, so `example.com` becomes `https://example.com/`.
+- Every 5 minutes, and about 20 seconds after wake, JARVIS sends a plain GET request to each non-archived project's website. Checks keep running while the dashboard window is closed.
+- Results:
+  - 2xx or 3xx is up; 401, 403, and 429 also count as up because the server answered.
+  - A response slower than 3000 ms is **Slow**.
+  - Any other status, a timeout, a DNS failure, or an SSL error is a failed check.
+- One failed check shows **Retrying** and checks again after 60 seconds. Two failures in a row mark the site **Down**, with the outage starting at the first failure.
+- States: Up, Slow, Retrying, Down, Checking…, and No website. A site needs attention when it is Down or Slow.
+- When the Mac is offline, every check is discarded and checks are shown as paused; an offline Mac is never reported as a site failure.
+- History is kept in `~/Library/Application Support/JARVIS Dashboard/site-checks.json`: the last 50 checks, 30 daily tallies for 30-day uptime, and the last 20 outages.
+- Sends a notification when a site goes down or recovers, controlled in Settings › **Website checks**.
+- Checks only read the public site; JARVIS does not change client sites or hosting.
 
 ### Project actions
 
@@ -249,14 +262,12 @@ Repository checks run with Git optional locks and terminal prompts disabled. JAR
 - Change status directly from a project card.
 - Duplicate a project.
 - Archive or restore a project.
-- Show or hide archived projects.
+- View archived projects through the **Archived** filter.
 - Delete a project after confirmation.
   - Its tasks move to the global inbox rather than being deleted or left pointing at the missing project, so backups stay restorable.
-  - Its monitoring reporter token is removed from Keychain.
   - A failed delete is reported instead of silently ignored.
 - Automatically save detail changes locally.
-- Connect a website to monitoring from its individual project settings.
-- Correct a connected website's URL without creating a duplicate monitoring identity.
+- Add, change, or stop checking a project's website, and check it on demand.
 
 ---
 
@@ -563,13 +574,9 @@ JARVIS remains accessible from the macOS menu bar.
 - Shows the Projects vault in use and lets you choose a different one.
 - JARVIS reads `CONTEXT.md` and `ICM/routes.json` to route work requests and saves submitted prompts under `Memory/01_intake`.
 
-### Monitoring API
+### Website checks
 
-- Configure the Laravel Cloud API base URL.
-- Store the bearer token in macOS Keychain.
-- Test authenticated access against the live monitoring summary.
-- Report site, incident, and security-finding totals on a successful test.
-- Remove or replace the stored token.
+- Turn notifications on or off for when a site goes down or recovers.
 
 ### Data and privacy notice
 
@@ -577,7 +584,8 @@ JARVIS remains accessible from the macOS menu bar.
 - Previews new, updated, and skipped records before Merge or confirmed Replace.
 - Creates daily and pre-migration backups, retains the configured number, and supports a user-chosen folder.
 - Explains that tasks and projects are stored locally.
-- Explains that NewsAPI.org and monitoring API credentials are stored in Keychain and excluded from every backup.
+- Explains that NewsAPI.org and MapTiler keys are stored in Keychain and excluded from every backup.
+- Explains that website checks are plain requests sent from this Mac to each project's site.
 - Notes that live services receive only the information required for their requests.
 
 ---
@@ -593,22 +601,23 @@ JARVIS remains accessible from the macOS menu bar.
 ### Stored in application preferences
 
 - Interface selections
-- Project archive visibility
+- Project sort order
 - Watchlist terms
 - Alert thresholds
 - Quiet hours
 - Read, saved, and dismissed news identifiers
 - Intelligence comparison baselines
 - Wake briefing preferences
-- Monitoring API base URL
+- Website-check notification preference
+
+### Stored in Application Support
+
+- Website-check history in `~/Library/Application Support/JARVIS Dashboard/site-checks.json`
 
 ### Stored in macOS Keychain
 
 - NewsAPI.org API key
 - MapTiler API key
-- Laravel monitoring API read token
-- Laravel monitoring API site-registration token
-- Dedicated reporter tokens stored separately per connected project. A project's token is removed when the project is deleted.
 
 Each Keychain item is read at most once per launch and then served from memory. Saves and deletes keep that memory current; a cancelled password prompt is not remembered, so it can be retried.
 
@@ -628,7 +637,7 @@ JARVIS is signed with a stable Apple Development identity. macOS therefore sees 
 - MapTiler and NOAA/NESDIS tiles are requested only while a MapTiler or Satellite basemap is visible.
 - City search uses Apple Maps; Mac location is requested only when you choose "Use Mac location".
 - Connected Git repositories are inspected locally.
-- The configured Laravel monitoring API receives authenticated requests over HTTPS only.
+- Each non-archived project's website receives a plain GET request from the Mac every 5 minutes; no credentials are sent.
 - The Obsidian vault is read and written locally; nothing about it leaves the Mac.
 
 ---
@@ -654,7 +663,7 @@ JARVIS is signed with a stable Apple Development identity. macOS therefore sees 
 - URLSession with Swift concurrency for live providers.
 - UserNotifications for reminders and Intelligence alerts.
 - ServiceManagement for launch-at-login registration.
-- Security framework/Keychain for NewsAPI.org and monitoring API credentials.
+- Security framework/Keychain for NewsAPI.org and MapTiler keys.
 - Local `/usr/bin/git` commands for read-only repository inspection.
 - WebKit for the Synapse Map (Graphify) and the MapTiler basemaps.
 - `/usr/bin/python3` child processes for the vault's maintenance and prompt-capture tools.
@@ -663,7 +672,8 @@ JARVIS is signed with a stable Apple Development identity. macOS therefore sees 
 - 112 unit tests (Swift Testing) covering:
   - briefing composition, task prioritisation, and project behaviour;
   - task and project stores, including reminders and backup-safe deletion;
-  - alert reliability, monitoring health, and Intelligence rules;
+  - alert reliability and Intelligence rules;
+  - website-check classification, URL normalisation, retry and outage logic, uptime, and history persistence;
   - weather, news, NewsAPI, and RSS parsing, including malformed input;
   - Git health and speech preferences;
   - backups and migration;
@@ -682,6 +692,7 @@ The following distinctions are important when interpreting the dashboard:
 - Repository intelligence reads local Git metadata only; it does not inspect GitHub issues, pull requests, CI, deployments, or client communications.
 - Launch at login occurs after macOS login, not before a user session exists.
 - Wake detection works while JARVIS remains running.
+- Website checks run from this Mac while JARVIS is running. They report reachability and response time only, not security, updates, or certificate expiry.
 - Weather, earthquake, and news features require an internet connection for fresh data.
 - There is currently no cross-device sync, Apple Reminders import, Calendar integration, or cloud account.
 - Alerts are decision-support signals and do not replace official emergency advisories.

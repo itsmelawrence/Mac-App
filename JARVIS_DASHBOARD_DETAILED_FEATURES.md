@@ -15,7 +15,7 @@ JARVIS Dashboard is a personal macOS command centre for daily work, client opera
 3. Are active projects and client websites healthy?
 4. Has anything important changed locally or regionally?
 
-The application is local-first. Tasks, projects, locations, and preferences remain on the Mac. Network requests are made only for configured live services such as weather, earthquake data, news, map tiles, and the JARVIS Monitoring API.
+The application is local-first. Tasks, projects, locations, and preferences remain on the Mac. Network requests are made only for configured live services such as weather, earthquake data, news, and map tiles, plus plain up/down checks sent from the Mac to each project's website.
 
 JARVIS is also the always-on local host for the Obsidian **Projects vault** that agent tools (Codex, Claude Code) use:
 - it routes work requests to projects and records the work;
@@ -55,7 +55,7 @@ Today is the main overview rather than a miscellaneous widget board. It uses a f
 - Displays the complete date.
 - Shows whether systems are nominal or how many items require attention.
 - Opens **Ask JARVIS** through the header or `Command-K`.
-- Refreshes weather, earthquake, and monitoring information.
+- Refreshes weather and earthquake information.
 
 ### 3.2 Ask JARVIS
 
@@ -66,10 +66,11 @@ Today is the main overview rather than a miscellaneous widget board. It uses a f
 - Routes the user to Tasks, Projects, Intelligence, weather/news information, or Settings.
 - Answers supported questions about task counts, active projects, and monitored-site health.
 - Names the next actionable task, blocked tasks, and projects waiting on clients.
-- Summarises attention items and distinguishes unhealthy sites from sites awaiting checks or unavailable monitoring data.
+- Summarises attention items and distinguishes sites needing attention from sites awaiting checks.
+- Answers "All N monitored websites are up" only when checks have completed; otherwise says site checks have not completed yet.
 - Reports the most recently refreshed weather for the primary location, or states when a fresh report is unavailable.
 - Answers questions about a named project with a structured card covering project status, site health, last check, task counts, next action, data sources, and update time.
-- Asks for a more specific project name when multiple projects match; never invents a project or a monitoring result.
+- Asks for a more specific project name when multiple projects match; never invents a project or a site-check result.
 - Keeps the answer visible until the user selects **View project** to open that project's detail screen.
 - Explains currently supported capabilities when a request is not understood.
 - Turns a work request into an agent handoff through the Obsidian vault; see section 10.1.
@@ -93,15 +94,15 @@ The status rail summarises:
 - Open tasks
 - Overdue tasks
 - Active operations
-- Healthy monitored sites
+- Monitored sites that are up
 - Regional alerts
 
 ### 3.5 Active operations
 
-- Ranks active projects using monitoring health, project status, priority, and recent activity.
+- Ranks active projects using site status, project status, priority, and recent activity.
 - Shows the project's next action.
 - Shows the number of linked open tasks.
-- Shows live website-monitoring state when available.
+- Shows the latest website-check state when the project has a website.
 - Uses green only for confirmed healthy states.
 - Uses orange and red only for conditions that warrant attention.
 - Opens the Projects section for deeper investigation.
@@ -121,12 +122,13 @@ The status rail summarises:
 - Links the user to deeper Intelligence analysis.
 - Retains partial results when another provider fails.
 
-### 3.8 Monitoring system status
+### 3.8 System status
 
-- Shows whether the Monitoring API is online.
-- Displays monitored-site totals.
-- Displays healthy and attention-required counts.
-- Never labels unknown or unavailable data as healthy.
+- Shows **Site checks: Every 5 min**, or **Paused · offline** while the Mac has no connection.
+- Displays the number of monitored sites.
+- Displays Up and attention-required counts.
+- Shows when sites were last checked.
+- Never labels unchecked sites as up.
 
 ### 3.9 Momentum and daily resolve
 
@@ -237,10 +239,9 @@ Each project can store:
 - Next action
 - Manual progress where applicable
 - Local Git repository connection
-- Monitoring website URL
-- Monitoring platform
-- Monitoring Site ID
-- Monitoring connection date
+- Website address for up/down checks (stored in `monitoringWebsiteURL`)
+
+The legacy `monitoringSiteID`, platform, and connection-date fields remain in the model only so older stores and backups still load; the app no longer uses them.
 
 ### 5.2 Project statuses
 
@@ -271,23 +272,55 @@ Waiting-on-client projects display the number of days spent in that state.
 ### 5.5 Ongoing Client mode
 
 - Avoids misleading lifetime completion percentages.
-- Uses operational health, current activity, repository status, and website health instead.
+- Uses operational health, current activity, repository status, and website status instead.
 - Supports long-running retainers, maintenance relationships, and continuing client work.
 
-### 5.6 Project actions
+### 5.6 Operations board
+
+The Projects section uses the same layout language as Tasks.
+
+- **Operations** header with a subtitle, an attention capsule, and a **New Project** button.
+- Status rail: Active, Waiting on client, Due within 7 days, Sites up (x/y), Down, and average 30-day uptime with the last check time.
+- Filter chips with counts: Active, Needs attention, Waiting on client, Completed, Archived.
+- A project needs attention when its site is Down or Slow, it is waiting on the client, its due date has passed, or it has overdue tasks.
+- Sort menu: Needs attention first, Recently updated, Due date, Name. The choice is remembered as `projects.sort`.
+- A **Check all sites** button.
+- Search covers name, client, type, website, and tags.
+
+Each project appears as a full-width card with:
+
+- a site status icon, the project name, and the client;
+- the next action;
+- chips for status, priority, due date, task progress, overdue tasks, days waiting, and Ongoing;
+- a progress bar for fixed projects;
+- site status, host, and 30-day uptime on the right;
+- an **Edit** button and a **⋯** menu: open, edit, status, check site now, open website, duplicate, archive/restore, delete;
+- a priority accent on the left edge and a red border when the site is down.
+
+A single click opens the project.
+
+### 5.7 Project detail
+
+- **Back to Operations** link, inline name and client editing, and Status, Priority, and Mode pickers.
+- Metrics rail: Progress and Tasks done for fixed projects, or Repository health and Commits for ongoing clients; Deadline; Website; 30-day uptime.
+- Main column:
+  - **Website** panel: status, link, **Check Now**, last check, HTTP status, response time, uptime, a 30-day bar strip, and recent outages;
+  - **Tasks**: up to 10 linked tasks, each opening its editor on click, then a link to Tasks;
+  - **Local repository**, for ongoing clients only;
+  - **Description**.
+- Side column: **Next action** and **Details** (type, mode, dates, tags, created and updated times).
+
+### 5.8 Project actions
 
 - Create and edit a project.
 - Open project details.
-- Change status directly from the card.
+- Change status from the card's menu.
 - Duplicate a project.
-- Archive and restore a project.
-- Show or hide archived projects.
+- Archive and restore a project; archived projects appear under the **Archived** filter.
 - Delete after confirmation, through `ProjectStore`:
   - linked tasks move to the Inbox rather than keeping a dangling project link, which would make later backups fail to import;
-  - the project's monitoring reporter token is removed from Keychain;
   - a failed save is reported in an alert.
-- Sort and filter the project fleet.
-- Show only projects needing attention.
+- Check a project's site on demand or open its website.
 
 ## 6. Local Git Repository Intelligence
 
@@ -320,142 +353,61 @@ Repository inspection safeguards:
 - No commits, pulls, pushes, checkouts, or file changes
 - Repository connection can be refreshed, replaced, or disconnected
 
-## 7. Website Monitoring
+## 7. Website Checks
 
-Website monitoring is configured from the individual project's settings.
+JARVIS runs free, local up/down checks from the Mac. No hosted service, account, or credential is involved.
 
-### 7.1 Supported website platforms
+### 7.1 Website address
 
-- Generic
-- WordPress
-- Laravel
-- Node
-- Static
-- Custom
+- Entered in the project editor sheet's **Website** field or in the project detail **Website** panel.
+- Normalised before saving: `example.com` becomes `https://example.com/`. Only http and https addresses with a dotted host are accepted.
+- The Website panel offers **Change Address** and **Stop Checking**.
+- Stored in the existing `monitoringWebsiteURL` project field.
 
-### 7.2 Site registration and attachment
+### 7.2 Check schedule
 
-- Accepts normal HTTPS URLs.
-- Accepts Markdown-formatted links copied from chat or documentation.
-- Normalises URLs before registration.
-- Registers a new site through the Laravel Monitoring API.
-- Detects and attaches an already registered website through the saved read-only connection.
-- Avoids creating duplicate monitoring records.
-- Allows the URL and platform to be corrected later.
-- Preserves the Site ID, reporter access, snapshots, findings, incidents, and historical data when details change.
+- `SiteMonitor` lives for the whole app session, so checks continue while the dashboard window is closed.
+- Every 5 minutes, and about 20 seconds after wake, it sends a plain GET request to each non-archived project's website.
+- **Check Now**, **Check Site Now**, and **Check all sites** run a check on demand.
 
-### 7.3 Credential separation
+### 7.3 Result classification
 
-JARVIS uses three distinct monitoring credential types:
+- 2xx and 3xx responses are up.
+- 401, 403, and 429 also count as up, because the server answered.
+- A response slower than 3000 ms is **Slow**.
+- Any other status, a timeout, a DNS failure, or an SSL error is a failed check.
+- If the Mac itself is offline, every check is discarded and checks are shown as paused. An offline Mac is never reported as a site failure.
 
-1. **Read token** — loads monitoring summaries and details.
-2. **Site-registration/admin token** — creates sites, edits site settings, updates findings, and rotates reporter credentials.
-3. **Reporter token** — belongs to one monitored website and allows that website to submit telemetry.
+### 7.4 Retries, outages, and states
 
-All credentials are stored in macOS Keychain. Reporter tokens are stored separately using the local project ID.
+- One failed check shows **Retrying** and checks again after 60 seconds.
+- Two failures in a row mark the site **Down**. The outage is recorded as starting at the first failure.
+- States: Up, Slow, Retrying, Down, Checking…, and No website.
+- A site needs attention when it is Down or Slow.
 
-### 7.4 Reporter-token workflow
+### 7.5 History
 
-- The Monitoring API returns a dedicated reporter token when a site is registered.
-- JARVIS stores the token locally in Keychain.
-- **Copy Reporter Token** transfers it for placement in the website host's secret manager or environment configuration.
-- **Rotate Reporter Token** revokes the previous token and stores the replacement.
-- JARVIS warns that the website must be updated before its next heartbeat after rotation.
-- The Mac application never installs reporter code or changes hosting configuration automatically.
+Stored locally in `~/Library/Application Support/JARVIS Dashboard/site-checks.json`:
 
-### 7.5 Universal reporter concept
+- The last 50 checks
+- 30 daily tallies, used for 30-day uptime
+- The last 20 outages
 
-The monitoring design is platform-flexible:
+### 7.6 Notifications
 
-- WordPress can use the universal must-use plugin reporter.
-- Laravel, Node, static, and custom applications can submit the same telemetry through their own scheduled code.
-- A reporter can send heartbeat, environment, dependency inventory, update state, and application-health information.
-- A real server cron or scheduler should run the reporter; the site does not need a human visitor to trigger monitoring.
+- JARVIS notifies when a site goes down and when it recovers.
+- The toggle is in Settings › **Website checks** (preference `sites.notifyOnChange`, included in backups).
 
-### 7.6 Site-health states and score
+## 8. Assistant State Snapshot
 
-- A score appears only after the backend completes an outside reachability check.
-- Unknown, stale, disconnected, offline, or awaiting-check states remain explicit.
-- A missing signal never becomes a fabricated score of 100.
-- A site reported down stays **Down** even when its readings are stale (down outranks stale).
-- An unrecognised `platform` value from the API is shown as Custom instead of failing the whole site list.
-- The score begins at 100 and applies explainable deductions.
+JARVIS writes `~/Library/Application Support/JARVIS Dashboard/state.json` (schema version 1) for the assistant's read-only tools.
 
-Potential deductions include:
+Each item in its `sites` section contains:
 
-- Open vulnerabilities
-- Available component updates
-- Unsupported PHP version
-- SSL certificate expiring within fourteen days (15 points), or already expired (40 points, the same as a critical finding)
-- Missing reporter heartbeat
-- Failed application or database health checks
-
-### 7.7 Project health card
-
-- Shows a semicircular site-health gauge.
-- Displays score and health label.
-- Displays update and vulnerability totals.
-- Shows the last observation time.
-- Keeps project delivery progress and repository health separate from site health.
-- Animates the gauge unless Reduce Motion is enabled.
-
-### 7.8 Security and Maintenance view
-
-The detailed monitoring view contains:
-
-- Open vulnerability findings
-- Severity and affected component
-- Fixed-in version where supplied
-- External reference links
-- Mark-as-handled action
-- Ignore action
-- Plugin, theme, core, and dependency updates
-- Covered and not-covered component inventory
-- Reporter application checks
-- Database and scheduler checks
-- HTTP status and response time
-- 30-day uptime
-- PHP version
-- SSL expiry date
-- Last heartbeat
-- Application name and deployment version
-- Explainable score deductions
-- Incident history
-
-### 7.9 Monitoring refresh behaviour
-
-- Loads the fleet when Projects opens.
-- Refreshes every fifteen minutes while Projects remains active.
-- Supports manual refresh.
-- Shows cached project connections when the API is unavailable.
-- Never substitutes a fake healthy state for missing API data.
-
-## 8. Monitoring Backend and Hardening
-
-The companion Laravel Monitoring API is responsible for server-side collection and scheduling.
-
-Current system responsibilities include:
-
-- Public reachability checks
-- Reporter heartbeat ingestion
-- Snapshot storage
-- Application-health storage
-- Incident tracking
-- SSL-expiry checks
-- Vulnerability matching through Wordfence Intelligence data
-- Finding status updates
-- Reporter-token rotation
-- Snapshot and alert retention/pruning
-- Scheduler heartbeat monitoring through an external dead-man's switch
-
-The macOS app remains a read-focused command console. It changes backend state only through explicit registration, settings, token-rotation, or finding-status actions.
-
-### Laravel Cloud cost guard
-
-- Settings explains that JARVIS will not invent estimated cloud costs.
-- Laravel Cloud's native billing alert remains the authoritative spending threshold.
-- JARVIS provides a direct link to Laravel Cloud.
-- If Laravel Cloud introduces a documented billing API, live cost telemetry can be added later.
+- `site_id` (the project UUID), `name`, `url`, `project_id`, and `project`
+- `state` and `needs_attention`
+- `last_check`, `status_code`, `response_ms`, and `error`
+- `down_since` and `uptime_percent`
 
 ## 9. Intelligence Matrix
 
@@ -736,13 +688,9 @@ The application does not contain or distribute the copyrighted cinematic JARVIS 
 
 - Shows and changes the Projects vault used for routing, capture, Cortex, and maintenance.
 
-### Monitoring API
+### Website checks
 
-- Configures the HTTPS API base URL.
-- Stores the read token in Keychain.
-- Tests authenticated access.
-- Reports site, incident, and security-finding totals after a successful test.
-- Replaces or removes the saved token.
+- Turns notifications on or off for when a site goes down or recovers.
 
 ### Data, backup, and restore
 
@@ -758,11 +706,10 @@ The application does not contain or distribute the copyrighted cinematic JARVIS 
 - Shows the last backup time and provides Back Up Now, Choose Folder, Reveal in Finder, and guided Restore controls.
 - Explains that Keychain credentials are excluded and must be entered again on a new Mac.
 
-### Cost guard and privacy
+### Data and privacy
 
-- Links to Laravel Cloud billing controls.
-- Refuses to fabricate unavailable spend information.
 - Explains which data is local and which services receive requests.
+- Explains that website checks are plain requests sent from this Mac to each project's site.
 
 ## 16. Local Storage and Credential Security
 
@@ -780,7 +727,7 @@ Stored locally:
 Stored locally in preferences:
 
 - Selected views and filters
-- Archive visibility
+- Project sort order (`projects.sort`)
 - Watchlist terms
 - Alert thresholds
 - Quiet hours
@@ -788,7 +735,12 @@ Stored locally in preferences:
 - Intelligence comparison baseline
 - Wake-briefing settings
 - Voice settings
-- Monitoring API base URL
+- Website-check notifications (`sites.notifyOnChange`)
+
+### Application Support files
+
+- `JARVIS Dashboard/site-checks.json`: website-check history (see section 7.5)
+- `JARVIS Dashboard/state.json`: the assistant state snapshot (see section 8)
 
 ### macOS Keychain
 
@@ -796,9 +748,6 @@ Stored securely:
 
 - NewsAPI.org key
 - MapTiler API key
-- Monitoring read token
-- Monitoring site-registration/admin token
-- Per-project reporter tokens, removed when their project is deleted
 
 `KeychainCache` reads each item at most once per launch. Saves and deletes keep the cache current; a cancelled password prompt is not cached.
 
@@ -815,7 +764,8 @@ JARVIS is signed with a stable Apple Development identity (team `TRM376DDJX`). I
 - Every persisted task and project field, including task-to-project identifiers
 - Saved locations and non-secret preferences
 - Repository bookmarks for same-Mac recovery; macOS may require repository access to be granted again on another Mac
-- No NewsAPI key, monitoring token, site-registration token, or reporter token
+- No NewsAPI or MapTiler key
+- `projects.sort` and `sites.notifyOnChange` are included; `projects.sort` replaced the former `projects.showArchived`
 - Automatic rotation to the configured retention count
 
 ### External request boundaries
@@ -827,7 +777,7 @@ JARVIS is signed with a stable Apple Development identity (team `TRM376DDJX`). I
 - MapTiler and NOAA/NESDIS tiles load only while those basemaps are visible; the MapTiler key is sent in map requests.
 - City search uses Apple Maps; Mac location is requested only on "Use Mac location".
 - Git inspection remains entirely local.
-- Monitoring requests go only to the configured HTTPS API endpoint.
+- Website checks send a plain GET request from the Mac to each non-archived project's website, with no credentials.
 - The Obsidian vault is read and written locally only.
 
 ## 17. Native macOS Experience
@@ -840,7 +790,6 @@ JARVIS is signed with a stable Apple Development identity (team `TRM376DDJX`). I
 - Letter-free JARVIS HUD application icon.
 - Minimum main-window size of 900 × 600.
 - Default main-window size of approximately 1180 × 760.
-- Reduced-motion support for animated monitoring gauges.
 - Universal Intel and Apple Silicon release build.
 
 ## 18. Technical Foundation
@@ -872,13 +821,12 @@ Current automated coverage includes:
 - Intelligence alert generation
 - Watchlist deduplication and matching
 - Quiet-hour logic
-- Monitoring request construction and response parsing
-- Monitoring-health scoring
+- Website-check classification, URL normalisation, retry and outage logic, 30-day uptime, and history persistence
 - Speech settings logic
 - Backup round trips, secret exclusion, validation, idempotent merge, replace safeguards, rotation, and migration from the 0.1.18 unversioned store
 - Task and project stores: reminder lifecycle, and project deletion that keeps backups restorable (with a contrast test showing a raw delete breaks them)
-- Alert identity and ordered dedupe memory; expired-SSL and down-versus-stale scoring
-- Malformed-input tolerance for NewsAPI, RSS (CDATA and bare ampersands), the monitoring platform, and weather
+- Alert identity and ordered dedupe memory
+- Malformed-input tolerance for NewsAPI, RSS (CDATA and bare ampersands), and weather
 - Cortex discovery rules, route problems, scan recording, and vault-health decoding
 - App coordinator briefing delivery, Keychain cache, prompt-capture queue detection, and process timeouts
 
@@ -892,13 +840,13 @@ The current release intentionally does not provide:
 - Calendar integration
 - Email or messaging integration
 - Automatic Git commits, pulls, pushes, or deployments
-- Automatic website code installation
-- Direct cloud-billing telemetry without a documented provider API
+- Changes to client websites or hosting
+- Website security, update, or certificate-expiry monitoring; website checks report reachability and response time only
 - Official emergency-alert authority
 - An external generative-AI command backend. A local assistant acting through JARVIS's tools is a roadmap goal, not a current feature.
 - Vault upkeep or prompt filing while JARVIS is not running; prompts wait in temporary storage until it opens
 
-The planned iOS application can reuse the Laravel Monitoring API later, but it is not part of the current macOS release.
+An iOS application is planned but is not part of the current macOS release.
 
 ## 20. Installation and Release Artifact
 

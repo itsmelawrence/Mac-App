@@ -64,7 +64,7 @@ Routing is deterministic and does not call an AI service. The agent must still i
 ## Current foundation
 
 - Native SwiftUI macOS application
-- Command-centre Today dashboard with live operational hierarchy, monitoring health, fixed-grid intelligence, and a local Ask JARVIS console
+- Command-centre Today dashboard with live operational hierarchy, website status, fixed-grid intelligence, and a local Ask JARVIS console
 - Cortex workspace map of the Obsidian Projects vault, with source browsing, the Graphify Synapse Map, and a vault-health card
 - Ask JARVIS work handoffs to agents, with prompt intake and PARA activity notes
 - App-lifetime background work: briefings, wake, backups, vault maintenance, and prompt-capture filing, all running with the window closed
@@ -73,8 +73,8 @@ Routing is deterministic and does not call an AI service. The agent must still i
 - Versioned local-data schema with daily backups, secret-free JSON export, previewed merge/replace restore, and configurable rotation
 - Project foundation with full create/edit/detail flows, status and priority tracking, due-date warnings, duplication, archiving, and confirmed deletion
 - Fixed and ongoing-client project modes, with read-only local Git repository health and activity summaries for ongoing work
-- Project-level website monitoring setup with platform selection, API registration, editable site details, and per-project reporter tokens stored in Keychain
-- Live monitoring fleet summary, health sorting/filtering, explainable site-health gauges, and per-project Security & Maintenance details
+- Free website up/down checks: each project's site is requested from this Mac every 5 minutes (and after wake); two failures in a row count as down, with a notification on outage and recovery, 30-day uptime, and an outage log kept locally in `site-checks.json`
+- Operations view in the Tasks style: status rail, filter chips, sorting and search, full-width project cards with site status, and a project detail page with a Website panel and 30-day uptime strip
 - Intelligence Matrix with priority alerts, Philippine conditions, editable watchlists, operational signals, change-aware briefings, and opt-in quiet-hour notifications
 - Local configurable JARVIS text-to-speech using installed macOS voices
 - Menu-bar command centre
@@ -88,11 +88,10 @@ Routing is deterministic and does not call an AI service. The agent must still i
 - Recent Philippine-region earthquake data from USGS
 - Philippine headlines from GMA News and world headlines from BBC News
 - Optional NewsAPI.org integration with the key stored in macOS Keychain
-- Secure Laravel monitoring API connection with separate read, site-registration, and per-project reporter credentials in Keychain
 - Local notification scheduling
 
 Live providers are isolated behind service boundaries so they can be replaced or expanded without rewriting the interface. Apple-platform sync remains a later milestone.
 
 ## Data and permissions
 
-Tasks, projects, saved locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; city search uses Apple Maps. Mac location is requested only when you press “Use Mac location” and is kept in memory for that session, not added to saved locations. The optional MapTiler Landscape and Satellite modes load MapTiler's SDK and map tiles while visible; the API key is stored in macOS Keychain, not in the repository, but is necessarily sent in map requests. Satellite mode also requests public infrared cloud tiles from NOAA/NESDIS. Paste only the MapTiler key in Settings, then select **MapTiler preview** or **Satellite** in the Philippine map's **Basemap** picker. Satellite thunderstorm icons represent forecasts at 16 sampled locations, not live radar or storm coverage. MapTiler usage counts towards the account's quota. Earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Monitoring API tokens are stored in macOS Keychain and sent only to the configured HTTPS endpoint. Launch at login and notifications are opt-in settings controlled from within the application.
+Tasks, projects, saved locations, and preferences are stored locally. Weather requests send coordinates to Open-Meteo; city search uses Apple Maps. Mac location is requested only when you press “Use Mac location” and is kept in memory for that session, not added to saved locations. The optional MapTiler Landscape and Satellite modes load MapTiler's SDK and map tiles while visible; the API key is stored in macOS Keychain, not in the repository, but is necessarily sent in map requests. Satellite mode also requests public infrared cloud tiles from NOAA/NESDIS. Paste only the MapTiler key in Settings, then select **MapTiler preview** or **Satellite** in the Philippine map's **Basemap** picker. Satellite thunderstorm icons represent forecasts at 16 sampled locations, not live radar or storm coverage. MapTiler usage counts towards the account's quota. Earthquake and news sections read public feeds from USGS, GMA News, and BBC News. Website checks are plain requests from this Mac to each project's own site; no monitoring service is involved. Launch at login and notifications are opt-in settings controlled from within the application.

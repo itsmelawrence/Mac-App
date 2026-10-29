@@ -8,66 +8,56 @@ struct ProjectsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
+    @ObservedObject private var siteMonitor = SiteMonitor.shared
 
-    @AppStorage("projects.showArchived") private var showArchived = false
-    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
+    @AppStorage("projects.sort") private var sortRawValue = ProjectSort.attention.rawValue
+    @State private var scope = ProjectScope.active
+    @State private var searchText = ""
     @State private var showingNewProject = false
     @State private var editingProject: ProjectItem?
     @State private var selectedProject: ProjectItem?
-    @State private var selectedDetailSection = ProjectDetailSection.overview
     @State private var projectPendingDeletion: ProjectItem?
-    @State private var monitoringSites: [String: MonitoringSite] = [:]
-    @State private var monitoringError: String?
     @State private var deletionError: String?
-    @State private var isRefreshingMonitoring = false
-    @State private var needsAttentionOnly = false
-    @State private var sortBySiteHealth = false
 
-    private let monitoringService = MonitoringAPIService()
-    private let monitoringCredentialStore = MonitoringAPICredentialStore()
+    private var sort: ProjectSort { ProjectSort(rawValue: sortRawValue) ?? .attention }
 
-    private var visibleProjects: [ProjectItem] {
-        let filtered = projects.filter { project in
-            guard showArchived || !project.isArchived else { return false }
-            guard needsAttentionOnly else { return true }
-            return MonitoringHealth.evaluate(site: site(for: project), connected: project.hasMonitoringSite).needsAttention
+    private var taskCounts: [UUID: ProjectTaskCounts] {
+        var counts: [UUID: ProjectTaskCounts] = [:]
+        for task in tasks {
+            guard let projectID = task.projectID else { continue }
+            counts[projectID, default: ProjectTaskCounts()].add(task)
         }
-        guard sortBySiteHealth else { return filtered }
-        return filtered.sorted {
-            let lhs = MonitoringHealth.evaluate(site: site(for: $0), connected: $0.hasMonitoringSite)
-            let rhs = MonitoringHealth.evaluate(site: site(for: $1), connected: $1.hasMonitoringSite)
-            if lhs.sortRank != rhs.sortRank { return lhs.sortRank < rhs.sortRank }
-            return $0.updatedAt > $1.updatedAt
-        }
+        return counts
     }
+
+    private var siteProjects: [ProjectItem] { projects.filter { $0.hasWebsite && !$0.isArchived } }
+    private var operationalProjects: [ProjectItem] { projects.filter { !$0.isArchived && $0.status != .completed } }
 
     var body: some View {
         Group {
             if let selectedProject {
                 ProjectDetailView(
                     project: selectedProject,
-                    selectedSection: $selectedDetailSection,
-                    monitoringSite: site(for: selectedProject),
-                    tasks: tasks.filter { $0.projectID == selectedProject.id },
-                    monitoringError: monitoringError,
-                    isRefreshingMonitoring: isRefreshingMonitoring,
-                    onRefreshMonitoring: { Task { await refreshMonitoring() } }
+                    tasks: tasks.filter { $0.projectID == selectedProject.id }
                 ) {
                     self.selectedProject = nil
-                    selectedDetailSection = .overview
                 }
             } else {
-                projectGrid
+                overview
             }
         }
-        .navigationTitle(selectedProject == nil ? "Projects" : selectedProject?.name ?? "Project")
-        .toolbar { projectToolbar }
-        .sheet(isPresented: $showingNewProject) {
-            ProjectEditorSheet()
+        .background(projectsBackground)
+        .navigationTitle(selectedProject?.name ?? "Projects")
+        .toolbar {
+            if selectedProject == nil {
+                Button { showingNewProject = true } label: {
+                    Label("New project", systemImage: "plus")
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
         }
-        .sheet(item: $editingProject) { project in
-            ProjectEditorSheet(project: project)
-        }
+        .sheet(isPresented: $showingNewProject) { ProjectEditorSheet() }
+        .sheet(item: $editingProject) { ProjectEditorSheet(project: $0) }
         .confirmationDialog(
             "Delete \(projectPendingDeletion?.name ?? "this project")?",
             isPresented: Binding(
@@ -98,14 +88,6 @@ struct ProjectsView: View {
         } message: {
             Text(deletionError ?? "")
         }
-        .task {
-            await refreshMonitoring()
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(15 * 60))
-                guard !Task.isCancelled else { break }
-                await refreshMonitoring()
-            }
-        }
         .onAppear { openRequestedProjectIfNeeded() }
         .onChange(of: appState.requestedProjectID) { _, _ in openRequestedProjectIfNeeded() }
     }
@@ -113,143 +95,266 @@ struct ProjectsView: View {
     private func openRequestedProjectIfNeeded() {
         guard let projectID = appState.requestedProjectID,
               let project = projects.first(where: { $0.id == projectID }) else { return }
-        selectedDetailSection = .overview
         selectedProject = project
         appState.consumeProjectRequest(projectID)
     }
 
-    @ViewBuilder
-    private var projectGrid: some View {
-        if visibleProjects.isEmpty {
-            ContentUnavailableView {
-                Label(
-                    projects.isEmpty ? "No projects yet" : "No active projects",
-                    systemImage: "square.stack.3d.up"
-                )
-            } description: {
-                Text(projects.isEmpty
-                     ? "Create your first project and give it a clear next action."
-                     : "Archived projects are currently hidden.")
-            } actions: {
-                if projects.isEmpty {
-                    Button("Create Project") { showingNewProject = true }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.orange)
-                } else {
-                    Button("Show Archived") { showArchived = true }
-                }
-            }
-        } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    monitoringFleetHeader
+    private var projectsBackground: some View {
+        LinearGradient(
+            colors: [Color(red: 0.012, green: 0.028, blue: 0.052), Color(nsColor: .windowBackgroundColor)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
 
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 480), spacing: 16)], spacing: 16) {
-                        ForEach(visibleProjects) { project in
-                            ProjectCard(
-                                project: project,
-                                monitoringSite: site(for: project),
-                                tasks: tasks.filter { $0.projectID == project.id },
-                                onOpen: {
-                                    selectedDetailSection = .overview
-                                    selectedProject = project
-                                },
-                                onOpenSecurity: {
-                                    selectedDetailSection = .security
-                                    selectedProject = project
-                                },
-                                onEdit: { editingProject = project },
-                                onDuplicate: { duplicate(project) },
-                                onArchive: { archive(project) },
-                                onDelete: { projectPendingDeletion = project }
-                            )
-                        }
+    // MARK: Overview
+
+    private var overview: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 26) {
+                header
+                statusRail
+                listSection
+            }
+            .padding(.horizontal, 36)
+            .padding(.vertical, 32)
+            .frame(maxWidth: 1_180)
+            .frame(maxWidth: .infinity)
+        }
+        .searchable(text: $searchText, prompt: "Search projects, clients, or websites")
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Operations")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                Text(headerSubtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            let attention = count(for: .attention)
+            if attention > 0 {
+                Button { scope = .attention } label: {
+                    Label("\(attention) need\(attention == 1 ? "s" : "") attention", systemImage: "exclamationmark.circle.fill")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 12).padding(.vertical, 7)
+                        .background(Color.orange.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            Button { showingNewProject = true } label: {
+                Label("New Project", systemImage: "plus")
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(.cyan)
+        }
+    }
+
+    private var headerSubtitle: String {
+        let down = siteProjects.filter { siteMonitor.health(for: $0).state == .down }
+        if down.count == 1 { return "\(down[0].name) is down. Everything else is holding." }
+        if down.count > 1 { return "\(down.count) sites are down." }
+        if projects.isEmpty { return "Client work, deadlines, and the websites behind them." }
+        return "\(operationalProjects.count) active operation\(operationalProjects.count == 1 ? "" : "s") and the websites behind them."
+    }
+
+    private var statusRail: some View {
+        let healths = siteProjects.map { siteMonitor.health(for: $0) }
+        let up = healths.filter { $0.state == .up || $0.state == .slow }.count
+        let down = healths.filter { $0.state == .down }.count
+        let uptimes = healths.compactMap(\.uptime)
+        let averageUptime = uptimes.isEmpty ? nil : uptimes.reduce(0, +) / Double(uptimes.count)
+        let dueSoon = operationalProjects.filter { project in
+            guard let dueDate = project.dueDate else { return false }
+            return dueDate < Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+        }.count
+
+        return HStack(spacing: 0) {
+            ProjectMetric(title: "Active", value: "\(operationalProjects.count)", tint: .primary)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Waiting on client", value: "\(count(for: .waiting))", tint: count(for: .waiting) > 0 ? .orange : .secondary)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Due within 7 days", value: "\(dueSoon)", tint: dueSoon > 0 ? .cyan : .secondary)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Sites up", value: healths.isEmpty ? "—" : "\(up)/\(healths.count)", tint: healths.isEmpty ? .secondary : .green)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Down", value: "\(down)", tint: down > 0 ? .red : .secondary)
+            ProjectMetricDivider()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(averageUptime.map(uptimeText) ?? "—")
+                    .font(.title2.monospacedDigit().weight(.bold))
+                    .foregroundStyle(averageUptime == nil ? Color.secondary : Color.green)
+                Text(checkedText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .help("Average 30-day uptime across your sites")
+        }
+        .padding(.vertical, 18)
+        .projectSurface(cornerRadius: 16)
+    }
+
+    private var checkedText: String {
+        if siteMonitor.isOffline { return "Checks paused · offline" }
+        guard let lastPassAt = siteMonitor.lastPassAt else { return "30-day uptime" }
+        return "Uptime · checked \(lastPassAt.formatted(.relative(presentation: .named)))"
+    }
+
+    private var listSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                ForEach(ProjectScope.allCases) { item in
+                    ProjectScopeChip(scope: item, count: count(for: item), isSelected: scope == item) {
+                        scope = item
                     }
                 }
-                .padding(24)
+                Spacer(minLength: 12)
+                Picker("Sort", selection: $sortRawValue) {
+                    ForEach(ProjectSort.allCases) { sort in
+                        Text(sort.title).tag(sort.rawValue)
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
+                .help("Sort projects")
+                Button {
+                    Task { await siteMonitor.checkAll() }
+                } label: {
+                    Label("Check all sites", systemImage: "arrow.clockwise")
+                }
+                .labelStyle(.iconOnly)
+                .disabled(siteMonitor.isChecking || siteProjects.isEmpty)
+                .help("Check every website now")
+            }
+
+            if visibleProjects.isEmpty {
+                emptyState
+            } else {
+                let counts = taskCounts
+                LazyVStack(spacing: 12) {
+                    ForEach(visibleProjects) { project in
+                        ProjectCard(
+                            project: project,
+                            health: siteMonitor.health(for: project),
+                            counts: counts[project.id] ?? ProjectTaskCounts(),
+                            isChecking: siteMonitor.checkingIDs.contains(project.id),
+                            onOpen: { selectedProject = project },
+                            onEdit: { editingProject = project },
+                            onCheckSite: { Task { await siteMonitor.check(project) } },
+                            onDuplicate: { duplicate(project) },
+                            onArchive: { archive(project) },
+                            onDelete: { projectPendingDeletion = project }
+                        )
+                    }
+                }
             }
         }
     }
 
-    private var monitoringFleetHeader: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(fleetSummaryColour)
-                .frame(width: 9, height: 9)
-            Text(fleetSummaryText)
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: searchText.isEmpty ? scope.systemImage : "magnifyingglass")
+                .font(.system(size: 32))
+                .foregroundStyle(.tertiary)
+            Text(emptyTitle).font(.headline)
+            Text(emptyMessage)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-
-            if let monitoringError {
-                Label("Offline · cached project links shown", systemImage: "wifi.slash")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .help(monitoringError)
-            }
-
-            Spacer()
-
-            Toggle("Needs attention", isOn: $needsAttentionOnly)
-                .toggleStyle(.button)
-                .buttonStyle(.bordered)
-
-            Toggle("Sort: Site health", isOn: $sortBySiteHealth)
-                .toggleStyle(.button)
-                .buttonStyle(.bordered)
-
-            Button {
-                Task { await refreshMonitoring() }
-            } label: {
-                Label("Refresh monitoring", systemImage: "arrow.clockwise")
-            }
-            .labelStyle(.iconOnly)
-            .disabled(isRefreshingMonitoring)
-            .help("Refresh monitoring data")
-        }
-        .controlSize(.small)
-    }
-
-    private var fleetSummaryText: String {
-        let connectedProjects = projects.filter { $0.hasMonitoringSite }
-        let health = connectedProjects.map { MonitoringHealth.evaluate(site: site(for: $0), connected: true) }
-        let healthy = health.filter { $0.state == .healthy }.count
-        let attention = health.filter { $0.state == .needsAttention || $0.state == .stale }.count
-        let critical = health.filter { $0.state == .critical || $0.state == .down }.count
-        let pending = health.filter { $0.state == .awaitingChecks }.count
-        guard !connectedProjects.isEmpty else { return "No monitored sites connected" }
-        var parts = ["\(connectedProjects.count) site\(connectedProjects.count == 1 ? "" : "s")", "\(healthy) healthy"]
-        if attention > 0 { parts.append("\(attention) need attention") }
-        if critical > 0 { parts.append("\(critical) critical") }
-        if pending > 0 { parts.append("\(pending) awaiting checks") }
-        return parts.joined(separator: " · ")
-    }
-
-    private var fleetSummaryColour: Color {
-        let states = projects.filter(\.hasMonitoringSite).map { MonitoringHealth.evaluate(site: site(for: $0), connected: true).state }
-        if states.contains(.down) || states.contains(.critical) { return .red }
-        if states.contains(.needsAttention) || states.contains(.stale) { return .orange }
-        if states.contains(.healthy) { return .green }
-        return .secondary
-    }
-
-    @ToolbarContentBuilder
-    private var projectToolbar: some ToolbarContent {
-        if selectedProject == nil {
-            ToolbarItemGroup {
-                Menu {
-                    Toggle("Show Archived", isOn: $showArchived)
-                    Toggle("Needs Attention", isOn: $needsAttentionOnly)
-                    Toggle("Sort by Site Health", isOn: $sortBySiteHealth)
-                } label: {
-                    Label("Project filters", systemImage: "line.3.horizontal.decrease.circle")
-                }
-
-                Button { showingNewProject = true } label: {
-                    Label("New project", systemImage: "plus")
-                }
-                .keyboardShortcut("n", modifiers: .command)
+            if projects.isEmpty {
+                Button("Create Project") { showingNewProject = true }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.cyan)
+                    .padding(.top, 4)
             }
         }
+        .frame(maxWidth: .infinity, minHeight: 260)
+        .projectSurface(cornerRadius: 16)
+    }
+
+    private var emptyTitle: String {
+        if projects.isEmpty { return "No projects yet" }
+        return searchText.isEmpty ? "Nothing here" : "No matching projects"
+    }
+
+    private var emptyMessage: String {
+        if projects.isEmpty { return "Create your first project, give it a next action, and add its website." }
+        guard searchText.isEmpty else { return "Try a broader search or another filter." }
+        switch scope {
+        case .active: return "No active operations. The board is clear."
+        case .attention: return "Every site is up and nothing is overdue."
+        case .waiting: return "No client is holding anything up."
+        case .completed: return "Completed projects will collect here."
+        case .archived: return "Archived projects will collect here."
+        }
+    }
+
+    // MARK: Filtering and sorting
+
+    private var visibleProjects: [ProjectItem] {
+        let counts = taskCounts
+        let matching = projects.filter { project in
+            guard matches(project, scope: scope, counts: counts) else { return false }
+            guard !searchText.isEmpty else { return true }
+            return project.name.localizedCaseInsensitiveContains(searchText)
+                || project.client.localizedCaseInsensitiveContains(searchText)
+                || project.type.localizedCaseInsensitiveContains(searchText)
+                || project.monitoringWebsiteURL.localizedCaseInsensitiveContains(searchText)
+                || project.tagsRawValue.localizedCaseInsensitiveContains(searchText)
+        }
+        return matching.sorted { lhs, rhs in
+            switch sort {
+            case .attention:
+                let lhsAttention = needsAttention(lhs, counts: counts)
+                let rhsAttention = needsAttention(rhs, counts: counts)
+                if lhsAttention != rhsAttention { return lhsAttention }
+                let lhsRank = siteMonitor.health(for: lhs).sortRank
+                let rhsRank = siteMonitor.health(for: rhs).sortRank
+                if lhsRank != rhsRank { return lhsRank < rhsRank }
+                if lhs.priority != rhs.priority { return lhs.priority.rank > rhs.priority.rank }
+                return lhs.updatedAt > rhs.updatedAt
+            case .updated:
+                return lhs.updatedAt > rhs.updatedAt
+            case .due:
+                return (lhs.dueDate ?? .distantFuture) < (rhs.dueDate ?? .distantFuture)
+            case .name:
+                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            }
+        }
+    }
+
+    private func matches(_ project: ProjectItem, scope: ProjectScope, counts: [UUID: ProjectTaskCounts]) -> Bool {
+        switch scope {
+        case .active: !project.isArchived && project.status != .completed
+        case .attention: !project.isArchived && needsAttention(project, counts: counts)
+        case .waiting: !project.isArchived && project.status == .waitingOnClient
+        case .completed: !project.isArchived && project.status == .completed
+        case .archived: project.isArchived
+        }
+    }
+
+    /// A site that is down or slow, a client holding things up, a missed deadline, or overdue tasks.
+    private func needsAttention(_ project: ProjectItem, counts: [UUID: ProjectTaskCounts]) -> Bool {
+        if siteMonitor.health(for: project).needsAttention { return true }
+        guard project.status != .completed else { return false }
+        if project.status == .waitingOnClient { return true }
+        if let dueDate = project.dueDate, Calendar.current.startOfDay(for: dueDate) < Calendar.current.startOfDay(for: .now) { return true }
+        return (counts[project.id]?.overdue ?? 0) > 0
+    }
+
+    private func count(for scope: ProjectScope) -> Int {
+        let counts = taskCounts
+        return projects.count { matches($0, scope: scope, counts: counts) }
     }
 
     private func duplicate(_ project: ProjectItem) {
@@ -264,99 +369,192 @@ struct ProjectsView: View {
         project.updatedAt = .now
         try? modelContext.save()
     }
-
-    private func site(for project: ProjectItem) -> MonitoringSite? {
-        guard !project.monitoringSiteID.isEmpty else { return nil }
-        return monitoringSites[project.monitoringSiteID]
-    }
-
-    @MainActor
-    private func refreshMonitoring() async {
-        guard !isRefreshingMonitoring else { return }
-        guard let token = monitoringCredentialStore.read() else {
-            monitoringError = "Add a monitoring read token in Settings."
-            return
-        }
-        isRefreshingMonitoring = true
-        defer { isRefreshingMonitoring = false }
-        do {
-            let summaries = try await monitoringService.sites(baseURLText: monitoringAPIBaseURL, readToken: token)
-            var detailed: [String: MonitoringSite] = [:]
-            try await withThrowingTaskGroup(of: MonitoringSite.self) { group in
-                for summary in summaries {
-                    group.addTask {
-                        try await monitoringService.site(
-                            baseURLText: monitoringAPIBaseURL,
-                            readToken: token,
-                            siteID: summary.id
-                        )
-                    }
-                }
-                for try await site in group { detailed[site.id] = site }
-            }
-            monitoringSites = detailed
-            monitoringError = nil
-            StateSnapshotService.shared.recordSites(detailed)
-        } catch {
-            monitoringError = error.localizedDescription
-        }
-    }
 }
 
-private enum ProjectDetailSection: String, CaseIterable, Identifiable {
-    case overview
-    case security
+private enum ProjectScope: String, CaseIterable, Identifiable {
+    case active
+    case attention
+    case waiting
+    case completed
+    case archived
 
     var id: Self { self }
+
     var title: String {
         switch self {
-        case .overview: "Overview"
-        case .security: "Security & Maintenance"
+        case .active: "Active"
+        case .attention: "Needs attention"
+        case .waiting: "Waiting on client"
+        case .completed: "Completed"
+        case .archived: "Archived"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .active: "square.stack.3d.up"
+        case .attention: "exclamationmark.triangle"
+        case .waiting: "hourglass"
+        case .completed: "checkmark.circle"
+        case .archived: "archivebox"
         }
     }
 }
 
+private enum ProjectSort: String, CaseIterable, Identifiable {
+    case attention
+    case updated
+    case due
+    case name
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .attention: "Needs attention first"
+        case .updated: "Recently updated"
+        case .due: "Due date"
+        case .name: "Name"
+        }
+    }
+}
+
+private struct ProjectTaskCounts {
+    var open = 0
+    var completed = 0
+    var overdue = 0
+
+    var total: Int { open + completed }
+
+    mutating func add(_ task: TaskItem) {
+        if task.isCompleted {
+            completed += 1
+        } else {
+            open += 1
+            if (task.dueDate ?? .distantFuture) < .now { overdue += 1 }
+        }
+    }
+}
+
+// MARK: - Overview pieces
+
+private struct ProjectScopeChip: View {
+    let scope: ProjectScope
+    let count: Int
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: scope.systemImage).font(.caption)
+                Text(scope.title).font(.subheadline.weight(isSelected ? .semibold : .regular))
+                Text("\(count)")
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .padding(.horizontal, 6).padding(.vertical, 1)
+                    .background((isSelected ? Color.cyan : Color.secondary).opacity(0.18), in: Capsule())
+            }
+            .padding(.horizontal, 13).padding(.vertical, 8)
+            .foregroundStyle(isSelected ? Color.cyan : Color.primary)
+            .background(
+                Capsule().fill(isSelected ? Color.cyan.opacity(0.14) : Color.white.opacity(isHovering ? 0.07 : 0.035))
+            )
+            .overlay(Capsule().stroke(isSelected ? Color.cyan.opacity(0.45) : Color.white.opacity(0.08)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+    }
+}
+
+/// One project in the list. A single click anywhere opens it.
 private struct ProjectCard: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var project: ProjectItem
-    let monitoringSite: MonitoringSite?
-    let tasks: [TaskItem]
-
+    let health: SiteHealth
+    let counts: ProjectTaskCounts
+    let isChecking: Bool
     let onOpen: () -> Void
-    let onOpenSecurity: () -> Void
     let onEdit: () -> Void
+    let onCheckSite: () -> Void
     let onDuplicate: () -> Void
     let onArchive: () -> Void
     let onDelete: () -> Void
-
-    @State private var repositorySnapshot: RepositorySnapshot?
-    @State private var repositoryError: String?
+    @State private var isHovering = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 5) {
+        HStack(alignment: .top, spacing: 16) {
+            SiteStatusIcon(health: health, isChecking: isChecking)
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(project.name)
-                        .font(.title3.bold())
-                        .lineLimit(2)
-                    if !project.type.isEmpty {
-                        Text(project.type.uppercased())
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.orange)
-                    }
+                        .font(.system(size: 16, weight: .semibold))
+                        .lineLimit(1)
                     if !project.client.isEmpty {
-                        Label(project.client, systemImage: "person.crop.circle")
-                            .font(.subheadline)
+                        Text(project.client)
+                            .font(.callout)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
                 }
-                Spacer()
+                if !project.nextAction.isEmpty {
+                    Label(project.nextAction, systemImage: "arrow.turn.down.right")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                ProjectMetaChips(project: project, counts: counts)
+                if project.mode == .fixed && counts.total > 0 {
+                    ProgressView(value: Double(counts.completed), total: Double(counts.total))
+                        .tint(.cyan)
+                        .controlSize(.small)
+                        .frame(maxWidth: 260)
+                }
+            }
+
+            Spacer(minLength: 16)
+
+            if project.hasWebsite {
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(health.detail)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(health.colour)
+                        .lineLimit(1)
+                    Text(websiteHost(project.monitoringWebsiteURL))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    if let uptime = health.uptime {
+                        Text("\(uptimeText(uptime)) · 30 days")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .frame(minWidth: 140, alignment: .trailing)
+            }
+
+            HStack(spacing: 6) {
+                Button(action: onEdit) {
+                    Label("Edit", systemImage: "pencil")
+                }
                 Menu {
                     Button("Open", systemImage: "arrow.up.right.square", action: onOpen)
-                    Button("Edit", systemImage: "pencil", action: onEdit)
-                    Button("Duplicate", systemImage: "plus.square.on.square", action: onDuplicate)
+                    Button("Edit…", systemImage: "pencil", action: onEdit)
+                    Picker("Status", selection: statusBinding) {
+                        ForEach(ProjectStatus.allCases) { Text($0.title).tag($0) }
+                    }
+                    if project.hasWebsite {
+                        Divider()
+                        Button("Check Site Now", systemImage: "arrow.clockwise", action: onCheckSite)
+                        if let url = URL(string: project.monitoringWebsiteURL) {
+                            Link(destination: url) { Label("Open Website", systemImage: "safari") }
+                        }
+                    }
                     Divider()
+                    Button("Duplicate", systemImage: "plus.square.on.square", action: onDuplicate)
                     Button(
                         project.isArchived ? "Restore" : "Archive",
                         systemImage: project.isArchived ? "tray.and.arrow.up" : "archivebox",
@@ -364,171 +562,180 @@ private struct ProjectCard: View {
                     )
                     Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "ellipsis").frame(width: 20, height: 20)
                 }
                 .menuStyle(.borderlessButton)
-                .accessibilityLabel("Project actions")
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("More actions")
             }
-
-            HStack {
-                Picker("Status", selection: Binding(
-                    get: { project.status },
-                    set: { newStatus in
-                        project.status = newStatus
-                        project.updatedAt = .now
-                        try? modelContext.save()
-                    }
-                )) {
-                    ForEach(ProjectStatus.allCases) { status in
-                        Text(status.title).tag(status)
-                    }
-                }
-                .labelsHidden()
-
-                Spacer()
-                PriorityBadge(priority: project.priority)
-            }
-
-            if let dueDate = project.dueDate {
-                DueDateBadge(date: dueDate, status: project.status)
-            }
-
-            if let waitingDays = project.waitingDays() {
-                Label("Waiting on client · \(waitingDays) day\(waitingDays == 1 ? "" : "s")", systemImage: "hourglass")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.orange)
-            }
-
-            SiteHealthPanel(
-                health: MonitoringHealth.evaluate(site: monitoringSite, connected: project.hasMonitoringSite),
-                site: monitoringSite,
-                isConnected: project.hasMonitoringSite,
-                onOpenSecurity: onOpenSecurity
-            )
-
-            if project.mode == .ongoing {
-                ongoingActivity
-            } else {
-                ProgressView(value: taskProgress)
-                    .tint(.orange)
-                HStack {
-                    Text("Progress")
-                    Text("\(completedTaskCount)/\(tasks.count) tasks")
-                        .foregroundStyle(tasks.isEmpty ? .tertiary : .secondary)
-                    Spacer()
-                    Text(taskProgress, format: .percent.precision(.fractionLength(0)))
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-
-            if !project.nextAction.isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("NEXT ACTION")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
-                    Text(project.nextAction).lineLimit(2)
-                }
-            }
+            .opacity(isHovering ? 1 : 0.75)
         }
-        .padding(18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(.white.opacity(0.05))
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.78 : 0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(borderColour, lineWidth: 1)
+        )
+        .overlay(alignment: .leading) {
+            // Priority accent along the card's left edge, as on task cards.
+            RoundedRectangle(cornerRadius: 2)
+                .fill(project.priority.tint)
+                .frame(width: 3)
+                .padding(.vertical, 14)
         }
+        .opacity(project.isArchived ? 0.72 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 14))
         .onTapGesture(perform: onOpen)
-        .accessibilityElement(children: .contain)
-        .accessibilityHint("Open project details")
-        .task(id: project.repositoryBookmarkData) {
-            await refreshRepository()
+        .onHover { hovering in
+            isHovering = hovering
+            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
         }
-    }
-
-    private var completedTaskCount: Int { tasks.filter(\.isCompleted).count }
-
-    private var taskProgress: Double {
-        guard !tasks.isEmpty else { return project.progress }
-        return Double(completedTaskCount) / Double(tasks.count)
-    }
-
-    private var ongoingActivity: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack {
-                RepositoryHealthBadge(
-                    health: RepositoryHealth.evaluate(
-                        status: project.status,
-                        dueDate: project.dueDate,
-                        snapshot: repositorySnapshot
-                    )
-                )
-                Spacer()
-                Text("ONGOING CLIENT")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.orange)
+        // Archiving from the Active list removes the card while the pointer is still on it.
+        .onDisappear { if isHovering { NSCursor.pop() } }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .help("Click to open")
+        .contextMenu {
+            Button("Open", systemImage: "arrow.up.right.square", action: onOpen)
+            Button("Edit…", systemImage: "pencil", action: onEdit)
+            if project.hasWebsite {
+                Button("Check Site Now", systemImage: "arrow.clockwise", action: onCheckSite)
             }
-
-            if let repositorySnapshot {
-                HStack(spacing: 12) {
-                    Label(repositorySnapshot.branch, systemImage: "arrow.triangle.branch")
-                    Label("\(repositorySnapshot.dirtyFileCount) changed", systemImage: "pencil.and.list.clipboard")
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-                HStack {
-                    Text(repositorySnapshot.lastCommitMessage)
-                        .lineLimit(1)
-                    Spacer()
-                    if let date = repositorySnapshot.lastCommitDate {
-                        Text(date, style: .relative)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .font(.caption)
-            } else {
-                Label(
-                    repositoryError ?? "Connect a local repository in project details",
-                    systemImage: project.hasRepository ? "exclamationmark.triangle" : "folder.badge.plus"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-            }
+            Divider()
+            Button("Delete Project", systemImage: "trash", role: .destructive, action: onDelete)
         }
     }
 
-    private func refreshRepository() async {
-        guard project.mode == .ongoing, let bookmark = project.repositoryBookmarkData else {
-            repositorySnapshot = nil
-            repositoryError = nil
-            return
-        }
-        do {
-            let inspection = try await GitRepositoryService.inspect(bookmarkData: bookmark)
-            repositorySnapshot = inspection.snapshot
-            repositoryError = nil
-            if let refreshed = inspection.refreshedBookmarkData {
-                project.repositoryBookmarkData = refreshed
+    private var borderColour: Color {
+        if health.state == .down { return Color.red.opacity(isHovering ? 0.65 : 0.45) }
+        return isHovering ? Color.cyan.opacity(0.45) : Color.white.opacity(0.07)
+    }
+
+    private var statusBinding: Binding<ProjectStatus> {
+        Binding(
+            get: { project.status },
+            set: { newStatus in
+                project.status = newStatus
+                project.updatedAt = .now
                 try? modelContext.save()
             }
-        } catch {
-            repositorySnapshot = nil
-            repositoryError = error.localizedDescription
+        )
+    }
+}
+
+/// Status, priority, due date, and task progress as small chips.
+private struct ProjectMetaChips: View {
+    let project: ProjectItem
+    let counts: ProjectTaskCounts
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ProjectChip(text: project.status.title, systemImage: project.status.systemImage, tint: project.status.tint)
+            ProjectPriorityChip(priority: project.priority)
+            if let dueDate = project.dueDate {
+                let due = DueDescription(date: dueDate, status: project.status)
+                ProjectChip(text: due.text, systemImage: due.systemImage, tint: due.tint)
+            }
+            if counts.total > 0 {
+                ProjectChip(
+                    text: project.mode == .fixed ? "\(counts.completed) of \(counts.total) tasks" : "\(counts.open) open task\(counts.open == 1 ? "" : "s")",
+                    systemImage: "checklist",
+                    tint: .secondary
+                )
+            }
+            if counts.overdue > 0 {
+                ProjectChip(text: "\(counts.overdue) overdue", systemImage: "clock.badge.exclamationmark", tint: .red)
+            }
+            if let waitingDays = project.waitingDays() {
+                ProjectChip(text: "Waiting \(waitingDays) day\(waitingDays == 1 ? "" : "s")", systemImage: "hourglass", tint: .orange)
+            }
+            if project.mode == .ongoing {
+                ProjectChip(text: "Ongoing", systemImage: "repeat", tint: .secondary)
+            }
         }
     }
 }
 
+private struct ProjectChip: View {
+    let text: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(.caption.weight(.medium))
+            .lineLimit(1)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(Color.white.opacity(0.05), in: Capsule())
+    }
+}
+
+private struct ProjectPriorityChip: View {
+    let priority: ProjectPriority
+
+    var body: some View {
+        Text(priority.title.uppercased())
+            .font(.caption2.weight(.bold))
+            .tracking(0.7)
+            .foregroundStyle(priority.tint)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(priority.tint.opacity(0.14), in: Capsule())
+    }
+}
+
+private struct SiteStatusIcon: View {
+    let health: SiteHealth
+    let isChecking: Bool
+    var size: CGFloat = 22
+
+    var body: some View {
+        Group {
+            if isChecking {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: health.systemImage)
+                    .font(.system(size: size, weight: .regular))
+                    .foregroundStyle(health.colour)
+                    .opacity(health.state == .noWebsite ? 0.45 : 1)
+            }
+        }
+        .frame(width: size + 6, height: size + 6)
+        .help(health.state == .noWebsite ? "No website to check" : "Website \(health.label.lowercased())")
+    }
+}
+
+private struct ProjectMetric: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value).font(.title2.monospacedDigit().weight(.bold)).foregroundStyle(tint).lineLimit(1)
+            Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+    }
+}
+
+private struct ProjectMetricDivider: View {
+    var body: some View { Divider().frame(height: 38) }
+}
+
+// MARK: - Detail
+
 private struct ProjectDetailView: View {
+    @EnvironmentObject private var appState: AppState
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var siteMonitor = SiteMonitor.shared
     @Bindable var project: ProjectItem
-    @Binding var selectedSection: ProjectDetailSection
-    let monitoringSite: MonitoringSite?
     let tasks: [TaskItem]
-    let monitoringError: String?
-    let isRefreshingMonitoring: Bool
-    let onRefreshMonitoring: () -> Void
     let onBack: () -> Void
 
     @State private var savedAt: Date?
@@ -536,157 +743,53 @@ private struct ProjectDetailView: View {
     @State private var repositoryError: String?
     @State private var isRefreshingRepository = false
     @State private var showingRepositoryPicker = false
-    @State private var showingMonitoringSetup = false
     @State private var showingNewTask = false
+    @State private var taskBeingEdited: TaskItem?
 
-    private var snapshot: ProjectSnapshot {
-        ProjectSnapshot(project: project)
-    }
+    private var snapshot: ProjectSnapshot { ProjectSnapshot(project: project) }
+    private var health: SiteHealth { siteMonitor.health(for: project) }
+    private var completedTaskCount: Int { tasks.filter(\.isCompleted).count }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 24) {
                 Button(action: onBack) {
-                    Label("Projects", systemImage: "chevron.left")
+                    Label("Operations", systemImage: "chevron.left")
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
 
-                Picker("Project section", selection: $selectedSection) {
-                    ForEach(ProjectDetailSection.allCases) { section in
-                        Text(section.title).tag(section)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 460)
+                header
+                metricsRail
 
-                if selectedSection == .overview {
-                    VStack(alignment: .leading, spacing: 10) {
-                    TextField("Project name", text: $project.name)
-                        .textFieldStyle(.plain)
-                        .font(.largeTitle.bold())
-
-                    TextField("Client", text: $project.client)
-                        .textFieldStyle(.plain)
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-
-                    HStack(spacing: 12) {
-                        Picker("Status", selection: $project.status) {
-                            ForEach(ProjectStatus.allCases) { status in
-                                Text(status.title).tag(status)
-                            }
-                        }
-                        Picker("Priority", selection: $project.priority) {
-                            ForEach(ProjectPriority.allCases) { priority in
-                                Text(priority.title).tag(priority)
-                            }
-                        }
-                        Picker("Mode", selection: $project.mode) {
-                            ForEach(ProjectMode.allCases) { mode in
-                                Text(mode.title).tag(mode)
-                            }
-                        }
-                        Spacer()
-                        if let savedAt {
-                            Label("Saved", systemImage: "checkmark.circle")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .help("Last saved \(savedAt.formatted(date: .omitted, time: .shortened))")
+                HStack(alignment: .top, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        WebsitePanel(siteMonitor: siteMonitor, project: project)
+                        tasksPanel
+                        if project.mode == .ongoing { repositoryPanel }
+                        ProjectPanel(title: "Description", systemImage: "text.alignleft") {
+                            TextField("Project scope, context and goals", text: $project.summary, axis: .vertical)
+                                .lineLimit(4...10)
+                                .textFieldStyle(.plain)
                         }
                     }
-                    }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                    if project.mode == .ongoing {
-                        HStack(spacing: 16) {
-                        MetricCard(
-                            title: "Health",
-                            value: RepositoryHealth.evaluate(
-                                status: project.status,
-                                dueDate: project.dueDate,
-                                snapshot: repositorySnapshot
-                            ).title,
-                            systemImage: "heart.text.square"
-                        )
-                        MetricCard(title: "Branch", value: repositorySnapshot?.branch ?? "Not connected", systemImage: "arrow.triangle.branch")
-                        MetricCard(title: "Commits · 30d", value: "\(repositorySnapshot?.commitsInLast30Days ?? 0)", systemImage: "point.3.connected.trianglepath.dotted")
+                    VStack(alignment: .leading, spacing: 20) {
+                        ProjectPanel(title: "Next action", systemImage: "arrow.turn.down.right") {
+                            TextField("What should happen next?", text: $project.nextAction, axis: .vertical)
+                                .lineLimit(2...6)
+                                .textFieldStyle(.plain)
                         }
-                    } else {
-                        HStack(spacing: 16) {
-                            MetricCard(title: "Progress", value: taskProgress.formatted(.percent.precision(.fractionLength(0))), systemImage: "chart.line.uptrend.xyaxis")
-                            MetricCard(title: "Tasks", value: "\(completedTaskCount) / \(tasks.count)", systemImage: "checklist")
-                            MetricCard(title: "Priority", value: project.priority.title, systemImage: "flag.fill")
-                        }
+                        detailsPanel
                     }
-
-                    if let waitingDays = project.waitingDays() {
-                        Label("Waiting on client for \(waitingDays) day\(waitingDays == 1 ? "" : "s")", systemImage: "hourglass")
-                            .foregroundStyle(.orange)
-                    }
-
-                    projectTasksSection
-
-                    GroupBox("Project details") {
-                        VStack(alignment: .leading, spacing: 16) {
-                        LabeledContent("Type") {
-                            TextField("Website Build", text: $project.type)
-                                .frame(maxWidth: 360)
-                        }
-                        LabeledContent("Project mode") {
-                            VStack(alignment: .trailing, spacing: 3) {
-                                Picker("Project mode", selection: $project.mode) {
-                                    ForEach(ProjectMode.allCases) { mode in
-                                        Text(mode.title).tag(mode)
-                                    }
-                                }
-                                .labelsHidden()
-                                Text(project.mode.explanation)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        OptionalDateEditor(label: "Start date", date: $project.startDate)
-                        OptionalDateEditor(label: "Due date", date: $project.dueDate)
-                        LabeledContent("Tags") {
-                            TextField("WordPress, Retainer", text: $project.tagsRawValue)
-                                .frame(maxWidth: 360)
-                        }
-                        }
-                        .padding(8)
-                    }
-
-                    if project.mode == .ongoing {
-                        repositorySection
-                    }
-
-                    monitoringSection
-
-                    GroupBox("Description") {
-                        TextField("Project scope, context and goals", text: $project.summary, axis: .vertical)
-                            .lineLimit(5...10)
-                            .textFieldStyle(.plain)
-                            .padding(8)
-                    }
-
-                    GroupBox("Next action") {
-                        TextField("What should happen next?", text: $project.nextAction, axis: .vertical)
-                            .lineLimit(2...5)
-                            .textFieldStyle(.plain)
-                            .padding(8)
-                    }
-                } else {
-                    SecurityMaintenanceView(
-                        project: project,
-                        site: monitoringSite,
-                        apiError: monitoringError,
-                        isRefreshing: isRefreshingMonitoring,
-                        onRefresh: onRefreshMonitoring,
-                        onConfigure: { showingMonitoringSetup = true }
-                    )
+                    .frame(width: 320)
                 }
             }
-            .padding(24)
-            .frame(maxWidth: 980, alignment: .leading)
+            .padding(.horizontal, 36)
+            .padding(.vertical, 28)
+            .frame(maxWidth: 1_180)
+            .frame(maxWidth: .infinity)
         }
         .onChange(of: snapshot) { _, _ in persistChanges() }
         .fileImporter(
@@ -699,23 +802,83 @@ private struct ProjectDetailView: View {
         .task(id: project.repositoryBookmarkData) {
             await refreshRepository()
         }
-        .sheet(isPresented: $showingMonitoringSetup) {
-            ProjectMonitoringSheet(project: project)
-        }
-        .sheet(isPresented: $showingNewTask) {
-            TaskEditorView(projectID: project.id)
+        .sheet(isPresented: $showingNewTask) { TaskEditorView(projectID: project.id) }
+        .sheet(item: $taskBeingEdited) { TaskEditorView(editing: $0) }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    TextField("Project name", text: $project.name)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                    TextField("Client", text: $project.client)
+                        .textFieldStyle(.plain)
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if let savedAt {
+                    Label("Saved", systemImage: "checkmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .help("Last saved \(savedAt.formatted(date: .omitted, time: .shortened))")
+                }
+            }
+            HStack(spacing: 12) {
+                Picker("Status", selection: $project.status) {
+                    ForEach(ProjectStatus.allCases) { Text($0.title).tag($0) }
+                }
+                Picker("Priority", selection: $project.priority) {
+                    ForEach(ProjectPriority.allCases) { Text($0.title).tag($0) }
+                }
+                Picker("Mode", selection: $project.mode) {
+                    ForEach(ProjectMode.allCases) { Text($0.title).tag($0) }
+                }
+            }
+            .fixedSize()
         }
     }
 
-    private var completedTaskCount: Int { tasks.filter(\.isCompleted).count }
+    private var metricsRail: some View {
+        HStack(spacing: 0) {
+            if project.mode == .ongoing {
+                ProjectMetric(
+                    title: "Repository",
+                    value: RepositoryHealth.evaluate(status: project.status, dueDate: project.dueDate, snapshot: repositorySnapshot).title,
+                    tint: .primary
+                )
+                ProjectMetricDivider()
+                ProjectMetric(title: "Commits · 30 days", value: repositorySnapshot.map { "\($0.commitsInLast30Days)" } ?? "—", tint: .primary)
+            } else {
+                ProjectMetric(title: "Progress", value: taskProgress.formatted(.percent.precision(.fractionLength(0))), tint: .cyan)
+                ProjectMetricDivider()
+                ProjectMetric(title: "Tasks done", value: "\(completedTaskCount)/\(tasks.count)", tint: .primary)
+            }
+            ProjectMetricDivider()
+            if let dueDate = project.dueDate {
+                let due = DueDescription(date: dueDate, status: project.status)
+                ProjectMetric(title: "Deadline", value: due.shortText, tint: due.tint == .secondary ? .primary : due.tint)
+            } else {
+                ProjectMetric(title: "Deadline", value: "None", tint: .secondary)
+            }
+            ProjectMetricDivider()
+            ProjectMetric(title: "Website", value: health.label, tint: project.hasWebsite ? health.colour : .secondary)
+            ProjectMetricDivider()
+            ProjectMetric(title: "Uptime · 30 days", value: health.uptime.map(uptimeText) ?? "—", tint: health.uptime == nil ? .secondary : .green)
+        }
+        .padding(.vertical, 18)
+        .projectSurface(cornerRadius: 16)
+    }
 
     private var taskProgress: Double {
         guard !tasks.isEmpty else { return project.progress }
         return Double(completedTaskCount) / Double(tasks.count)
     }
 
-    private var projectTasksSection: some View {
-        GroupBox("Project tasks") {
+    private var tasksPanel: some View {
+        ProjectPanel(title: "Tasks", systemImage: "checklist") {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(tasks.isEmpty ? "No linked tasks yet" : "\(completedTaskCount) of \(tasks.count) complete")
@@ -723,70 +886,50 @@ private struct ProjectDetailView: View {
                     Spacer()
                     Button("Add Task", systemImage: "plus") { showingNewTask = true }
                 }
-
-                ForEach(tasks.prefix(8)) { task in
-                    HStack(spacing: 10) {
-                        Button {
-                            TaskStore.setCompleted(task, !task.isCompleted)
-                            try? modelContext.save()
-                        } label: {
-                            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(task.isCompleted ? .green : .secondary)
-                        }
+                let ordered = TaskQueueEngine.sorted(tasks.filter { !$0.isCompleted }) + tasks.filter(\.isCompleted)
+                ForEach(ordered.prefix(10)) { task in
+                    ProjectTaskRow(task: task) { taskBeingEdited = task }
+                }
+                if tasks.count > 10 {
+                    Button("Show all \(tasks.count) tasks in Tasks") { appState.selection = .tasks }
                         .buttonStyle(.plain)
-                        Text(task.title)
-                            .strikethrough(task.isCompleted)
-                        if task.isBlocked {
-                            Label("Blocked", systemImage: "hand.raised.fill")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                                .help(task.blockedReason)
-                        }
-                        Spacer()
-                        if let dueDate = task.dueDate {
-                            Text(dueDate, format: .dateTime.month(.abbreviated).day())
-                                .font(.caption)
-                                .foregroundStyle(!task.isCompleted && dueDate < .now ? .red : .secondary)
-                        }
-                    }
+                        .foregroundStyle(.cyan)
                 }
             }
-            .padding(8)
         }
     }
 
-    private var monitoringSection: some View {
-        GroupBox("Website monitoring") {
-            HStack(spacing: 14) {
-                Image(systemName: project.hasMonitoringSite ? "checkmark.shield.fill" : "waveform.path.ecg")
-                    .font(.title2)
-                    .foregroundStyle(project.hasMonitoringSite ? .green : .secondary)
-
+    private var detailsPanel: some View {
+        ProjectPanel(title: "Details", systemImage: "info.circle") {
+            VStack(alignment: .leading, spacing: 14) {
+                LabeledContent("Type") {
+                    TextField("Website Build", text: $project.type)
+                        .multilineTextAlignment(.trailing)
+                }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(project.hasMonitoringSite ? "Connected to JARVIS" : "No monitored website")
-                        .font(.headline)
-                    Text(project.hasMonitoringSite
-                         ? "\(project.monitoringPlatform.title) · \(project.monitoringWebsiteURL)"
-                         : "Register this project's website and receive a dedicated reporter token.")
+                    Picker("Mode", selection: $project.mode) {
+                        ForEach(ProjectMode.allCases) { Text($0.title).tag($0) }
+                    }
+                    Text(project.mode.explanation)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
                 }
-
-                Spacer()
-
-                Button(project.hasMonitoringSite ? "Connection Settings…" : "Connect Website…") {
-                    showingMonitoringSetup = true
+                OptionalDateEditor(label: "Start date", date: $project.startDate)
+                OptionalDateEditor(label: "Due date", date: $project.dueDate)
+                LabeledContent("Tags") {
+                    TextField("WordPress, Retainer", text: $project.tagsRawValue)
+                        .multilineTextAlignment(.trailing)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                Divider()
+                Text("Created \(project.createdAt.formatted(date: .abbreviated, time: .omitted)) · updated \(project.updatedAt.formatted(.relative(presentation: .named)))")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-            .padding(8)
         }
     }
 
-    private var repositorySection: some View {
-        GroupBox("Local repository") {
+    private var repositoryPanel: some View {
+        ProjectPanel(title: "Local repository", systemImage: "arrow.triangle.branch") {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -805,8 +948,6 @@ private struct ProjectDetailView: View {
                     Button(project.hasRepository ? "Choose Another…" : "Connect Repository…") {
                         showingRepositoryPicker = true
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
                 }
 
                 if isRefreshingRepository {
@@ -865,7 +1006,6 @@ private struct ProjectDetailView: View {
                     }
                 }
             }
-            .padding(8)
         }
     }
 
@@ -920,801 +1060,271 @@ private struct ProjectDetailView: View {
     }
 }
 
-private struct SiteHealthPanel: View {
-    let health: MonitoringHealth
-    let site: MonitoringSite?
-    let isConnected: Bool
-    let onOpenSecurity: () -> Void
-
-    private var updateCount: Int { site?.latestSnapshot?.pendingUpdateCount ?? 0 }
-    private var findingCount: Int { site?.openFindingsCount ?? 0 }
+private struct ProjectTaskRow: View {
+    @Bindable var task: TaskItem
+    let onEdit: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: 18) {
-            SiteHealthGauge(health: health, compact: true)
-                .frame(width: 112, height: 72)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("SITE HEALTH")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(.secondary)
-
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(health.score.map(String.init) ?? "—")
-                        .font(.title.bold())
-                        .foregroundStyle(.primary)
-                    Text(health.label)
-                        .font(.headline)
-                        .foregroundStyle(health.colour)
-                }
-
-                if isConnected {
-                    Text("\(updateCount) updates · \(findingCount) vulnerabilit\(findingCount == 1 ? "y" : "ies")")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(lastObservedText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Connect this project to its monitored website")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            Button(action: onOpenSecurity) {
-                Text(isConnected ? "Security ›" : "Connect site")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.orange)
-                    .frame(minHeight: 44)
+        HStack(spacing: 10) {
+            Button {
+                TaskStore.setCompleted(task, !task.isCompleted)
+            } label: {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(task.isCompleted ? .green : .secondary)
             }
             .buttonStyle(.plain)
-        }
-        .padding(14)
-        .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 16))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.white.opacity(0.035))
-        }
-    }
-
-    private var lastObservedText: String {
-        guard let date = health.lastObservedAt else { return "No completed outside check yet" }
-        return "Checked \(date.formatted(.relative(presentation: .named)))"
-    }
-}
-
-private struct SiteHealthGauge: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let health: MonitoringHealth
-    var compact = false
-
-    var body: some View {
-        ZStack {
-            Canvas { context, size in
-                let center = CGPoint(x: size.width / 2, y: size.height - (compact ? 7 : 10))
-                let radius = min(size.width * 0.40, size.height - (compact ? 12 : 18))
-                let lineWidth = compact ? 7.0 : 10.0
-
-                drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 0...49, colour: .red)
-                drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 50...79, colour: .orange)
-                drawBand(context: &context, center: center, radius: radius, lineWidth: lineWidth, range: 80...100, colour: Color(red: 0.24, green: 0.81, blue: 0.56))
-
-                guard health.score != nil else { return }
-                context.fill(Path(ellipseIn: CGRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10)), with: .color(.white))
-            }
-
-            if let score = health.score {
-                SiteHealthGaugeNeedle(score: Double(score), compact: compact)
-                    .stroke(
-                        .white.opacity(0.95),
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                    )
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.75), value: score)
-            }
-        }
-        .opacity(health.state == .stale ? 0.5 : 1)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
-    }
-
-    private func drawBand(
-        context: inout GraphicsContext,
-        center: CGPoint,
-        radius: Double,
-        lineWidth: Double,
-        range: ClosedRange<Int>,
-        colour: Color
-    ) {
-        let start = 180 + (180 * Double(range.lowerBound) / 100)
-        let end = 180 + (180 * Double(range.upperBound + 1) / 100)
-        let isActive: Bool
-        if let score = health.score {
-            isActive = range.contains(score)
-        } else {
-            isActive = false
-        }
-        var path = Path()
-        path.addArc(
-            center: center,
-            radius: radius,
-            startAngle: .degrees(start),
-            endAngle: .degrees(end),
-            clockwise: false
-        )
-        context.stroke(
-            path,
-            with: .color(colour.opacity(isActive ? 1 : 0.35)),
-            style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt)
-        )
-    }
-
-    private var accessibilityText: String {
-        if let score = health.score {
-            return "Site health \(score) of 100, \(health.label.lowercased())"
-        }
-        return "Site health \(health.label.lowercased())"
-    }
-
-}
-
-private struct SiteHealthGaugeNeedle: Shape {
-    var score: Double
-    let compact: Bool
-
-    var animatableData: Double {
-        get { score }
-        set { score = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        let center = CGPoint(x: rect.width / 2, y: rect.height - (compact ? 7 : 10))
-        let radius = min(rect.width * 0.40, rect.height - (compact ? 12 : 18))
-        let radians = .pi + (.pi * min(max(score, 0), 100) / 100)
-        let needleLength = radius * 0.72
-        let end = CGPoint(
-            x: center.x + cos(radians) * needleLength,
-            y: center.y + sin(radians) * needleLength
-        )
-        var path = Path()
-        path.move(to: center)
-        path.addLine(to: end)
-
-        return path
-    }
-}
-
-private struct SecurityMaintenanceView: View {
-    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
-    let project: ProjectItem
-    let site: MonitoringSite?
-    let apiError: String?
-    let isRefreshing: Bool
-    let onRefresh: () -> Void
-    let onConfigure: () -> Void
-    @State private var findingMessage: String?
-
-    private let apiService = MonitoringAPIService()
-    private let adminCredentialStore = MonitoringAdminCredentialStore()
-
-    private var health: MonitoringHealth {
-        MonitoringHealth.evaluate(site: site, connected: project.hasMonitoringSite)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            securityHeader
-
-            if let apiError {
-                Label("Monitoring API unavailable · showing the last available project connection", systemImage: "wifi.slash")
-                    .font(.callout)
-                    .foregroundStyle(.orange)
-                    .help(apiError)
-            }
-
-            if let findingMessage {
-                Text(findingMessage)
+            .help(task.isCompleted ? "Reopen" : "Mark complete")
+            Text(task.title)
+                .strikethrough(task.isCompleted)
+                .foregroundStyle(task.isCompleted ? .secondary : .primary)
+                .lineLimit(1)
+            if task.isBlocked && !task.isCompleted {
+                Label("Blocked", systemImage: "hand.raised.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
+                    .help(task.blockedReason)
             }
-
-            if let site {
-                vulnerabilitySection(site)
-                updatesSection(site)
-                applicationHealthSection(site)
-                environmentSection(site)
-                scoreBreakdownSection
-                historySection(site)
-            } else {
-                ContentUnavailableView {
-                    Label(project.hasMonitoringSite ? "Monitoring data unavailable" : "Site not connected", systemImage: "waveform.path.ecg")
-                } description: {
-                    Text(project.hasMonitoringSite
-                         ? "Refresh the API connection or review its settings. JARVIS will not substitute a fake healthy state."
-                         : "Connect this project to a monitored website to display security and maintenance data.")
-                } actions: {
-                    Button("Connection Settings…", action: onConfigure)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.orange)
-                }
-                .frame(maxWidth: .infinity, minHeight: 240)
+            Spacer()
+            if let dueDate = task.dueDate {
+                Text(dueDate, format: .dateTime.month(.abbreviated).day())
+                    .font(.caption)
+                    .foregroundStyle(!task.isCompleted && dueDate < .now ? .red : .secondary)
             }
         }
-    }
-
-    private var securityHeader: some View {
-        GroupBox {
-            HStack(spacing: 22) {
-                SiteHealthGauge(health: health)
-                    .frame(width: 170, height: 105)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("SITE HEALTH")
-                        .font(.caption.weight(.semibold))
-                        .tracking(1.4)
-                        .foregroundStyle(.secondary)
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(health.score.map(String.init) ?? "—")
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
-                        Text(health.label)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(health.colour)
-                    }
-                    if let observed = health.lastObservedAt {
-                        Text("Last observed \(observed.formatted(.relative(presentation: .named)))")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("Waiting for the first completed outside check")
-                            .foregroundStyle(.secondary)
-                    }
-                    if let site {
-                        Text("Sources: public reachability · reporter · dependency inventory")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .help(site.url)
-                    }
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 10) {
-                    Button("Refresh now", systemImage: "arrow.clockwise", action: onRefresh)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.orange)
-                        .disabled(isRefreshing)
-                    Button("Connection Settings…", action: onConfigure)
-                }
-            }
-            .padding(10)
-        }
-    }
-
-    private func vulnerabilitySection(_ site: MonitoringSite) -> some View {
-        GroupBox("Vulnerabilities") {
-            VStack(alignment: .leading, spacing: 10) {
-                let open = site.findings.filter { $0.status == "open" }
-                if open.isEmpty {
-                    Label(
-                        site.openFindingsCount == 0 ? "No open vulnerabilities reported" : "Finding details have not loaded",
-                        systemImage: site.openFindingsCount == 0 ? "checkmark.shield.fill" : "exclamationmark.triangle.fill"
-                    )
-                    .foregroundStyle(site.openFindingsCount == 0 ? .green : .orange)
-                } else {
-                    ForEach(open.sorted { severityRank($0.severity) < severityRank($1.severity) }) { finding in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text(finding.severity.uppercased())
-                                .font(.caption2.bold())
-                                .foregroundStyle(severityColour(finding.severity))
-                                .frame(width: 62, alignment: .leading)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(finding.title).font(.headline)
-                                Text("\(finding.componentType.capitalized) · \(finding.slug)" + (finding.fixedIn.map { " · Fixed in \($0)" } ?? ""))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            if let urlText = finding.referenceURL, let url = URL(string: urlText) {
-                                Link("Reference", destination: url)
-                            }
-                            Menu {
-                                Button("Mark as Handled") { Task { await updateFinding(finding, status: "handled") } }
-                                Button("Ignore") { Task { await updateFinding(finding, status: "ignored") } }
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                            }
-                            .menuStyle(.borderlessButton)
-                        }
-                        if finding.id != open.last?.id { Divider() }
-                    }
-                }
-            }
-            .padding(8)
-        }
-    }
-
-    private func updatesSection(_ site: MonitoringSite) -> some View {
-        GroupBox("Updates") {
-            VStack(alignment: .leading, spacing: 10) {
-                let updates = site.latestSnapshot?.components.filter { $0.updateAvailable == true } ?? []
-                if updates.isEmpty {
-                    Label("No component updates reported", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    ForEach(updates) { component in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(component.name).font(.headline)
-                                Text(component.ecosystem.capitalized).font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(component.version).monospaced().foregroundStyle(.secondary)
-                            Image(systemName: "arrow.right")
-                            Text(component.latestVersion ?? "Update available").monospaced()
-                        }
-                    }
-                }
-                if let notCovered = site.latestSnapshot?.notCovered, !notCovered.isEmpty {
-                    Label("Not covered: \(notCovered.joined(separator: ", "))", systemImage: "questionmark.shield")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(8)
-        }
-    }
-
-    private func applicationHealthSection(_ site: MonitoringSite) -> some View {
-        GroupBox(site.platform == .wordpress ? "WordPress Site Health" : "Application health") {
-            VStack(alignment: .leading, spacing: 10) {
-                let checks = site.latestSnapshot?.siteHealth ?? []
-                if checks.isEmpty {
-                    Text("No application health checks reported.").foregroundStyle(.secondary)
-                } else {
-                    ForEach(checks) { check in
-                        HStack {
-                            Image(systemName: check.status.lowercased() == "pass" ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                                .foregroundStyle(check.status.lowercased() == "pass" ? .green : .orange)
-                            Text(check.label)
-                            Spacer()
-                            Text(check.message ?? check.status.capitalized)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .padding(8)
-        }
-    }
-
-    private func environmentSection(_ site: MonitoringSite) -> some View {
-        GroupBox("Environment") {
-            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
-                environmentRow("Status", site.status.rawValue.capitalized)
-                environmentRow("HTTP", site.lastStatusCode.map(String.init) ?? "Awaiting check")
-                environmentRow("Response", site.lastResponseMilliseconds.map { "\($0) ms" } ?? "Awaiting check")
-                environmentRow("Uptime · 30 d", site.uptime30DayPercent.map { String(format: "%.2f%%", $0) } ?? "Not enough history")
-                environmentRow("PHP", site.latestSnapshot?.phpVersion ?? "Not reported")
-                environmentRow("SSL expiry", site.sslExpiresAt?.formatted(date: .abbreviated, time: .omitted) ?? "Awaiting check")
-                environmentRow("Last heartbeat", site.lastHeartbeatAt?.formatted(.relative(presentation: .named)) ?? "Never")
-                environmentRow("Application", site.latestSnapshot?.applicationName ?? site.name)
-                environmentRow("Deployment", site.latestSnapshot?.applicationVersion ?? "Not reported")
-            }
-            .padding(8)
-        }
-    }
-
-    private var scoreBreakdownSection: some View {
-        GroupBox("Score breakdown") {
-            VStack(alignment: .leading, spacing: 10) {
-                if health.state == .awaitingChecks {
-                    Text("A score will appear after the backend completes its first public reachability check.")
-                        .foregroundStyle(.secondary)
-                } else if health.deductions.isEmpty {
-                    Label("No deductions", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    ForEach(health.deductions) { deduction in
-                        HStack {
-                            Text(deduction.reason)
-                            Spacer()
-                            Text("−\(deduction.points)").foregroundStyle(.orange).monospacedDigit()
-                        }
-                    }
-                }
-            }
-            .padding(8)
-        }
-    }
-
-    private func historySection(_ site: MonitoringSite) -> some View {
-        GroupBox("Incident history") {
-            VStack(alignment: .leading, spacing: 10) {
-                if site.incidents.isEmpty {
-                    Text("No incidents recorded.").foregroundStyle(.secondary)
-                } else {
-                    ForEach(site.incidents) { incident in
-                        HStack {
-                            Label(incident.type.replacingOccurrences(of: "_", with: " ").capitalized, systemImage: incident.endedAt == nil ? "exclamationmark.triangle.fill" : "checkmark.circle")
-                            Spacer()
-                            if let started = incident.startedAt {
-                                Text(started.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(.secondary)
-                            }
-                            Text(incident.endedAt == nil ? "Open" : "Recovered")
-                                .foregroundStyle(incident.endedAt == nil ? .red : .green)
-                        }
-                    }
-                }
-            }
-            .padding(8)
-        }
-    }
-
-    private func environmentRow(_ label: String, _ value: String) -> some View {
-        GridRow {
-            Text(label).foregroundStyle(.secondary)
-            Text(value).textSelection(.enabled)
-        }
-    }
-
-    private func severityRank(_ severity: String) -> Int {
-        switch severity.lowercased() {
-        case "critical": 0
-        case "high": 1
-        case "medium": 2
-        default: 3
-        }
-    }
-
-    private func severityColour(_ severity: String) -> Color {
-        switch severity.lowercased() {
-        case "critical": .red
-        case "high": .orange
-        case "medium": .yellow
-        default: .secondary
-        }
-    }
-
-    @MainActor
-    private func updateFinding(_ finding: MonitoringFinding, status: String) async {
-        guard let token = adminCredentialStore.read() else {
-            findingMessage = "Save the site-registration token in Connection Settings before changing a finding."
-            return
-        }
-        do {
-            try await apiService.updateFinding(
-                baseURLText: monitoringAPIBaseURL,
-                adminToken: token,
-                findingID: finding.id,
-                status: status
-            )
-            findingMessage = status == "handled" ? "Finding marked as handled." : "Finding ignored."
-            onRefresh()
-        } catch {
-            findingMessage = error.localizedDescription
-        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.white.opacity(isHovering ? 0.05 : 0), in: RoundedRectangle(cornerRadius: 8))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onEdit)
+        .onHover { isHovering = $0 }
+        .help("Click to edit")
     }
 }
 
-private struct ProjectMonitoringSheet: View {
-    @Environment(\.dismiss) private var dismiss
+/// The project's website: its address, live status, 30-day history, and recent outages.
+private struct WebsitePanel: View {
     @Environment(\.modelContext) private var modelContext
-    @AppStorage("monitoring.apiBaseURL") private var monitoringAPIBaseURL = MonitoringAPIService.defaultBaseURL
-
+    @ObservedObject var siteMonitor: SiteMonitor
     @Bindable var project: ProjectItem
-    @State private var websiteURL: String
-    @State private var platform: MonitoringPlatform
-    @State private var adminToken = ""
-    @State private var hasStoredAdminToken = false
-    @State private var rememberAdminToken = true
-    @State private var isConnecting = false
-    @State private var statusMessage: String?
-    @State private var issuedIngestToken: String?
+    @State private var draftURL = ""
+    @State private var isEditing = false
+    @State private var errorText: String?
 
-    private let apiService = MonitoringAPIService()
-    private let readCredentialStore = MonitoringAPICredentialStore()
-    private let adminCredentialStore = MonitoringAdminCredentialStore()
-    private let siteCredentialStore = MonitoringSiteCredentialStore()
-
-    init(project: ProjectItem) {
-        self.project = project
-        _websiteURL = State(initialValue: project.monitoringWebsiteURL)
-        _platform = State(initialValue: project.monitoringPlatform)
-    }
+    private var health: SiteHealth { siteMonitor.health(for: project) }
+    private var record: SiteRecord? { siteMonitor.record(for: project) }
+    private var isChecking: Bool { siteMonitor.checkingIDs.contains(project.id) }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Website") {
-                    TextField("https://example.com", text: $websiteURL)
-                        .textContentType(.URL)
-                    Picker("Platform", selection: $platform) {
-                        ForEach(MonitoringPlatform.allCases) { platform in
-                            Text(platform.title).tag(platform)
-                        }
+        ProjectPanel(title: "Website", systemImage: "globe") {
+            if !project.hasWebsite || isEditing {
+                editor
+            } else {
+                status
+            }
+        }
+    }
+
+    private var editor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(project.hasWebsite
+                 ? "Change the address JARVIS checks. The site's history starts again."
+                 : "Add the site's address and JARVIS checks it every 5 minutes from this Mac. Nothing to install, nothing to pay for.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            HStack {
+                TextField("example.com", text: $draftURL)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(save)
+                if isEditing {
+                    Button("Cancel") {
+                        isEditing = false
+                        errorText = nil
                     }
                 }
+                Button(project.hasWebsite ? "Save" : "Start Checking", action: save)
+                    .buttonStyle(.borderedProminent)
+                    .tint(.cyan)
+                    .disabled(draftURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            if let errorText {
+                Text(errorText).font(.caption).foregroundStyle(.red)
+            }
+        }
+    }
 
-                if project.hasMonitoringSite {
-                    Section("Connection") {
-                        LabeledContent("Status", value: "Connected")
-                        LabeledContent("Site ID", value: project.monitoringSiteID)
-                            .textSelection(.enabled)
-                        if let connectedAt = project.monitoringConnectedAt {
-                            LabeledContent("Connected", value: connectedAt.formatted(date: .abbreviated, time: .shortened))
-                        }
-                        Button("Copy Reporter Token", systemImage: "key") {
-                            copyReporterToken()
-                        }
-                        Button("Rotate Reporter Token", systemImage: "arrow.triangle.2.circlepath") {
-                            Task { await rotateReporterToken() }
-                        }
-                    }
-
-                    Section("Administrative access") {
-                        SecureField(
-                            hasStoredAdminToken ? "Use saved site-registration token" : "Paste an admin site-registration token",
-                            text: $adminToken
-                        )
-                        .textContentType(.password)
-
-                        Toggle("Remember registration token in Keychain", isOn: $rememberAdminToken)
-
-                        Text("Required only when saving changes to the monitored website. The existing Site ID, reporter token, and monitoring history will be preserved.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Section("Site registration") {
-                        SecureField(
-                            hasStoredAdminToken ? "Use saved site-registration token" : "Paste an admin site-registration token",
-                            text: $adminToken
-                        )
-                        .textContentType(.password)
-
-                        Toggle("Remember registration token in Keychain", isOn: $rememberAdminToken)
-
-                        Text("The registration token creates the site record. The reporter token returned by the API is stored separately for this project.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        if readCredentialStore.read() != nil {
-                            Text("Already monitored? JARVIS will attach the existing site using its saved read-only connection; no registration token is needed.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+    private var status: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .center, spacing: 14) {
+                SiteStatusIcon(health: health, isChecking: isChecking, size: 30)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(health.detail)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(health.colour)
+                    if let url = URL(string: project.monitoringWebsiteURL) {
+                        Link(websiteHost(project.monitoringWebsiteURL), destination: url)
+                            .font(.callout)
                     }
                 }
-
-                if let statusMessage {
-                    Section {
-                        Label(statusMessage, systemImage: project.hasMonitoringSite ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundStyle(project.hasMonitoringSite ? .green : .orange)
-                    }
+                Spacer()
+                Button {
+                    Task { await siteMonitor.check(project) }
+                } label: {
+                    Label("Check Now", systemImage: "arrow.clockwise")
                 }
+                .disabled(isChecking)
+                Menu {
+                    Button("Change Address…", systemImage: "pencil") {
+                        draftURL = project.monitoringWebsiteURL
+                        isEditing = true
+                    }
+                    Button("Stop Checking", systemImage: "xmark.circle", role: .destructive) { remove() }
+                } label: {
+                    Image(systemName: "ellipsis").frame(width: 20, height: 20)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+            }
 
-                Section("Reporter setup") {
-                    Text(project.hasMonitoringSite
-                         ? "Install or configure the reporter on the website, then use Copy Reporter Token to place its dedicated token in the host's secret manager."
-                         : "Connecting registers the site only. JARVIS never installs code or changes hosting settings without your approval.")
-                        .font(.callout)
+            if let check = health.lastCheck, check.outcome == .failed, let error = check.error {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(health.colour)
+            }
+
+            HStack(spacing: 0) {
+                stat("Last check", health.lastCheck.map { $0.checkedAt.formatted(.relative(presentation: .named)) } ?? "Pending")
+                stat("HTTP", health.lastCheck?.statusCode.map(String.init) ?? "—")
+                stat("Response", health.lastCheck?.responseMilliseconds.map { "\($0) ms" } ?? "—")
+                stat("Uptime · 30 days", health.uptime.map(uptimeText) ?? "—")
+            }
+
+            UptimeStrip(days: record?.days ?? [])
+
+            if let outages = record?.outages, !outages.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("RECENT OUTAGES")
+                        .font(.caption2.weight(.bold))
+                        .tracking(0.7)
                         .foregroundStyle(.secondary)
-                }
-            }
-            .formStyle(.grouped)
-            .navigationTitle("Website Monitoring")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                        .keyboardShortcut(.cancelAction)
-                }
-                if !project.hasMonitoringSite {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Connect Website") {
-                            Task { await connectWebsite() }
+                    ForEach(outages.suffix(5).reversed()) { outage in
+                        HStack {
+                            Circle()
+                                .fill(outage.end == nil ? Color.red : Color.secondary.opacity(0.5))
+                                .frame(width: 7, height: 7)
+                            Text(outage.start.formatted(date: .abbreviated, time: .shortened))
+                            Text(outage.reason).foregroundStyle(.secondary).lineLimit(1)
+                            Spacer()
+                            Text(outage.end.map { "Lasted \(SiteHealth.duration($0.timeIntervalSince(outage.start)))" } ?? "Ongoing")
+                                .foregroundStyle(outage.end == nil ? .red : .secondary)
                         }
-                        .keyboardShortcut(.defaultAction)
-                            .disabled(!canConnect || isConnecting)
-                    }
-                } else {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save Changes") {
-                            Task { await saveChanges() }
-                        }
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(!canSaveChanges || isConnecting)
+                        .font(.callout)
                     }
                 }
             }
-            .overlay {
-                if isConnecting {
-                    ZStack {
-                        Color.black.opacity(0.12)
-                        ProgressView("Connecting website…")
-                            .padding(20)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-            }
-        }
-        .frame(width: 620, height: 560)
-        .onAppear {
-            hasStoredAdminToken = adminCredentialStore.read() != nil
-            if project.hasMonitoringSite {
-                issuedIngestToken = siteCredentialStore.read(projectID: project.id)
-            }
+
+            Text("Checked every 5 minutes from this Mac while JARVIS is open. A site counts as down after two failed checks in a row.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
     }
 
-    private var canConnect: Bool {
-        !project.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !websiteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && (readCredentialStore.read() != nil
-                || hasStoredAdminToken
-                || !adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    private func stat(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(value).font(.headline.monospacedDigit()).lineLimit(1)
+            Text(title).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var canSaveChanges: Bool {
-        project.hasMonitoringSite
-            && !project.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !websiteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && (hasStoredAdminToken || !adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-    }
-
-    @MainActor
-    private func connectWebsite() async {
-        isConnecting = true
-        defer { isConnecting = false }
-
-        do {
-            let normalizedURL = try apiService.normalizedWebsiteURL(from: websiteURL).absoluteString
-            websiteURL = normalizedURL
-
-            if let readToken = readCredentialStore.read(),
-               let existingSite = try await apiService.existingSite(
-                   baseURLText: monitoringAPIBaseURL,
-                   readToken: readToken,
-                   websiteURLText: normalizedURL
-               ) {
-                try attach(existingSite)
-                statusMessage = "Existing monitored website attached to this project."
-                return
-            }
-        } catch {
-            statusMessage = error.localizedDescription
+    private func save() {
+        guard let url = SiteChecker.normalizedURL(from: draftURL) else {
+            errorText = "Enter a web address such as example.com."
             return
         }
-
-        let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? adminCredentialStore.read()
-            : adminToken
-        guard let token, !token.isEmpty else {
-            statusMessage = "This website is not registered yet. Paste an admin site-registration token to add it."
-            return
-        }
-
-        do {
-            let registration = try await apiService.registerSite(
-                baseURLText: monitoringAPIBaseURL,
-                adminToken: token,
-                name: project.name,
-                websiteURLText: websiteURL,
-                platform: platform
-            )
-            try siteCredentialStore.save(registration.ingestToken, projectID: project.id)
-            if rememberAdminToken {
-                try? adminCredentialStore.save(token)
-            } else {
-                try? adminCredentialStore.delete()
-            }
-
-            project.monitoringWebsiteURL = registration.url
-            project.monitoringPlatform = registration.platform
-            project.monitoringSiteID = registration.id
-            project.monitoringConnectedAt = .now
-            project.updatedAt = .now
-            try modelContext.save()
-
-            issuedIngestToken = registration.ingestToken
-            adminToken = ""
-            hasStoredAdminToken = rememberAdminToken
-            statusMessage = "Website registered. Configure its reporter to begin sending health data."
-        } catch {
-            statusMessage = error.localizedDescription
-        }
-    }
-
-    @MainActor
-    private func attach(_ site: MonitoringSite) throws {
-        project.monitoringWebsiteURL = site.url
-        project.monitoringPlatform = site.platform
-        project.monitoringSiteID = site.id
-        project.monitoringConnectedAt = .now
+        project.monitoringWebsiteURL = url.absoluteString
         project.updatedAt = .now
-        try modelContext.save()
+        try? modelContext.save()
+        isEditing = false
+        errorText = nil
+        draftURL = ""
+        Task { await siteMonitor.check(project) }
     }
 
-    @MainActor
-    private func saveChanges() async {
-        let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? adminCredentialStore.read()
-            : adminToken
-        guard let token, !token.isEmpty else {
-            statusMessage = "Paste an admin site-registration token to save monitoring changes."
-            return
-        }
-
-        isConnecting = true
-        defer { isConnecting = false }
-
-        do {
-            let updatedSite = try await apiService.updateSite(
-                baseURLText: monitoringAPIBaseURL,
-                adminToken: token,
-                siteID: project.monitoringSiteID,
-                name: project.name,
-                websiteURLText: websiteURL,
-                platform: platform
-            )
-
-            if rememberAdminToken {
-                try adminCredentialStore.save(token)
-            } else {
-                try? adminCredentialStore.delete()
-            }
-
-            websiteURL = updatedSite.url
-            project.monitoringWebsiteURL = updatedSite.url
-            project.monitoringPlatform = updatedSite.platform
-            project.updatedAt = .now
-            try modelContext.save()
-
-            adminToken = ""
-            hasStoredAdminToken = rememberAdminToken
-            statusMessage = "Monitoring settings updated. Existing history and reporter access were preserved."
-        } catch {
-            statusMessage = error.localizedDescription
-        }
-    }
-
-    private func copyReporterToken() {
-        let token = issuedIngestToken ?? siteCredentialStore.read(projectID: project.id)
-        guard let token else {
-            statusMessage = "The reporter token is not stored on this Mac. Rotate it before configuring a new reporter."
-            return
-        }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(token, forType: .string)
-        statusMessage = "Reporter token copied. Paste it only into the website host's secret manager."
-    }
-
-    @MainActor
-    private func rotateReporterToken() async {
-        let token = adminToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? adminCredentialStore.read()
-            : adminToken
-        guard let token, !token.isEmpty else {
-            statusMessage = "Paste or save an admin site-registration token before rotating the reporter token."
-            return
-        }
-        isConnecting = true
-        defer { isConnecting = false }
-        do {
-            let replacement = try await apiService.rotateReporterToken(
-                baseURLText: monitoringAPIBaseURL,
-                adminToken: token,
-                siteID: project.monitoringSiteID
-            )
-            try siteCredentialStore.save(replacement, projectID: project.id)
-            issuedIngestToken = replacement
-            statusMessage = "Reporter token rotated. The previous token is revoked; update the website before its next heartbeat."
-        } catch {
-            statusMessage = error.localizedDescription
-        }
+    private func remove() {
+        project.monitoringWebsiteURL = ""
+        project.updatedAt = .now
+        try? modelContext.save()
+        Task { await siteMonitor.checkAll() }
     }
 }
+
+/// The last 30 days, one bar per day: green when every check passed, amber for a few failures, red for more.
+private struct UptimeStrip: View {
+    let days: [SiteRecord.Day]
+
+    var body: some View {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 3) {
+                ForEach(0..<SiteRecord.historyDays, id: \.self) { index in
+                    let date = calendar.date(byAdding: .day, value: index - (SiteRecord.historyDays - 1), to: today) ?? today
+                    let day = days.first { calendar.isDate($0.day, inSameDayAs: date) }
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(colour(for: day))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 22)
+                        .help(helpText(date: date, day: day))
+                }
+            }
+            HStack {
+                Text("30 days ago")
+                Spacer()
+                Text("Today")
+            }
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+    }
+
+    private func colour(for day: SiteRecord.Day?) -> Color {
+        guard let day, day.checks > 0 else { return Color.white.opacity(0.08) }
+        if day.failures == 0 { return Color(red: 0.24, green: 0.81, blue: 0.56) }
+        return Double(day.failures) / Double(day.checks) < 0.05
+            ? Color(red: 0.96, green: 0.65, blue: 0.14)
+            : Color(red: 0.94, green: 0.33, blue: 0.31)
+    }
+
+    private func helpText(date: Date, day: SiteRecord.Day?) -> String {
+        let label = date.formatted(.dateTime.day().month(.abbreviated))
+        guard let day, day.checks > 0 else { return "\(label) · no checks" }
+        let uptime = Double(day.checks - day.failures) / Double(day.checks)
+        return "\(label) · \(uptimeText(uptime)) up · \(day.checks) checks"
+    }
+}
+
+private struct ProjectPanel<Content: View>: View {
+    let title: String
+    let systemImage: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage).foregroundStyle(.cyan)
+                Text(title.uppercased()).font(.caption.weight(.bold)).tracking(0.7).foregroundStyle(.secondary)
+            }
+            content
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .projectSurface(cornerRadius: 16)
+    }
+}
+
+// MARK: - Editor
 
 private struct ProjectEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -1752,6 +1362,17 @@ private struct ProjectEditorSheet: View {
                     }
                 }
 
+                Section {
+                    TextField("Website", text: $draft.websiteURL, prompt: Text("example.com"))
+                } header: {
+                    Text("Website")
+                } footer: {
+                    Text(draft.hasInvalidWebsite
+                         ? "Enter a web address such as example.com, or leave it empty."
+                         : "JARVIS checks it every 5 minutes and tells you if it goes down.")
+                        .foregroundStyle(draft.hasInvalidWebsite ? .red : .secondary)
+                }
+
                 Section("Schedule") {
                     OptionalDateEditor(label: "Start date", date: $draft.startDate)
                     OptionalDateEditor(label: "Due date", date: $draft.dueDate)
@@ -1776,20 +1397,27 @@ private struct ProjectEditorSheet: View {
                         dismiss()
                     }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(draft.trimmedName.isEmpty)
+                    .disabled(draft.trimmedName.isEmpty || draft.hasInvalidWebsite)
                 }
             }
         }
-        .frame(width: 560, height: 600)
+        .frame(width: 560, height: 680)
     }
 
     private func save() {
+        let saved: ProjectItem
+        let websiteChanged: Bool
         if let project {
+            websiteChanged = project.monitoringWebsiteURL != draft.normalizedWebsite
             draft.apply(to: project)
+            saved = project
         } else {
-            modelContext.insert(draft.makeProject())
+            saved = draft.makeProject()
+            websiteChanged = saved.hasWebsite
+            modelContext.insert(saved)
         }
         try? modelContext.save()
+        if websiteChanged { Task { await SiteMonitor.shared.checkAll() } }
     }
 }
 
@@ -1804,6 +1432,7 @@ private struct ProjectDraft {
     var dueDate: Date?
     var summary = ""
     var tagsText = ""
+    var websiteURL = ""
 
     init(project: ProjectItem? = nil) {
         guard let project else { return }
@@ -1817,12 +1446,21 @@ private struct ProjectDraft {
         dueDate = project.dueDate
         summary = project.summary
         tagsText = project.tagsRawValue
+        websiteURL = project.monitoringWebsiteURL
     }
 
     var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    var normalizedWebsite: String {
+        SiteChecker.normalizedURL(from: websiteURL)?.absoluteString ?? ""
+    }
+
+    var hasInvalidWebsite: Bool {
+        !websiteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && SiteChecker.normalizedURL(from: websiteURL) == nil
+    }
+
     func makeProject() -> ProjectItem {
-        ProjectItem(
+        let project = ProjectItem(
             name: trimmedName,
             client: client.trimmingCharacters(in: .whitespacesAndNewlines),
             type: type.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -1834,6 +1472,8 @@ private struct ProjectDraft {
             dueDate: dueDate,
             tags: tagsText.split(separator: ",").map(String.init)
         )
+        project.monitoringWebsiteURL = normalizedWebsite
+        return project
     }
 
     func apply(to project: ProjectItem) {
@@ -1847,6 +1487,7 @@ private struct ProjectDraft {
         project.startDate = startDate
         project.dueDate = dueDate
         project.tagsRawValue = tagsText
+        project.monitoringWebsiteURL = normalizedWebsite
         project.updatedAt = .now
     }
 }
@@ -1865,10 +1506,7 @@ private struct ProjectSnapshot: Equatable {
     let tags: String
     let repositoryPath: String
     let repositoryBookmarkData: Data?
-    let monitoringWebsiteURL: String
-    let monitoringPlatform: String
-    let monitoringSiteID: String
-    let monitoringConnectedAt: Date?
+    let websiteURL: String
 
     init(project: ProjectItem) {
         name = project.name
@@ -1884,10 +1522,7 @@ private struct ProjectSnapshot: Equatable {
         tags = project.tagsRawValue
         repositoryPath = project.repositoryPath
         repositoryBookmarkData = project.repositoryBookmarkData
-        monitoringWebsiteURL = project.monitoringWebsiteURL
-        monitoringPlatform = project.monitoringPlatformRawValue
-        monitoringSiteID = project.monitoringSiteID
-        monitoringConnectedAt = project.monitoringConnectedAt
+        websiteURL = project.monitoringWebsiteURL
     }
 }
 
@@ -1913,19 +1548,6 @@ private struct OptionalDateEditor: View {
                 }
             }
         }
-    }
-}
-
-private struct PriorityBadge: View {
-    let priority: ProjectPriority
-
-    var body: some View {
-        Text(priority.title)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .foregroundStyle(priority == .urgent ? .red : .secondary)
-            .background(.quaternary, in: Capsule())
     }
 }
 
@@ -1962,84 +1584,108 @@ private struct RepositoryHealthBadge: View {
     }
 }
 
-private struct DueDateBadge: View {
-    let date: Date
-    let status: ProjectStatus
+// MARK: - Shared helpers
 
-    private var state: DueState {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: .now)
-        let dueDay = calendar.startOfDay(for: date)
-        guard status != .completed, status != .archived else { return .normal }
-        if dueDay < today { return .overdue }
-        if let sevenDays = calendar.date(byAdding: .day, value: 7, to: today), dueDay <= sevenDays {
-            return .dueSoon
-        }
-        return .normal
-    }
+/// A project deadline as chip text: "Overdue · 8 Oct", "Due in 3 days", "Due 14 Nov".
+private struct DueDescription {
+    let text: String
+    let shortText: String
+    let systemImage: String
+    let tint: Color
 
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: state.systemImage)
-            Text(state.label(for: date))
-        }
-        .font(.caption.weight(state == .normal ? .regular : .semibold))
-        .foregroundStyle(state.color)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(state.color.opacity(0.12), in: Capsule())
-    }
-
-    private enum DueState: Equatable {
-        case overdue
-        case dueSoon
-        case normal
-
-        var color: Color {
-            switch self {
-            case .overdue: .red
-            case .dueSoon: .orange
-            case .normal: .secondary
-            }
-        }
-
-        var systemImage: String {
-            switch self {
-            case .overdue: "exclamationmark.triangle.fill"
-            case .dueSoon: "clock.fill"
-            case .normal: "calendar"
-            }
-        }
-
-        func label(for date: Date) -> String {
-            let formatted = date.formatted(.dateTime.month(.abbreviated).day())
-            return switch self {
-            case .overdue: "Overdue · \(formatted)"
-            case .dueSoon: "Due soon · \(formatted)"
-            case .normal: "Due \(formatted)"
-            }
+    init(date: Date, status: ProjectStatus, now: Date = .now, calendar: Calendar = .current) {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: date)).day ?? 0
+        let formatted = date.formatted(.dateTime.day().month(.abbreviated))
+        let finished = status == .completed || status == .archived
+        shortText = formatted
+        if finished {
+            text = "Due \(formatted)"
+            systemImage = "calendar"
+            tint = .secondary
+        } else if days < 0 {
+            text = "Overdue · \(formatted)"
+            systemImage = "exclamationmark.triangle.fill"
+            tint = .red
+        } else if days == 0 {
+            text = "Due today"
+            systemImage = "clock.fill"
+            tint = .orange
+        } else if days < 7 {
+            text = "Due in \(days) day\(days == 1 ? "" : "s")"
+            systemImage = "clock.fill"
+            tint = .orange
+        } else {
+            text = "Due \(formatted)"
+            systemImage = "calendar"
+            tint = .secondary
         }
     }
 }
 
-private struct MetricCard: View {
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.orange)
-                .font(.title2)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(value).font(.title3.bold())
-                Text(title).font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer()
+private extension ProjectStatus {
+    var tint: Color {
+        switch self {
+        case .notStarted, .archived: .secondary
+        case .active: .cyan
+        case .inReview: .purple
+        case .onHold, .waitingOnClient: .orange
+        case .completed: .green
         }
-        .padding(16)
-        .frame(maxWidth: .infinity)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    var systemImage: String {
+        switch self {
+        case .notStarted: "circle.dashed"
+        case .active: "bolt.fill"
+        case .inReview: "eye.fill"
+        case .onHold: "pause.circle.fill"
+        case .waitingOnClient: "hourglass"
+        case .completed: "checkmark.circle.fill"
+        case .archived: "archivebox.fill"
+        }
+    }
+}
+
+private extension ProjectPriority {
+    var tint: Color {
+        switch self {
+        case .low: .secondary
+        case .medium: .cyan
+        case .high: .orange
+        case .urgent: .red
+        }
+    }
+
+    var rank: Int {
+        switch self {
+        case .low: 0
+        case .medium: 1
+        case .high: 2
+        case .urgent: 3
+        }
+    }
+}
+
+/// Rounds down, so a site with any failure never shows 100%.
+private func uptimeText(_ uptime: Double) -> String {
+    uptime >= 1 ? "100%" : (floor(uptime * 1_000) / 1_000).formatted(.percent.precision(.fractionLength(1)))
+}
+
+private func websiteHost(_ urlText: String) -> String {
+    guard let url = URL(string: urlText), let host = url.host() else { return urlText }
+    let path = url.path() == "/" ? "" : url.path()
+    return host.replacingOccurrences(of: "www.", with: "", options: .anchored) + path
+}
+
+private extension View {
+    func projectSurface(cornerRadius: CGFloat, highlighted: Bool = false) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(highlighted ? 0.72 : 0.58))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(highlighted ? Color.cyan.opacity(0.30) : Color.white.opacity(0.07), lineWidth: 1)
+                )
+        )
     }
 }

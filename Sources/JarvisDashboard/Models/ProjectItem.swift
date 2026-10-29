@@ -92,8 +92,11 @@ final class ProjectItem {
         repositoryBookmarkData != nil && !repositoryPath.isEmpty
     }
 
-    var hasMonitoringSite: Bool {
-        !monitoringSiteID.isEmpty && !monitoringWebsiteURL.isEmpty
+    /// A website JARVIS checks for up/down. `monitoringSiteID`, `monitoringPlatform` and
+    /// `monitoringConnectedAt` belong to the retired hosted monitoring API; they stay stored so
+    /// existing stores and backups keep loading.
+    var hasWebsite: Bool {
+        !monitoringWebsiteURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var monitoringPlatform: MonitoringPlatform {

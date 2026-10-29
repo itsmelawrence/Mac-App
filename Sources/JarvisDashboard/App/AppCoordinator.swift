@@ -46,6 +46,7 @@ final class AppCoordinator {
             }
 
         wakeMonitor.start { [weak self] sleepDuration in
+            SiteMonitor.shared.checkAfterWake()
             guard let self,
                   appState.showWakeBriefing,
                   sleepDuration >= appState.minimumSleepForBriefing else { return }
@@ -59,13 +60,17 @@ final class AppCoordinator {
         tasks.append(Task.detached(priority: .background) { await VaultMaintenanceService.runWhileAppIsOpen() })
         tasks.append(Task.detached(priority: .utility) { await PromptCaptureService.runWhileAppIsOpen() })
 
+        // Website up/down checks, every 5 minutes with the window closed too.
+        SiteMonitor.shared.attach(context)
+        tasks.append(Task { await SiteMonitor.shared.run() })
+
         // The action gate's approvals and log, watched for the app's lifetime so approvals reach you
         // (notification and menu bar) with the window closed.
         ActionCenter.shared.attach(context)
         tasks.append(Task { await ActionCenter.shared.run() })
 
         // The assistant's state.json: tasks and projects on launch, on every save, and each minute
-        // (so overdue and due-today flags stay current). Views add sites, weather, and news as they fetch.
+        // (so overdue and due-today flags stay current). SiteMonitor adds sites; views add weather and news as they fetch.
         let snapshots = StateSnapshotService.shared
         snapshots.refreshStore(context: context)
         tasks.append(Task {

@@ -11,7 +11,6 @@ struct JarvisCommandEngineTests {
         monitoredSites: 3,
         unhealthySites: 1,
         unverifiedSites: 1,
-        maintenanceSites: 0,
         monitoringAvailable: true,
         priorityTask: "Review JAK proposal",
         blockedTaskNames: ["Await client assets"],
@@ -28,9 +27,9 @@ struct JarvisCommandEngineTests {
             openTasks: 2,
             overdueTasks: 1,
             blockedTasks: 1,
-            siteHealth: "Healthy",
+            siteHealth: "Up",
             siteCheckedAt: Date(timeIntervalSince1970: 1_700_000_000),
-            monitoringSource: "Monitoring API"
+            monitoringSource: "JARVIS site checks"
         )]
     )
 
@@ -83,7 +82,7 @@ struct JarvisCommandEngineTests {
     @Test func monitoringUnavailableIsNeverReportedHealthy() {
         let unavailable = JarvisCommandContext(
             briefing: "Ready", pendingTasks: 0, overdueTasks: 0, activeProjects: 1,
-            monitoredSites: 2, unhealthySites: 0, unverifiedSites: 2, maintenanceSites: 0, monitoringAvailable: false,
+            monitoredSites: 2, unhealthySites: 0, unverifiedSites: 2, monitoringAvailable: false,
             priorityTask: nil, blockedTaskNames: [], waitingProjectNames: [], unhealthySiteNames: [], weatherReport: nil,
             projects: []
         )
@@ -92,16 +91,14 @@ struct JarvisCommandEngineTests {
         #expect(result.destination == nil)
     }
 
-    @Test func maintenanceIsNotReportedHealthy() {
-        let maintenance = JarvisCommandContext(
+    @Test func allSitesUpIsReportedOnlyWhenNothingNeedsAttention() {
+        let healthy = JarvisCommandContext(
             briefing: "Ready", pendingTasks: 0, overdueTasks: 0, activeProjects: 1,
-            monitoredSites: 1, unhealthySites: 0, unverifiedSites: 0, maintenanceSites: 1, monitoringAvailable: true,
+            monitoredSites: 2, unhealthySites: 0, unverifiedSites: 0, monitoringAvailable: true,
             priorityTask: nil, blockedTaskNames: [], waitingProjectNames: [], unhealthySiteNames: [], weatherReport: nil,
             projects: []
         )
-        let result = JarvisCommandEngine.execute("Are my sites healthy?", context: maintenance)
-        #expect(result.response.contains("in maintenance"))
-        #expect(!result.response.contains("All 1 monitored websites are healthy"))
+        #expect(JarvisCommandEngine.execute("Are my sites healthy?", context: healthy).response == "All 2 monitored websites are up.")
     }
 
     @Test func unknownCommandExplainsCurrentCapabilities() {
@@ -116,7 +113,7 @@ struct JarvisCommandEngineTests {
         #expect(result.card?.title == "JAK Pest Control Services")
         #expect(result.card?.facts.contains("Next action: Review mobile menu") == true)
         #expect(result.card?.facts.contains("Tasks: 2 open, 1 overdue, 1 blocked") == true)
-        #expect(result.card?.source.contains("Monitoring API") == true)
+        #expect(result.card?.source.contains("JARVIS site checks") == true)
         #expect(result.card?.projectID == context.projects[0].id)
         #expect(result.destination == nil)
     }
@@ -132,12 +129,12 @@ struct JarvisCommandEngineTests {
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
             name: "JAK Booking Portal", client: "", status: "Active",
             updatedAt: .now, nextAction: "", openTasks: 0, overdueTasks: 0, blockedTasks: 0,
-            siteHealth: "Not connected", siteCheckedAt: nil, monitoringSource: "no monitored site"
+            siteHealth: "No website", siteCheckedAt: nil, monitoringSource: "no website"
         )
         let ambiguous = JarvisCommandContext(
             briefing: context.briefing, pendingTasks: context.pendingTasks, overdueTasks: context.overdueTasks,
             activeProjects: context.activeProjects, monitoredSites: context.monitoredSites, unhealthySites: context.unhealthySites,
-            unverifiedSites: context.unverifiedSites, maintenanceSites: context.maintenanceSites,
+            unverifiedSites: context.unverifiedSites,
             monitoringAvailable: context.monitoringAvailable, priorityTask: context.priorityTask,
             blockedTaskNames: context.blockedTaskNames, waitingProjectNames: context.waitingProjectNames,
             unhealthySiteNames: context.unhealthySiteNames, weatherReport: context.weatherReport,

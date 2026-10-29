@@ -28,28 +28,4 @@ struct AlertReliabilityTests {
         // The same storm city alerts again on a new day (previously silenced forever).
         #expect(ids(heat: 30, rain: 90, code: 95, at: morning) != ids(heat: 30, rain: 90, code: 95, at: tomorrow))
     }
-
-    @Test func expiredCertificateCostsMoreThanExpiringSoon() throws {
-        let now = Date(timeIntervalSince1970: 1_800_000_000)
-        func score(sslExpiresAt: Date) throws -> MonitoringHealth {
-            let site = MonitoringSite(
-                id: "site-1", name: "Site", url: "https://example.com", platform: .custom, status: .up,
-                lastCheckAt: now, lastHeartbeatAt: now, sslExpiresAt: sslExpiresAt, openFindingsCount: 0,
-                latestSnapshot: MonitoringSnapshot(
-                    checkedAt: now, phpVersion: "8.4", phpSupported: true, pendingUpdateCount: 0, components: [],
-                    notCovered: [], siteHealth: [], applicationName: nil, applicationVersion: nil, environment: nil
-                ),
-                findings: []
-            )
-            return MonitoringHealth.evaluate(site: site, connected: true, now: now)
-        }
-        let expired = try score(sslExpiresAt: now.addingTimeInterval(-86_400))
-        let soon = try score(sslExpiresAt: now.addingTimeInterval(7 * 86_400))
-        let fine = try score(sslExpiresAt: now.addingTimeInterval(90 * 86_400))
-        #expect(expired.deductions.first { $0.id == "ssl" }?.points == 40)
-        #expect(soon.deductions.first { $0.id == "ssl" }?.points == 15)
-        #expect(fine.deductions.allSatisfy { $0.id != "ssl" })
-        let scores = try [expired, soon, fine].map { try #require($0.score) }
-        #expect(scores[0] < scores[1] && scores[1] < scores[2])
-    }
 }

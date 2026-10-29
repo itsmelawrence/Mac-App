@@ -68,14 +68,14 @@ struct JarvisBackupServiceTests {
         harness.defaults.set("NEWS-SECRET-123", forKey: "news.apiKey")
         harness.defaults.set("MONITORING-SECRET-456", forKey: "monitoring.token")
         harness.defaults.set("REPORTER-SECRET-789", forKey: "reporter.token")
-        harness.defaults.set("https://monitoring.example", forKey: "monitoring.apiBaseURL")
+        harness.defaults.set(false, forKey: "sites.notifyOnChange")
 
         let document = try harness.service.makeDocument(context: harness.context)
         let text = String(decoding: try harness.service.encode(document), as: UTF8.self)
         #expect(!text.contains("NEWS-SECRET-123"))
         #expect(!text.contains("MONITORING-SECRET-456"))
         #expect(!text.contains("REPORTER-SECRET-789"))
-        #expect(document.preferences["monitoring.apiBaseURL"] == .string("https://monitoring.example"))
+        #expect(document.preferences["sites.notifyOnChange"] == .bool(false))
     }
 
     @Test func malformedAndNewerFilesChangeNothing() throws {
