@@ -60,6 +60,7 @@
 		84C602F87547A53090ADE266 /* PromptCaptureServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090543F19935FA409CC316BE /* PromptCaptureServiceTests.swift */; };
 		86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39902BB88D836CA9896FAE1 /* AppState.swift */; };
 		8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */; };
+		8C09AC91B000639FEDA88943 /* CalendarMathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0743240C46CDA012237D2E /* CalendarMathTests.swift */; };
 		8D81EAD0D33FEB9C891E0A1D /* ActionCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D818FDC76F1082261915894 /* ActionCenter.swift */; };
 		999E9E3FC6F99036C44E9FDE /* ProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1676D6679B29E4122F6E3E /* ProjectsView.swift */; };
 		9B014AA708572162BF677B1F /* JarvisCommandEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */; };
@@ -173,6 +174,7 @@
 		760AB982F2DCAF1B89597D25 /* ActionCenterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionCenterTests.swift; sourceTree = "<group>"; };
 		776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPICredentialStore.swift; sourceTree = "<group>"; };
 		7987A59411E3538B9DEBF31E /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
+		7A0743240C46CDA012237D2E /* CalendarMathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMathTests.swift; sourceTree = "<group>"; };
 		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7BBA6E94BC0D75E977D137E6 /* AlertReliabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertReliabilityTests.swift; sourceTree = "<group>"; };
 		7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapTilerKeyStore.swift; sourceTree = "<group>"; };
@@ -290,6 +292,7 @@
 				129B4602808BAD0764F88928 /* AppStateTests.swift */,
 				A2A8CEB2EF436BFBA9D2E5DF /* BackgroundJobTests.swift */,
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
+				7A0743240C46CDA012237D2E /* CalendarMathTests.swift */,
 				7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */,
 				AA7F87E8A9E37C662408E6EC /* FeedRobustnessTests.swift */,
 				2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */,
@@ -516,6 +519,7 @@
 				5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */,
 				28E24A5F6E90BE84D1CC1C8B /* BackgroundJobTests.swift in Sources */,
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
+				8C09AC91B000639FEDA88943 /* CalendarMathTests.swift in Sources */,
 				42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */,
 				B976679462518723D3799DEC /* FeedRobustnessTests.swift in Sources */,
 				AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */,
@@ -663,7 +667,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -684,7 +688,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.37;
+				MARKETING_VERSION = 0.2.38;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -804,7 +808,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -819,7 +823,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.37;
+				MARKETING_VERSION = 0.2.38;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
