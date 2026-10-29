@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import UserNotifications
 
 /// An assistant action waiting for your decision (Tier 2 or 3; see the vault's SAFETY.md).
@@ -11,6 +12,13 @@ struct PendingAction: Decodable, Identifiable, Equatable, Sendable {
     let preview: String
     let requestedAt: Date
     let expiresAt: Date
+}
+
+/// An app action (tasks) the gate has allowed, queued for JARVIS to perform.
+struct AppJob: Decodable, Identifiable, Equatable, Sendable {
+    let id: String
+    let action: String
+    let args: [String: String?]
 }
 
 /// One assistant action from the append-only action log, folded to its latest state.
@@ -47,9 +55,13 @@ final class ActionCenter: ObservableObject {
     private let vaultURL: () -> URL
     private let stateURL: URL
     private let notify: (PendingAction) -> Void
+    private let clearNotifications: ([String]) -> Void
+    private let reminders: TaskReminderScheduling
     private var lastStamp = ""
     private var lastRefresh = Date.distantPast
     private var announced: Set<String> = []
+    private var context: ModelContext?
+    private var isRunningJobs = false
 
     init(
         vaultURL: @escaping () -> URL = {
@@ -57,11 +69,22 @@ final class ActionCenter: ObservableObject {
         },
         stateURL: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("JARVIS Dashboard"),
-        notify: @escaping (PendingAction) -> Void = ActionCenter.postNotification
+        notify: @escaping (PendingAction) -> Void = ActionCenter.postNotification,
+        clearNotifications: @escaping ([String]) -> Void = {
+            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: $0)
+        },
+        reminders: TaskReminderScheduling = NotificationService()
     ) {
         self.vaultURL = vaultURL
         self.stateURL = stateURL
         self.notify = notify
+        self.clearNotifications = clearNotifications
+        self.reminders = reminders
+    }
+
+    /// App actions (tasks) are performed in this context; without one they wait in the queue.
+    func attach(_ context: ModelContext) {
+        self.context = context
     }
 
     static func scriptURL(vaultURL: URL) -> URL {
@@ -86,7 +109,7 @@ final class ActionCenter: ObservableObject {
     }
 
     func refresh() async {
-        struct State: Decodable { let pending: [PendingAction]; let recent: [ActionRecord] }
+        struct State: Decodable { let pending: [PendingAction]; let jobs: [AppJob]; let recent: [ActionRecord] }
         lastRefresh = .now
         let script = Self.scriptURL(vaultURL: vaultURL())
         guard FileManager.default.fileExists(atPath: script.path) else { return }
@@ -103,10 +126,11 @@ final class ActionCenter: ObservableObject {
                 announced.insert(action.id)
                 notify(action)
             }
+            if !state.jobs.isEmpty { await runJobs(state.jobs) }
             let open = Set(state.pending.map(\.id))
             let decided = announced.subtracting(open)
             if !decided.isEmpty {
-                UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: decided.map { "action-\($0)" })
+                clearNotifications(decided.map { "action-\($0)" })
             }
         case let .failure(error):
             message = error.localizedDescription
@@ -117,22 +141,64 @@ final class ActionCenter: ObservableObject {
     func deny(_ id: String) async { await decide("deny", id) }
     func undo(_ id: String) async { await decide("undo", id) }
 
-    private func decide(_ command: String, _ id: String) async {
-        struct Reply: Decodable { let status: String; let reason: String? }
-        busy.insert(id)
-        defer { busy.remove(id) }
+    private struct Reply: Decodable {
+        let status: String
+        let reason: String?
+        let action: String?
+        let args: [String: String?]?
+        let result: [String: String]?
+    }
+
+    private func gate(_ arguments: [String], input: String? = nil) async -> Result<Reply, Error> {
         let script = Self.scriptURL(vaultURL: vaultURL())
         let vault = vaultURL()
-        let result = await Task.detached(priority: .userInitiated) {
-            Result { try VaultMaintenanceService.runJSON(script: script, arguments: [command, id, "--vault", vault.path], as: Reply.self) }
+        return await Task.detached(priority: .userInitiated) {
+            Result { try VaultMaintenanceService.runJSON(script: script, arguments: arguments + ["--vault", vault.path],
+                                                         input: input, as: Reply.self) }
         }.value
-        switch result {
+    }
+
+    private func decide(_ command: String, _ id: String) async {
+        busy.insert(id)
+        defer { busy.remove(id) }
+        switch await gate([command, id]) {
+        case let .success(reply) where reply.status == "run_in_app" && command == "undo":
+            message = await reverseInApp(id, reply)
         case let .success(reply):
             message = Self.describe(command: command, reply.status, reply.reason)
         case let .failure(error):
             message = error.localizedDescription
         }
         await refresh()
+    }
+
+    /// Claims each queued app job from the gate, performs it on JARVIS's data, and reports the outcome.
+    private func runJobs(_ jobs: [AppJob]) async {
+        guard let context, !isRunningJobs else { return }
+        isRunningJobs = true
+        defer { isRunningJobs = false }
+        for job in jobs {
+            guard case let .success(claim) = await gate(["start", job.id]), claim.status == "run_in_app",
+                  let action = claim.action, let args = claim.args else { continue }
+            let (outcome, detail): (String, [String: String])
+            switch AppActionExecutor.perform(action, args: args, context: context, reminders: reminders) {
+            case let .success(result): (outcome, detail) = ("done", result)
+            case let .failure(failure): (outcome, detail) = ("failed", ["reason": failure.reason])
+            }
+            let input = String(data: (try? JSONEncoder().encode(detail)) ?? Data("{}".utf8), encoding: .utf8)
+            _ = await gate(["finish", job.id, outcome], input: input)
+        }
+    }
+
+    private func reverseInApp(_ id: String, _ reply: Reply) async -> String {
+        guard let context, let action = reply.action else { return "Not done: JARVIS's data isn't open yet." }
+        switch AppActionExecutor.reverse(action, result: reply.result ?? [:], context: context, reminders: reminders) {
+        case .success:
+            _ = await gate(["finish", id, "undone"], input: "{}")
+            return "Undone."
+        case let .failure(failure):
+            return "Not done: \(failure.reason)"
+        }
     }
 
     static func describe(command: String, _ status: String, _ reason: String?) -> String {

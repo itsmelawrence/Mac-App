@@ -61,6 +61,7 @@ final class AppCoordinator {
 
         // The action gate's approvals and log, watched for the app's lifetime so approvals reach you
         // (notification and menu bar) with the window closed.
+        ActionCenter.shared.attach(context)
         tasks.append(Task { await ActionCenter.shared.run() })
 
         // The assistant's state.json: tasks and projects on launch, on every save, and each minute

@@ -118,7 +118,7 @@ private struct ActionRow: View {
                 Text(record.summary ?? record.action ?? record.id).font(.callout.weight(.medium))
                 Text([statusLabel, record.tier.map(tierLabel), record.client].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption).foregroundStyle(.secondary)
-                if let reason = record.reason, record.status == "refused" {
+                if let reason = record.reason, record.status == "refused" || record.status == "failed" {
                     Text(reason).font(.caption).foregroundStyle(.orange)
                 }
             }
@@ -135,6 +135,9 @@ private struct ActionRow: View {
         switch record.status {
         case "done": record.approvedBy == nil ? "Done" : "Approved and done"
         case "awaiting_approval": "Waiting for approval"
+        case "queued": "Queued for JARVIS"
+        case "running": "Running"
+        case "failed": "Failed"
         case "denied": "Denied"
         case "expired": "Expired"
         case "refused": "Refused"
@@ -146,7 +149,8 @@ private struct ActionRow: View {
     private var symbol: String {
         switch record.status {
         case "done": "checkmark.circle.fill"
-        case "awaiting_approval": "hourglass"
+        case "awaiting_approval", "queued", "running": "hourglass"
+        case "failed": "exclamationmark.triangle.fill"
         case "refused": "hand.raised.fill"
         case "undone": "arrow.uturn.backward.circle"
         default: "xmark.circle"
@@ -156,8 +160,8 @@ private struct ActionRow: View {
     private var tint: Color {
         switch record.status {
         case "done": .green
-        case "awaiting_approval": .orange
-        case "refused": .red
+        case "awaiting_approval", "queued", "running": .orange
+        case "refused", "failed": .red
         default: .secondary
         }
     }
