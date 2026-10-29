@@ -59,6 +59,10 @@ final class AppCoordinator {
         tasks.append(Task.detached(priority: .background) { await VaultMaintenanceService.runWhileAppIsOpen() })
         tasks.append(Task.detached(priority: .utility) { await PromptCaptureService.runWhileAppIsOpen() })
 
+        // The action gate's approvals and log, watched for the app's lifetime so approvals reach you
+        // (notification and menu bar) with the window closed.
+        tasks.append(Task { await ActionCenter.shared.run() })
+
         // The assistant's state.json: tasks and projects on launch, on every save, and each minute
         // (so overdue and due-today flags stay current). Views add sites, weather, and news as they fetch.
         let snapshots = StateSnapshotService.shared

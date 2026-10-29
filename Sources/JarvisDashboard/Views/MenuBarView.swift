@@ -8,6 +8,7 @@ struct MenuBarView: View {
     @Query(filter: #Predicate<TaskItem> { !$0.isCompleted }) private var pendingTasks: [TaskItem]
 
     @State private var quickTaskTitle = ""
+    @ObservedObject private var actions = ActionCenter.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -31,6 +32,23 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(quickTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            if !actions.pending.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("\(actions.pending.count) waiting for your approval", systemImage: "checkmark.shield")
+                        .font(.caption.weight(.semibold)).foregroundStyle(.orange)
+                    ForEach(actions.pending.prefix(3)) { action in
+                        Text(action.summary).font(.caption).lineLimit(2)
+                    }
+                    // Approval happens where the exact change is shown, never from a one-line summary.
+                    Button("Review in Activity") {
+                        appState.selection = .activity
+                        openWindow(id: "dashboard")
+                        NSApplication.shared.activate(ignoringOtherApps: true)
+                    }
+                }
             }
 
             Divider()

@@ -5,7 +5,7 @@ import WebKit
 /// JARVIS's own source as a 3D neural map: files are neurons, calls and references are fibres.
 struct NeuralMapView: View {
     /// The ICM route and Graphify export this map shows. Every Cortex project can follow later.
-    static let route = "JARVIS"
+    nonisolated static let route = "JARVIS"
 
     @AppStorage("icm.vaultPath") private var vaultPath = ""
     @State private var pageURL: URL?

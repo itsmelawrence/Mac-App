@@ -54,6 +54,19 @@ enum VaultMaintenanceService {
         return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
     }
 
+    /// Runs a vault script that prints a JSON reply on its last line, and decodes it. Blocks; call off the main actor.
+    static func runJSON<Reply: Decodable>(
+        script: URL, arguments: [String], input: String? = nil, timeout: TimeInterval = 60,
+        decoder: JSONDecoder = JSONDecoder(), as type: Reply.Type
+    ) throws -> Reply {
+        let result = try run(script: script, arguments: arguments, timeout: timeout, input: input.map { Data($0.utf8) })
+        let lastLine = result.output.split(separator: "\n").last { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard result.status == 0, let lastLine, let reply = try? decoder.decode(Reply.self, from: Data(lastLine.utf8)) else {
+            throw VaultScriptError(script: script.lastPathComponent, output: String(result.output.suffix(300)))
+        }
+        return reply
+    }
+
     /// Checks every 15 minutes and runs when the last run is older than `interval`.
     static func runWhileAppIsOpen(defaults: UserDefaults = .standard) async {
         while !Task.isCancelled {
@@ -82,4 +95,10 @@ enum VaultMaintenanceService {
             try? data.write(to: url)
         }
     }
+}
+
+struct VaultScriptError: LocalizedError {
+    let script: String
+    let output: String
+    var errorDescription: String? { "\(script) failed: \(output)" }
 }

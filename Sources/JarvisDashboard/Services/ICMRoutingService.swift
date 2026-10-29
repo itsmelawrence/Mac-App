@@ -94,14 +94,12 @@ enum ICMRoutingService {
         guard FileManager.default.fileExists(atPath: script.path) else {
             throw ICMRoutingError.vaultToolsMissing(script.path)
         }
-        let result = try VaultMaintenanceService.run(
-            script: script, arguments: [command, "--vault", vaultURL.path], timeout: 60, input: input.map { Data($0.utf8) })
-        let lastLine = result.output.split(separator: "\n").last { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard result.status == 0, let lastLine,
-              let reply = try? JSONDecoder().decode(Reply.self, from: Data(lastLine.utf8)) else {
-            throw ICMRoutingError.vaultTools("Vault routing failed: \(result.output.suffix(300))")
+        do {
+            return try VaultMaintenanceService.runJSON(script: script, arguments: [command, "--vault", vaultURL.path],
+                                                       input: input, as: Reply.self)
+        } catch let error as VaultScriptError {
+            throw ICMRoutingError.vaultTools("Vault routing failed: \(error.output)")
         }
-        return reply
     }
 
     private struct RouteReply: Decodable {

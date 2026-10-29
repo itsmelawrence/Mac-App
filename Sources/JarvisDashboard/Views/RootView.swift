@@ -4,11 +4,13 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var appState: AppState
+    @ObservedObject private var actions = ActionCenter.shared
 
     var body: some View {
         NavigationSplitView {
             List(SidebarDestination.allCases, selection: $appState.selection) { destination in
                 Label(destination.title, systemImage: destination.systemImage)
+                    .badge(destination == .activity ? actions.pending.count : 0)
                     .tag(destination)
             }
             .navigationTitle("JARVIS")
@@ -27,6 +29,8 @@ struct RootView: View {
                 NeuralMapView()
             case .intelligence:
                 IntelligenceView()
+            case .activity:
+                ActivityView()
             case .settings:
                 SettingsView()
             }
