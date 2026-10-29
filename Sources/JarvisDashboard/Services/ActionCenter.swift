@@ -21,6 +21,50 @@ struct AppJob: Decodable, Identifiable, Equatable, Sendable {
     let args: [String: String?]
 }
 
+/// A long-running vault tool's progress (written by `.tools/jobs.py`, e.g. a model eval or a download).
+struct BackgroundJob: Decodable, Identifiable, Equatable, Sendable {
+    let id: String
+    let title: String
+    let kind: String?
+    let status: String
+    let done: Int
+    let total: Int?
+    let detail: String?
+    let startedAt: Date
+    let updatedAt: Date
+    let pid: Int32?
+    let log: String?
+    /// Filled in when read: a `running` job whose process has gone (crashed or was stopped).
+    var isStopped = false
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, kind, status, done, total, detail, startedAt, updatedAt, pid, log
+    }
+
+    var isRunning: Bool { status == "running" && !isStopped }
+    var fraction: Double? { total.map { $0 > 0 ? Double(done) / Double($0) : 0 } }
+
+    /// Running jobs first, then jobs that ended in the last day, newest first.
+    static func visible(_ jobs: [BackgroundJob], now: Date = .now) -> [BackgroundJob] {
+        jobs.filter { $0.isRunning || now.timeIntervalSince($0.updatedAt) < 24 * 60 * 60 }
+            .sorted { ($0.isRunning ? 0 : 1, $1.updatedAt) < ($1.isRunning ? 0 : 1, $0.updatedAt) }
+    }
+
+    static func load(from directory: URL, isAlive: (Int32) -> Bool = BackgroundJob.processIsAlive) -> [BackgroundJob] {
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "json" }.compactMap { url in
+            guard let data = try? Data(contentsOf: url),
+                  var job = try? ActionCenter.decoder.decode(BackgroundJob.self, from: data) else { return nil }
+            if job.status == "running", let pid = job.pid, !isAlive(pid) { job.isStopped = true }
+            return job
+        }
+    }
+
+    static func processIsAlive(_ pid: Int32) -> Bool {
+        kill(pid, 0) == 0 || errno == EPERM
+    }
+}
+
 /// One assistant action from the append-only action log, folded to its latest state.
 struct ActionRecord: Decodable, Identifiable, Equatable, Sendable {
     let id: String
@@ -51,6 +95,7 @@ final class ActionCenter: ObservableObject {
     @Published private(set) var recent: [ActionRecord] = []
     @Published private(set) var message: String?
     @Published private(set) var busy: Set<String> = []
+    @Published private(set) var jobs: [BackgroundJob] = []
 
     private let vaultURL: () -> URL
     private let stateURL: URL
@@ -94,6 +139,7 @@ final class ActionCenter: ObservableObject {
     /// Checks for changes every 2 seconds for the app's lifetime (the coordinator starts it).
     func run() async {
         while !Task.isCancelled {
+            refreshJobs()
             await refreshIfChanged()
             try? await Task.sleep(for: .seconds(2))
         }
@@ -106,6 +152,12 @@ final class ActionCenter: ObservableObject {
         guard stamp != lastStamp || Date.now.timeIntervalSince(lastRefresh) > 30 else { return }
         lastStamp = stamp
         await refresh()
+    }
+
+    /// Progress files are small and read directly; no script runs for them.
+    func refreshJobs() {
+        let latest = BackgroundJob.visible(BackgroundJob.load(from: stateURL.appendingPathComponent("jobs")))
+        if latest != jobs { jobs = latest }
     }
 
     func refresh() async {

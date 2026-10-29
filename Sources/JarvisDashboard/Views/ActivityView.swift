@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// What the assistant has done, and what is waiting for your approval (SAFETY.md in the vault).
@@ -16,6 +17,11 @@ struct ActivityView: View {
                     Text(message).font(.callout).foregroundStyle(.secondary)
                         .padding(10).frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                }
+
+                if !center.jobs.isEmpty {
+                    Text("Running now").font(.headline)
+                    ForEach(center.jobs) { JobCard(job: $0) }
                 }
 
                 if !center.pending.isEmpty {
@@ -46,7 +52,71 @@ struct ActivityView: View {
             .padding(24)
             .frame(maxWidth: 980, alignment: .leading)
         }
-        .task { await center.refresh() }
+        .task {
+            center.refreshJobs()
+            await center.refresh()
+        }
+    }
+}
+
+private struct JobCard: View {
+    let job: BackgroundJob
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Image(systemName: symbol).foregroundStyle(tint)
+                Text(job.title).font(.body.weight(.semibold))
+                Spacer()
+                Text(statusLabel).font(.caption.weight(.semibold)).foregroundStyle(tint)
+            }
+            if let fraction = job.fraction {
+                ProgressView(value: fraction).tint(tint)
+            }
+            HStack {
+                if let total = job.total { Text("\(job.done) of \(total)") }
+                Text(job.isRunning ? "started \(job.startedAt, style: .relative) ago" : "ended \(job.updatedAt, style: .relative) ago")
+                Spacer()
+                if let log = job.log, FileManager.default.fileExists(atPath: log) {
+                    Button("Open log") { NSWorkspace.shared.open(URL(fileURLWithPath: log)) }
+                        .buttonStyle(.link).font(.caption)
+                }
+            }
+            .font(.caption).foregroundStyle(.secondary)
+            if let detail = job.detail, !detail.isEmpty {
+                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+        }
+        .padding(14)
+        .background(tint.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var statusLabel: String {
+        if job.isStopped { return "Stopped" }
+        switch job.status {
+        case "running": return "Running"
+        case "done": return "Done"
+        case "failed": return "Failed"
+        default: return job.status.capitalized
+        }
+    }
+
+    private var symbol: String {
+        if job.isStopped { return "stop.circle" }
+        switch job.status {
+        case "running": return "gearshape.2"
+        case "done": return "checkmark.circle.fill"
+        default: return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var tint: Color {
+        if job.isStopped { return .secondary }
+        switch job.status {
+        case "running": return .cyan
+        case "done": return .green
+        default: return .red
+        }
     }
 }
 

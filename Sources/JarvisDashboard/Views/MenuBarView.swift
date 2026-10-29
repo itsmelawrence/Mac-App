@@ -34,6 +34,21 @@ struct MenuBarView: View {
                 .disabled(quickTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
+            let running = actions.jobs.filter(\.isRunning)
+            if !running.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(running.prefix(3)) { job in
+                        HStack {
+                            Label(job.title, systemImage: "gearshape.2").font(.caption).lineLimit(1)
+                            Spacer()
+                            if let total = job.total { Text("\(job.done)/\(total)").font(.caption.monospacedDigit()) }
+                        }
+                        if let fraction = job.fraction { ProgressView(value: fraction).controlSize(.small) }
+                    }
+                }
+            }
+
             if !actions.pending.isEmpty {
                 Divider()
                 VStack(alignment: .leading, spacing: 6) {
