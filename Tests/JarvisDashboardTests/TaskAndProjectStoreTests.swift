@@ -42,6 +42,36 @@ struct TaskAndProjectStoreTests {
         #expect(try context.fetch(FetchDescriptor<TaskItem>()).isEmpty)
     }
 
+    @Test func editingATaskSavesItsFieldsAndMovesItsReminder() async throws {
+        let context = try context()
+        let recorder = ReminderRecorder()
+        let task = TaskItem(title: "Send invoice", dueDate: .now.addingTimeInterval(3_600))
+        TaskStore.add(task, to: context, reminders: recorder)
+        try await Task.sleep(for: .milliseconds(50))
+
+        let newDue = Date.now.addingTimeInterval(7_200)
+        TaskStore.update(task, title: "Send final invoice", notes: "PDF", dueDate: newDue, priority: .high,
+                         projectID: nil, isBlocked: false, blockedReason: "ignored", reminders: recorder)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(task.title == "Send final invoice" && task.notes == "PDF" && task.priority == .high)
+        #expect(task.blockedReason.isEmpty)
+        #expect(recorder.cancelled.contains(TaskReminder.identifier(for: task.id)))
+        #expect(recorder.scheduled.last == TaskReminder(taskID: task.id, title: "Send final invoice", dueDate: newDue))
+
+        // Notes alone don't touch the reminder.
+        let before = (recorder.scheduled.count, recorder.cancelled.count)
+        TaskStore.update(task, title: task.title, notes: "PDF and CSV", dueDate: newDue, priority: .high,
+                         projectID: nil, isBlocked: false, blockedReason: "", reminders: recorder)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect((recorder.scheduled.count, recorder.cancelled.count) == before)
+
+        // Removing the due date cancels the reminder without scheduling a new one.
+        TaskStore.update(task, title: task.title, notes: task.notes, dueDate: nil, priority: .high,
+                         projectID: nil, isBlocked: false, blockedReason: "", reminders: recorder)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(recorder.scheduled.count == before.0 && recorder.cancelled.count > before.1)
+    }
+
     @Test func noReminderForPastOrUndatedOrCompletedTasks() {
         #expect(TaskStore.reminder(for: TaskItem(title: "No date")) == nil)
         #expect(TaskStore.reminder(for: TaskItem(title: "Past", dueDate: .now.addingTimeInterval(-60))) == nil)

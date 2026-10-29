@@ -703,7 +703,7 @@ private struct ProjectDetailView: View {
             ProjectMonitoringSheet(project: project)
         }
         .sheet(isPresented: $showingNewTask) {
-            NewTaskView(projectID: project.id)
+            TaskEditorView(projectID: project.id)
         }
     }
 

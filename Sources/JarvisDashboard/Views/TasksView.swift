@@ -11,6 +11,7 @@ struct TasksView: View {
     @State private var selectedScope: TaskQueueScope = .open
     @State private var selectedProjectID: UUID?
     @State private var taskPendingDeletion: TaskItem?
+    @State private var taskBeingEdited: TaskItem?
 
     private var summary: TaskQueueSummary { TaskQueueEngine.summary(for: tasks) }
     private var focusTask: TaskItem? { TaskQueueEngine.focusTask(from: tasks) }
@@ -54,7 +55,8 @@ struct TasksView: View {
             }
             .keyboardShortcut("n", modifiers: .command)
         }
-        .sheet(isPresented: $showingNewTask) { NewTaskView() }
+        .sheet(isPresented: $showingNewTask) { TaskEditorView() }
+        .sheet(item: $taskBeingEdited) { TaskEditorView(editing: $0) }
         .alert("Delete this task?", isPresented: deletionAlertBinding, presenting: taskPendingDeletion) { task in
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) { TaskStore.delete(task, from: modelContext) }
@@ -157,6 +159,7 @@ struct TasksView: View {
                         .foregroundStyle(.secondary)
                     }
                     Spacer()
+                    Button("Edit", systemImage: "pencil") { taskBeingEdited = task }
                     Button("Mark Complete", systemImage: "checkmark.circle.fill") {
                         TaskStore.setCompleted(task, true)
                     }
@@ -213,6 +216,7 @@ struct TasksView: View {
                         MissionTaskRow(
                             task: task,
                             projectName: projectName(for: task),
+                            onEdit: { taskBeingEdited = task },
                             onDelete: { taskPendingDeletion = task }
                         )
                         if index < visibleTasks.count - 1 { Divider().opacity(0.45).padding(.leading, 58) }
@@ -339,6 +343,7 @@ struct TasksView: View {
 private struct MissionTaskRow: View {
     @Bindable var task: TaskItem
     let projectName: String?
+    let onEdit: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -392,7 +397,11 @@ private struct MissionTaskRow: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2, perform: onEdit)
+        .help("Double-click to edit")
         .contextMenu {
+            Button("Edit Task", systemImage: "pencil", action: onEdit)
             Button(task.isBlocked ? "Unblock Task" : "Mark as Blocked", systemImage: task.isBlocked ? "hand.thumbsup" : "hand.raised") {
                 task.isBlocked.toggle()
                 if !task.isBlocked { task.blockedReason = "" }
@@ -450,7 +459,8 @@ private extension View {
     }
 }
 
-struct NewTaskView: View {
+/// Creates a task, or edits one when opened with `editing:`.
+struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ProjectItem.name) private var projects: [ProjectItem]
@@ -463,9 +473,23 @@ struct NewTaskView: View {
     @State private var projectID: UUID?
     @State private var isBlocked = false
     @State private var blockedReason = ""
+    private let task: TaskItem?
 
     init(projectID: UUID? = nil) {
+        task = nil
         _projectID = State(initialValue: projectID)
+    }
+
+    init(editing task: TaskItem) {
+        self.task = task
+        _title = State(initialValue: task.title)
+        _notes = State(initialValue: task.notes)
+        _hasDueDate = State(initialValue: task.dueDate != nil)
+        _dueDate = State(initialValue: task.dueDate ?? Date.now.addingTimeInterval(3_600))
+        _priority = State(initialValue: task.priority)
+        _projectID = State(initialValue: task.projectID)
+        _isBlocked = State(initialValue: task.isBlocked)
+        _blockedReason = State(initialValue: task.blockedReason)
     }
 
     var body: some View {
@@ -481,7 +505,8 @@ struct NewTaskView: View {
                     }
                     Picker("Project", selection: $projectID) {
                         Text("Inbox / No project").tag(UUID?.none)
-                        ForEach(projects.filter { !$0.isArchived }) { project in
+                        // An archived project stays listed while it is this task's project.
+                        ForEach(projects.filter { !$0.isArchived || $0.id == projectID }) { project in
                             Text(project.name).tag(Optional(project.id))
                         }
                     }
@@ -494,11 +519,11 @@ struct NewTaskView: View {
                 }
             }
             .formStyle(.grouped)
-            .navigationTitle("New Mission")
+            .navigationTitle(task == nil ? "New Mission" : "Edit Mission")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add Mission") { addTask() }
+                    Button(task == nil ? "Add Mission" : "Save") { save() }
                         .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -506,17 +531,17 @@ struct NewTaskView: View {
         .frame(width: 500, height: 500)
     }
 
-    private func addTask() {
-        let task = TaskItem(
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-            notes: notes,
-            dueDate: hasDueDate ? dueDate : nil,
-            priority: priority,
-            projectID: projectID,
-            isBlocked: isBlocked,
-            blockedReason: blockedReason.trimmingCharacters(in: .whitespacesAndNewlines)
-        )
-        TaskStore.add(task, to: modelContext)
+    private func save() {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanReason = blockedReason.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let task {
+            TaskStore.update(task, title: cleanTitle, notes: notes, dueDate: hasDueDate ? dueDate : nil,
+                             priority: priority, projectID: projectID, isBlocked: isBlocked, blockedReason: cleanReason)
+        } else {
+            TaskStore.add(TaskItem(title: cleanTitle, notes: notes, dueDate: hasDueDate ? dueDate : nil,
+                                   priority: priority, projectID: projectID, isBlocked: isBlocked,
+                                   blockedReason: cleanReason), to: modelContext)
+        }
         dismiss()
     }
 }

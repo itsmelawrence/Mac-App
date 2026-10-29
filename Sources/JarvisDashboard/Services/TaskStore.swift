@@ -19,6 +19,26 @@ enum TaskStore {
         }
     }
 
+    /// Saves the task editor's fields. A changed title or due date replaces the reminder.
+    static func update(
+        _ task: TaskItem, title: String, notes: String, dueDate: Date?, priority: TaskPriority,
+        projectID: UUID?, isBlocked: Bool, blockedReason: String,
+        reminders: TaskReminderScheduling = NotificationService()
+    ) {
+        let reminderChanged = task.title != title || task.dueDate != dueDate
+        task.title = title
+        task.notes = notes
+        task.dueDate = dueDate
+        task.priority = priority
+        task.projectID = projectID
+        task.isBlocked = isBlocked
+        task.blockedReason = isBlocked ? blockedReason : ""
+        if reminderChanged {
+            cancel(task, reminders)
+            schedule(task, reminders)
+        }
+    }
+
     static func delete(_ task: TaskItem, from context: ModelContext, reminders: TaskReminderScheduling = NotificationService()) {
         cancel(task, reminders)
         context.delete(task)
