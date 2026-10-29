@@ -26,6 +26,7 @@
 		2BB7E43B446F0EE57B3508CF /* AppCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */; };
 		302DA840B56A0D273C1C2819 /* ProjectItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FBF283FAFEC8973578E6F4 /* ProjectItemTests.swift */; };
 		319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */; };
+		32CC643894CBE31ABB12DABA /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6BE971505CD5DA0C015277 /* ActivityView.swift */; };
 		33C1A850D40795F1E6C58E20 /* NewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0667036D8A5683EE9111E98D /* NewsService.swift */; };
 		3414B53BFE06BE0F45B4FB35 /* StateSnapshotServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A7FE5304F31CDF9A7ED932 /* StateSnapshotServiceTests.swift */; };
 		343108046F415B870B70645F /* JarvisDataSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */; };
@@ -57,6 +58,7 @@
 		84C602F87547A53090ADE266 /* PromptCaptureServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090543F19935FA409CC316BE /* PromptCaptureServiceTests.swift */; };
 		86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39902BB88D836CA9896FAE1 /* AppState.swift */; };
 		8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */; };
+		8D81EAD0D33FEB9C891E0A1D /* ActionCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D818FDC76F1082261915894 /* ActionCenter.swift */; };
 		999E9E3FC6F99036C44E9FDE /* ProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1676D6679B29E4122F6E3E /* ProjectsView.swift */; };
 		9B014AA708572162BF677B1F /* JarvisCommandEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */; };
 		9CC54BFA367BF803357360B3 /* MonitoringHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AECC040E2CE1B8AD502271 /* MonitoringHealth.swift */; };
@@ -90,6 +92,7 @@
 		DDB7D5C22CC99A8419E8424A /* VaultMaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5CE0FDBA8DE9E552D78301 /* VaultMaintenanceService.swift */; };
 		E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */; };
 		E242AA561D27B02DF3EC5009 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */; };
+		E2B386B2C557465316AF3485 /* ActionCenterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 760AB982F2DCAF1B89597D25 /* ActionCenterTests.swift */; };
 		E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */; };
 		E3738D08057098463AF945BD /* WeatherLabelPlacementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */; };
 		E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */; };
@@ -125,6 +128,7 @@
 		28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinatorTests.swift; sourceTree = "<group>"; };
 		2C5301F4B3E0F66BCEFE899E /* NewsAPIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsAPIServiceTests.swift; sourceTree = "<group>"; };
 		2C6E1A93C28EB6328CC961F7 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		2D818FDC76F1082261915894 /* ActionCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionCenter.swift; sourceTree = "<group>"; };
 		2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryServiceTests.swift; sourceTree = "<group>"; };
 		2ED09AD3EE3606647297A1CE /* MotivationalQuoteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteService.swift; sourceTree = "<group>"; };
 		2EE0303E41DC4C80F1F68571 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
@@ -147,6 +151,7 @@
 		5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastService.swift; sourceTree = "<group>"; };
 		546651AFED44CD38B196EC04 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
 		54F58FE3B6B29601D526900C /* JarvisBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupService.swift; sourceTree = "<group>"; };
+		5C6BE971505CD5DA0C015277 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		5E3C3CF5D521AB7476FA7099 /* NeuralMapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralMapService.swift; sourceTree = "<group>"; };
 		5F41B209EF204B77186B9DFC /* MotivationalQuoteServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteServiceTests.swift; sourceTree = "<group>"; };
 		629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisCommandEngineTests.swift; sourceTree = "<group>"; };
@@ -157,6 +162,7 @@
 		73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsService.swift; sourceTree = "<group>"; };
 		73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshotTests.swift; sourceTree = "<group>"; };
 		74E0231110CC215074D454FD /* ICMRoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICMRoutingService.swift; sourceTree = "<group>"; };
+		760AB982F2DCAF1B89597D25 /* ActionCenterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionCenterTests.swift; sourceTree = "<group>"; };
 		776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringAPICredentialStore.swift; sourceTree = "<group>"; };
 		7987A59411E3538B9DEBF31E /* ConnectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsView.swift; sourceTree = "<group>"; };
 		7B55EC8449AB969A5A0FA89F /* JarvisDashboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JarvisDashboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -212,6 +218,7 @@
 		1F2C4CD0712B7E3362C7D688 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				5C6BE971505CD5DA0C015277 /* ActivityView.swift */,
 				D40175E07BCF2331D2827034 /* AnimatedWeatherGlyph.swift */,
 				A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */,
 				E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */,
@@ -265,6 +272,7 @@
 		615BF7F2BB160436AB78E2C9 /* JarvisDashboardTests */ = {
 			isa = PBXGroup;
 			children = (
+				760AB982F2DCAF1B89597D25 /* ActionCenterTests.swift */,
 				7BBA6E94BC0D75E977D137E6 /* AlertReliabilityTests.swift */,
 				28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */,
 				129B4602808BAD0764F88928 /* AppStateTests.swift */,
@@ -341,6 +349,7 @@
 		E10959E12D24077588D275CC /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				2D818FDC76F1082261915894 /* ActionCenter.swift */,
 				FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */,
 				73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */,
 				A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */,
@@ -485,6 +494,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E2B386B2C557465316AF3485 /* ActionCenterTests.swift in Sources */,
 				78F1CAAC879FF1DCB34A8794 /* AlertReliabilityTests.swift in Sources */,
 				2BB7E43B446F0EE57B3508CF /* AppCoordinatorTests.swift in Sources */,
 				5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */,
@@ -522,6 +532,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8D81EAD0D33FEB9C891E0A1D /* ActionCenter.swift in Sources */,
+				32CC643894CBE31ABB12DABA /* ActivityView.swift in Sources */,
 				1821F8301E67E4E27BBAD5DD /* AnimatedWeatherGlyph.swift in Sources */,
 				569AEE7D62A1EA12E7D0FEE5 /* AppCoordinator.swift in Sources */,
 				86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */,
@@ -631,7 +643,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -652,7 +664,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.33;
+				MARKETING_VERSION = 0.2.34;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -770,7 +782,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -785,7 +797,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.33;
+				MARKETING_VERSION = 0.2.34;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
