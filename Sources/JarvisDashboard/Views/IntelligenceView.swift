@@ -6,7 +6,6 @@ struct IntelligenceView: View {
         case now = "Now"
         case philippines = "Philippines"
         case watchlist = "Watchlist"
-        case operations = "Operations"
         case briefings = "Briefings"
 
         var id: Self { self }
@@ -16,7 +15,6 @@ struct IntelligenceView: View {
             case .now: "radar"
             case .philippines: "map.fill"
             case .watchlist: "scope"
-            case .operations: "waveform.path.ecg.rectangle"
             case .briefings: "sparkles"
             }
         }
@@ -46,7 +44,6 @@ struct IntelligenceView: View {
     @State private var regionalWeather: [String: WeatherSnapshot] = [:]
     @State private var earthquakes: [EarthquakeEvent] = []
     @State private var newsByCategory: [NewsSource.Category: [NewsArticle]] = [:]
-    @State private var repositorySnapshots: [UUID: RepositorySnapshot] = [:]
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var newsAPIMessage: String?
@@ -156,12 +153,46 @@ struct IntelligenceView: View {
         earthquakes.filter { $0.magnitude >= earthquakeThreshold }
     }
 
-    private var criticalAlertCount: Int {
-        intelligenceAlerts.count { $0.severity == .critical }
+    /// The alerts as shown: earthquakes close in place and time become one row. Notifications, speech,
+    /// and the state snapshot still use the individual alerts.
+    private var feedItems: [FeedItem] {
+        var items = intelligenceAlerts.filter { $0.kind != .earthquake }.map { FeedItem(alert: $0, cluster: nil) }
+        for cluster in IntelligenceEngine.clusters(significantEarthquakes) {
+            let ids = Set(cluster.events.map { "earthquake-\($0.id)" })
+            let members = intelligenceAlerts.filter { ids.contains($0.id) }
+            if cluster.events.count == 1, let alert = members.first {
+                items.append(FeedItem(alert: alert, cluster: nil))
+                continue
+            }
+            let strongest = cluster.strongest
+            items.append(FeedItem(
+                alert: IntelligenceAlert(
+                    id: "earthquake-cluster-\(strongest.id)",
+                    title: "\(cluster.events.count) earthquakes near \(cluster.area)",
+                    detail: "Largest M\(strongest.magnitude.formatted(.number.precision(.fractionLength(1)))) · \(strongest.place)",
+                    severity: members.map(\.severity).max() ?? .warning,
+                    kind: .earthquake,
+                    occurredAt: cluster.latest,
+                    source: "USGS",
+                    destination: strongest.detailURL
+                ),
+                cluster: cluster
+            ))
+        }
+        return items.sorted {
+            if $0.alert.severity != $1.alert.severity { return $0.alert.severity > $1.alert.severity }
+            return $0.alert.occurredAt > $1.alert.occurredAt
+        }
     }
 
-    private var warningAlertCount: Int {
-        intelligenceAlerts.count { $0.severity == .warning }
+    private var philippineHeadlines: [NewsArticle] {
+        let dismissed = decodedIDs(dismissedIDsRaw)
+        return (newsByCategory[.philippines] ?? []).filter { !dismissed.contains($0.id) }
+    }
+
+    private var otherSavedLocations: [SavedLocation] {
+        let primaryName = primaryWeather?.locationName
+        return savedLocations.filter { $0.name != primaryName }
     }
 
     var body: some View {
@@ -186,11 +217,13 @@ struct IntelligenceView: View {
                 case .now: nowPage
                 case .philippines: philippinesPage
                 case .watchlist: watchlistPage
-                case .operations: operationsPage
                 case .briefings: briefingsPage
                 }
             }
-            .padding(28)
+            .padding(.horizontal, 36)
+            .padding(.vertical, 32)
+            .frame(maxWidth: 1_180)
+            .frame(maxWidth: .infinity)
         }
         .background(intelligenceBackground)
         .navigationTitle("Intelligence")
@@ -242,30 +275,29 @@ struct IntelligenceView: View {
 
     private var intelligenceHeader: some View {
         HStack(alignment: .center, spacing: 18) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Intelligence Matrix")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                Text("Live situational awareness across regions, operations, and watchlists.")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Intelligence")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                Text("Earthquakes, weather, and news for the Philippines and your watchlist.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(intelligenceAlerts.isEmpty ? Color.green : Color.orange)
-                    .frame(width: 7, height: 7)
-                Text(intelligenceAlerts.isEmpty
-                     ? "No priority threats"
-                     : "\(intelligenceAlerts.count) priority signal\(intelligenceAlerts.count == 1 ? "" : "s")")
-                    .font(.subheadline.weight(.medium))
-            }
-            .foregroundStyle(intelligenceAlerts.isEmpty ? Color.secondary : Color.orange)
+            let signals = feedItems.count
+            Label(signals == 0 ? "No priority signals" : "\(signals) priority signal\(signals == 1 ? "" : "s")",
+                  systemImage: signals == 0 ? "checkmark.shield.fill" : "exclamationmark.circle.fill")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(signals == 0 ? Color.green : Color.orange)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background((signals == 0 ? Color.green : Color.orange).opacity(0.12), in: Capsule())
             Button { Task { await refresh() } } label: {
-                Label(isLoading ? "Analysing" : "Refresh Intel", systemImage: isLoading ? "hourglass" : "arrow.clockwise")
+                Label(isLoading ? "Refreshing" : "Refresh", systemImage: isLoading ? "hourglass" : "arrow.clockwise")
                     .fontWeight(.semibold)
-                    .padding(.horizontal, 5)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .tint(.cyan)
             .disabled(isLoading)
         }
@@ -273,18 +305,23 @@ struct IntelligenceView: View {
 
     private var intelligenceStatusRail: some View {
         HStack(spacing: 0) {
-            IntelligenceRailMetric(title: "Priority signals", value: intelligenceAlerts.count, tint: intelligenceAlerts.isEmpty ? .green : .orange)
+            IntelligenceRailMetric(title: "Priority signals", value: "\(feedItems.count)", tint: feedItems.isEmpty ? .green : .orange)
             IntelligenceRailDivider()
-            IntelligenceRailMetric(title: "Regional events", value: significantEarthquakes.count, tint: significantEarthquakes.isEmpty ? .secondary : .orange)
+            IntelligenceRailMetric(title: "Earthquakes ≥ M\(earthquakeThreshold.formatted(.number.precision(.fractionLength(1))))",
+                                   value: "\(significantEarthquakes.count)", tint: significantEarthquakes.isEmpty ? .secondary : .orange)
             IntelligenceRailDivider()
-            IntelligenceRailMetric(title: "Watchlist matches", value: watchlistStories.count, tint: .cyan)
+            IntelligenceRailMetric(title: "Watchlist matches", value: "\(watchlistStories.count)", tint: watchlistStories.isEmpty ? .secondary : .cyan)
             IntelligenceRailDivider()
-            IntelligenceRailMetric(title: "Overdue ops", value: overdueTasks.count, tint: overdueTasks.isEmpty ? .secondary : .red)
-            IntelligenceRailDivider()
-            IntelligenceRailMetric(title: "Sources loaded", value: loadedSourceCount, tint: loadedSourceCount == 5 ? .green : .secondary)
+            IntelligenceRailMetric(title: sourcesCaption, value: "\(loadedSourceCount)/5",
+                                   tint: loadedSourceCount == 5 ? .green : .orange)
         }
-        .padding(.vertical, 14)
-        .intelligenceSurface(cornerRadius: 14)
+        .padding(.vertical, 18)
+        .intelligenceSurface(cornerRadius: 16)
+    }
+
+    private var sourcesCaption: String {
+        guard let lastRefreshedAt else { return isLoading ? "Sources · loading" : "Sources" }
+        return "Sources · updated \(lastRefreshedAt.formatted(.relative(presentation: .named)))"
     }
 
     private var loadedSourceCount: Int {
@@ -299,75 +336,93 @@ struct IntelligenceView: View {
     }
 
     private var pageNavigation: some View {
-        HStack(spacing: 6) {
+        Picker("Page", selection: selectedPage) {
             ForEach(Page.allCases) { page in
-                Button { selectedPage.wrappedValue = page } label: {
-                    Label(page.rawValue, systemImage: page.systemImage)
-                        .font(.subheadline.weight(selectedPage.wrappedValue == page ? .semibold : .regular))
-                        .foregroundStyle(selectedPage.wrappedValue == page ? Color.cyan : Color.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(
-                            selectedPage.wrappedValue == page ? Color.cyan.opacity(0.11) : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 9)
-                        )
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                Label(page.rawValue, systemImage: page.systemImage).tag(page)
             }
         }
-        .padding(5)
-        .intelligenceSurface(cornerRadius: 12)
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: 520)
     }
 
     private var nowPage: some View {
-        VStack(spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                DashboardSection(title: "Priority signal feed", systemImage: "exclamationmark.shield.fill") {
-                if isLoading && intelligenceAlerts.isEmpty {
-                    ProgressView("Analyzing live sources…").controlSize(.small)
-                } else if intelligenceAlerts.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("No current signals cross your alert thresholds", systemImage: "checkmark.shield.fill")
-                            .font(.headline)
-                            .foregroundStyle(.green)
-                        Text("Weather, seismic, and Philippine news sources remain under observation.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(intelligenceAlerts.prefix(10)) { alert in
-                            IntelligenceAlertRow(alert: alert)
-                            if alert.id != intelligenceAlerts.prefix(10).last?.id { Divider() }
+        HStack(alignment: .top, spacing: 16) {
+            VStack(spacing: 16) {
+                DashboardSection(title: "Priority signals", systemImage: "exclamationmark.shield.fill") {
+                    if isLoading && feedItems.isEmpty {
+                        ProgressView("Checking live sources…").controlSize(.small)
+                    } else if feedItems.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Nothing crosses your alert thresholds", systemImage: "checkmark.shield.fill")
+                                .font(.headline)
+                                .foregroundStyle(.green)
+                            Text("Weather, earthquakes, and Philippine news remain under observation.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(feedItems.prefix(10)) { item in
+                                IntelligenceAlertRow(alert: item.alert, cluster: item.cluster)
+                                if item.id != feedItems.prefix(10).last?.id { Divider() }
+                            }
                         }
                     }
+                    Text("Preliminary data. Confirm emergency decisions with PAGASA, PHIVOLCS, and local authorities.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
-                }
-                .frame(maxWidth: .infinity)
 
-                situationPanel.frame(width: 300)
+                if !watchlistStories.isEmpty {
+                    DashboardSection(title: "Watchlist matches", systemImage: "scope") {
+                        storyList(Array(watchlistStories.prefix(3)), emptyTitle: "", emptyDescription: "")
+                        moreButton("All watchlist matches", page: .watchlist)
+                    }
+                }
+
+                DashboardSection(title: "Philippine headlines", systemImage: "newspaper") {
+                    storyList(Array(philippineHeadlines.prefix(5)), emptyTitle: "News unavailable",
+                              emptyDescription: "No stories are available from the loaded sources.")
+                    if philippineHeadlines.count > 5 {
+                        moreButton("More Philippine news", page: .philippines)
+                    }
+                }
             }
-            savedLocationsSection
+            .frame(maxWidth: .infinity)
+
+            conditionsPanel.frame(width: 300)
         }
     }
 
-    private var situationPanel: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Situation brief", systemImage: "dot.radiowaves.left.and.right")
+    private func moreButton(_ title: String, page: Page) -> some View {
+        Button { selectedPage.wrappedValue = page } label: {
+            Label(title, systemImage: "arrow.right")
+                .font(.subheadline.weight(.medium))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.cyan)
+    }
+
+    /// The primary location's weather, then the other saved locations as compact rows.
+    private var conditionsPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Conditions", systemImage: "cloud.sun")
                 .font(.headline)
 
             if let weather = primaryWeather {
                 HStack(spacing: 12) {
                     Image(systemName: weather.systemImage)
-                        .font(.system(size: 27))
+                        .font(.system(size: 30))
                         .foregroundStyle(.cyan)
-                        .frame(width: 36)
+                        .frame(width: 40)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(Int(weather.temperature.rounded()))°C · \(weather.condition)")
-                            .font(.subheadline.weight(.semibold))
-                        Text(weather.locationName).font(.caption).foregroundStyle(.secondary)
+                        Text("\(Int(weather.temperature.rounded()))°C")
+                            .font(.title.bold().monospacedDigit())
+                        Text("\(weather.condition) · feels like \(Int(weather.apparentTemperature.rounded()))°")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text(weather.locationName).font(.caption.weight(.semibold))
                     }
                 }
             } else {
@@ -375,67 +430,75 @@ struct IntelligenceView: View {
                     .font(.subheadline).foregroundStyle(.secondary)
             }
 
-            Divider().opacity(0.5)
-
-            SituationLine(label: "Critical", value: criticalAlertCount, tint: .red)
-            SituationLine(label: "Warnings", value: warningAlertCount, tint: .orange)
-            SituationLine(label: "Regional events", value: significantEarthquakes.count, tint: .yellow)
-            SituationLine(label: "Overdue operations", value: overdueTasks.count, tint: .red)
-
-            Divider().opacity(0.5)
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text("CHANGE DETECTION")
-                    .font(.caption2.weight(.bold)).tracking(1).foregroundStyle(.secondary)
-                Text(changeSummary.sentence)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            DisclosureGroup("Alert policy") {
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        HStack {
-                            Text("Earthquake")
-                            Spacer()
-                            Text("M\(earthquakeThreshold, specifier: "%.1f")").monospacedDigit()
-                        }
-                        Slider(value: $earthquakeThreshold, in: 3...7, step: 0.5)
-                    }
-                    VStack(alignment: .leading, spacing: 5) {
-                        HStack {
-                            Text("Rain probability")
-                            Spacer()
-                            Text("\(rainThreshold)%").monospacedDigit()
-                        }
-                        Slider(value: Binding(
-                            get: { Double(rainThreshold) },
-                            set: { rainThreshold = Int($0) }
-                        ), in: 40...100, step: 5)
-                    }
-                    Toggle("Critical notifications", isOn: $notificationsEnabled)
-                    if notificationsEnabled {
-                        HStack {
-                            Picker("Quiet from", selection: $quietStartHour) {
-                                ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
+            if !otherSavedLocations.isEmpty {
+                Divider().opacity(0.5)
+                VStack(spacing: 2) {
+                    ForEach(otherSavedLocations) { location in
+                        SavedLocationRow(
+                            location: location,
+                            weather: savedWeather[location.name],
+                            makePrimary: {
+                                savedLocations.forEach { $0.isPrimary = $0.persistentModelID == location.persistentModelID }
+                                try? modelContext.save()
+                            },
+                            delete: {
+                                modelContext.delete(location)
+                                try? modelContext.save()
                             }
-                            Picker("until", selection: $quietEndHour) {
-                                ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
-                            }
-                        }
+                        )
                     }
                 }
-                .padding(.top, 8)
             }
-            .font(.caption)
 
-            Text("Confirm emergency decisions with PAGASA, PHIVOLCS, and local authorities.")
+            Button { showingLocationPicker = true } label: {
+                Label("Add Location", systemImage: "plus")
+                    .font(.subheadline.weight(.medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.cyan)
+
+            Text("Forecast data: Open-Meteo. Right-click a location to make it primary or remove it.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
         .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .intelligenceSurface(cornerRadius: 14, highlighted: true)
+    }
+
+    private var alertPolicySection: some View {
+        DashboardSection(title: "Alert policy", systemImage: "slider.horizontal.3") {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text("Earthquakes from")
+                    Spacer()
+                    Text("M\(earthquakeThreshold, specifier: "%.1f")").monospacedDigit().foregroundStyle(.secondary)
+                }
+                Slider(value: $earthquakeThreshold, in: 3...7, step: 0.5)
+            }
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text("Rain probability from")
+                    Spacer()
+                    Text("\(rainThreshold)%").monospacedDigit().foregroundStyle(.secondary)
+                }
+                Slider(value: Binding(
+                    get: { Double(rainThreshold) },
+                    set: { rainThreshold = Int($0) }
+                ), in: 40...100, step: 5)
+            }
+            Toggle("Notify me about critical signals", isOn: $notificationsEnabled)
+            if notificationsEnabled {
+                HStack {
+                    Picker("Quiet from", selection: $quietStartHour) {
+                        ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
+                    }
+                    Picker("until", selection: $quietEndHour) {
+                        ForEach(0..<24, id: \.self) { Text(hourLabel($0)).tag($0) }
+                    }
+                }
+            }
+        }
     }
 
     private var philippinesPage: some View {
@@ -499,50 +562,6 @@ struct IntelligenceView: View {
         }
     }
 
-    private var operationsPage: some View {
-        Group {
-            HStack(spacing: 14) {
-                IntelligenceMetricCard(title: "Overdue tasks", value: "\(overdueTasks.count)", systemImage: "clock.badge.exclamationmark", tint: .red)
-                IntelligenceMetricCard(title: "Active projects", value: "\(activeProjects.count)", systemImage: "square.stack.3d.up.fill", tint: .orange)
-                IntelligenceMetricCard(title: "Repo-connected", value: "\(projects.filter(\.hasRepository).count)", systemImage: "arrow.triangle.branch", tint: .cyan)
-            }
-
-            DashboardSection(title: "Task signals", systemImage: "checklist") {
-                if overdueTasks.isEmpty {
-                    Label("No overdue tasks", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                } else {
-                    ForEach(overdueTasks.prefix(10)) { task in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(task.title)
-                                if let dueDate = task.dueDate {
-                                    Text("Due \(dueDate.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(.caption).foregroundStyle(.red)
-                                }
-                            }
-                            Spacer()
-                            Text(task.priority.title).font(.caption).foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                    }
-                }
-            }
-
-            DashboardSection(title: "Project signals", systemImage: "waveform.path.ecg.rectangle") {
-                if activeProjects.isEmpty {
-                    Text("No active projects to monitor.").foregroundStyle(.secondary)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(activeProjects) { project in
-                            OperationalProjectRow(project: project, snapshot: repositorySnapshots[project.id])
-                            if project.id != activeProjects.last?.id { Divider() }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     private var briefingsPage: some View {
         Group {
             DashboardSection(title: "Current briefing", systemImage: "sparkles") {
@@ -566,36 +585,12 @@ struct IntelligenceView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            alertPolicySection
+
             HStack(spacing: 14) {
-                IntelligenceMetricCard(title: "Priority alerts", value: "\(intelligenceAlerts.count)", systemImage: "exclamationmark.shield.fill", tint: .orange)
+                IntelligenceMetricCard(title: "Priority signals", value: "\(feedItems.count)", systemImage: "exclamationmark.shield.fill", tint: .orange)
                 IntelligenceMetricCard(title: "Watchlist matches", value: "\(watchlistStories.count)", systemImage: "scope", tint: .cyan)
                 IntelligenceMetricCard(title: "Saved stories", value: "\(savedStories.count)", systemImage: "bookmark.fill", tint: .purple)
-            }
-        }
-    }
-
-    private var savedLocationsSection: some View {
-        DashboardSection(title: "Saved locations", systemImage: "location.fill") {
-            if savedLocations.isEmpty {
-                ContentUnavailableView("No saved locations", systemImage: "location.slash", description: Text("Add a location for its current conditions."))
-                    .frame(height: 150)
-            } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
-                    ForEach(savedLocations) { location in
-                        SavedWeatherCard(
-                            location: location,
-                            weather: savedWeather[location.name],
-                            makePrimary: {
-                                savedLocations.forEach { $0.isPrimary = $0.persistentModelID == location.persistentModelID }
-                                try? modelContext.save()
-                            },
-                            delete: {
-                                modelContext.delete(location)
-                                try? modelContext.save()
-                            }
-                        )
-                    }
-                }
             }
         }
     }
@@ -719,7 +714,6 @@ struct IntelligenceView: View {
         if let result = results.3 { newsByCategory[.philippines] = result }
         if let result = results.4 { newsByCategory[.world] = result }
 
-        await refreshRepositorySnapshots()
         updateChangeSummary()
         lastRefreshedAt = .now
         StateSnapshotService.shared.recordIntelligence(
@@ -739,25 +733,6 @@ struct IntelligenceView: View {
         }
         speechService.speakNewCriticalAlert(from: intelligenceAlerts)
         startNewsAPIEnhancement()
-    }
-
-    private func refreshRepositorySnapshots() async {
-        let connected = projects.filter { $0.mode == .ongoing && $0.repositoryBookmarkData != nil }
-        await withTaskGroup(of: (UUID, RepositorySnapshot?).self) { group in
-            for project in connected {
-                guard let bookmark = project.repositoryBookmarkData else { continue }
-                let id = project.id
-                group.addTask {
-                    let inspection = try? await GitRepositoryService.inspect(bookmarkData: bookmark)
-                    return (id, inspection?.snapshot)
-                }
-            }
-            var snapshots: [UUID: RepositorySnapshot] = [:]
-            for await (id, snapshot) in group {
-                if let snapshot { snapshots[id] = snapshot }
-            }
-            repositorySnapshots = snapshots
-        }
     }
 
     /// One failed location no longer discards the others; it throws only when every location fails.
@@ -880,40 +855,23 @@ private struct IntelligenceMetricCard: View {
 
 private struct IntelligenceRailMetric: View {
     let title: String
-    let value: Int
+    let value: String
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("\(value)")
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
                 .font(.title2.monospacedDigit().weight(.bold))
                 .foregroundStyle(tint)
-            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 20)
     }
 }
 
 private struct IntelligenceRailDivider: View {
-    var body: some View { Divider().frame(height: 34) }
-}
-
-private struct SituationLine: View {
-    let label: String
-    let value: Int
-    let tint: Color
-
-    var body: some View {
-        HStack {
-            Text(label).foregroundStyle(.secondary)
-            Spacer()
-            Text("\(value)")
-                .font(.subheadline.monospacedDigit().weight(.semibold))
-                .foregroundStyle(value > 0 ? tint : Color.secondary)
-        }
-        .font(.subheadline)
-    }
+    var body: some View { Divider().frame(height: 38) }
 }
 
 private extension View {
@@ -929,8 +887,18 @@ private extension View {
     }
 }
 
+private struct FeedItem: Identifiable {
+    let alert: IntelligenceAlert
+    /// Set when the row stands for several nearby earthquakes.
+    let cluster: EarthquakeCluster?
+
+    var id: String { alert.id }
+}
+
 private struct IntelligenceAlertRow: View {
     let alert: IntelligenceAlert
+    var cluster: EarthquakeCluster?
+    @State private var isExpanded = false
 
     private var color: Color {
         switch alert.severity {
@@ -941,6 +909,11 @@ private struct IntelligenceAlertRow: View {
         }
     }
 
+    /// "USGS" from "USGS · confirm with PHIVOLCS"; the caveat is stated once under the feed.
+    private var sourceName: String {
+        alert.source.components(separatedBy: " · ").first ?? alert.source
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: alert.severity >= .warning ? "exclamationmark.triangle.fill" : "info.circle.fill")
@@ -948,18 +921,52 @@ private struct IntelligenceAlertRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(alert.title).font(.headline)
                 Text(alert.detail).font(.subheadline).foregroundStyle(.secondary)
-                HStack {
+                HStack(spacing: 6) {
                     Text(alert.severity.title.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(color)
                     Text("·")
-                    Text(alert.source)
+                    Text(sourceName)
                     Text("·")
-                    Text(alert.occurredAt, style: .relative)
+                    Text(alert.occurredAt, format: .relative(presentation: .numeric, unitsStyle: .abbreviated))
                 }
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(color)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                if let cluster {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.15)) { isExpanded.toggle() }
+                    } label: {
+                        Label(isExpanded ? "Hide events" : "Show \(cluster.events.count) events",
+                              systemImage: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.cyan)
+                    .padding(.top, 2)
+                    if isExpanded {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(cluster.events) { event in
+                                HStack(spacing: 10) {
+                                    Text("M\(event.magnitude, specifier: "%.1f")")
+                                        .font(.caption.monospacedDigit().weight(.semibold))
+                                        .frame(width: 36, alignment: .leading)
+                                    Text(event.place).font(.caption).foregroundStyle(.secondary)
+                                    Spacer(minLength: 8)
+                                    Text(event.occurredAt, format: .relative(presentation: .numeric, unitsStyle: .abbreviated))
+                                        .font(.caption).foregroundStyle(.secondary)
+                                    if let url = event.detailURL {
+                                        Link(destination: url) { Image(systemName: "arrow.up.right.square") }
+                                            .help("Open on USGS")
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
+                }
             }
             Spacer()
-            if let destination = alert.destination {
+            if cluster == nil, let destination = alert.destination {
                 Link(destination: destination) { Image(systemName: "arrow.up.right.square") }
             }
         }
@@ -1007,87 +1014,33 @@ private struct NewsStoryRow: View {
     }
 }
 
-private struct OperationalProjectRow: View {
-    let project: ProjectItem
-    let snapshot: RepositorySnapshot?
-
-    private var health: RepositoryHealth {
-        RepositoryHealth.evaluate(status: project.status, dueDate: project.dueDate, snapshot: snapshot)
-    }
-
-    private var color: Color {
-        switch health {
-        case .healthy: .green
-        case .quiet: .yellow
-        case .attention: .orange
-        case .blocked: .red
-        case .setupNeeded: .secondary
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle().fill(color).frame(width: 8, height: 8)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(project.name)
-                Text(project.mode == .ongoing
-                     ? "\(health.title) · \(snapshot?.branch ?? "repository not connected")"
-                     : "\(project.status.title) · \(project.progress.formatted(.percent.precision(.fractionLength(0)))) complete")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer()
-            if let dueDate = project.dueDate {
-                Text(dueDate, format: .dateTime.month(.abbreviated).day())
-                    .font(.caption)
-                    .foregroundStyle(dueDate < .now ? .red : .secondary)
-            }
-        }
-        .padding(.vertical, 9)
-    }
-}
-
-private struct SavedWeatherCard: View {
+/// A saved location other than the primary one: name and conditions on one line.
+private struct SavedLocationRow: View {
     let location: SavedLocation
     let weather: WeatherSnapshot?
     let makePrimary: () -> Void
     let delete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(location.name).font(.headline)
-                Spacer()
-                Button(action: makePrimary) {
-                    Image(systemName: location.isPrimary ? "star.fill" : "star")
-                        .foregroundStyle(location.isPrimary ? .yellow : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Make primary location")
-                Menu {
-                    Button("Remove", role: .destructive, action: delete)
-                } label: {
-                    Image(systemName: "ellipsis")
-                }
-                .menuStyle(.borderlessButton)
-            }
-
+        HStack(spacing: 10) {
+            Image(systemName: weather?.systemImage ?? "cloud")
+                .foregroundStyle(.cyan)
+                .frame(width: 22)
+            Text(location.name).font(.subheadline.weight(.medium))
+            Spacer(minLength: 8)
             if let weather {
-                HStack {
-                    Image(systemName: weather.systemImage)
-                        .font(.title)
-                        .foregroundStyle(.cyan)
-                    Text("\(Int(weather.temperature.rounded()))°C")
-                        .font(.title.bold().monospacedDigit())
-                }
-                Text("\(weather.condition) · feels like \(Int(weather.apparentTemperature.rounded()))°")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text("\(Int(weather.temperature.rounded()))° · \(weather.condition)")
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             } else {
-                ProgressView().controlSize(.small)
+                ProgressView().controlSize(.mini)
             }
         }
-        .padding(14)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 5)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button("Make Primary", systemImage: "star", action: makePrimary)
+            Button("Remove", systemImage: "trash", role: .destructive, action: delete)
+        }
     }
 }
 

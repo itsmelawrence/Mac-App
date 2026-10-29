@@ -75,7 +75,7 @@ Routing is deterministic and does not call an AI service. The agent must still i
 - Fixed and ongoing-client project modes, with read-only local Git repository health and activity summaries for ongoing work
 - Free website up/down checks: each project's site is requested from this Mac every 5 minutes (and after wake); two failures in a row count as down, with a notification on outage and recovery, 30-day uptime, and an outage log kept locally in `site-checks.json`
 - Operations view in the Tasks style: status rail, filter chips, sorting and search, full-width project cards with site status, and a project detail page with a Website panel and 30-day uptime strip
-- Intelligence Matrix with priority alerts, Philippine conditions, editable watchlists, operational signals, change-aware briefings, and opt-in quiet-hour notifications
+- Intelligence page with priority signals (nearby earthquakes within 50 km and 48 hours grouped into one row), Philippine headlines and conditions, editable watchlists, change-aware briefings with the alert policy, and opt-in quiet-hour notifications
 - Local configurable JARVIS text-to-speech using installed macOS voices
 - Menu-bar command centre
 - Launch-at-login setting using `SMAppService`

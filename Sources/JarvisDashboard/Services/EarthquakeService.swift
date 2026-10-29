@@ -6,6 +6,8 @@ struct EarthquakeEvent: Identifiable, Sendable {
     let place: String
     let occurredAt: Date
     let detailURL: URL?
+    var latitude: Double?
+    var longitude: Double?
 
     var severity: String {
         switch magnitude {
@@ -64,7 +66,9 @@ struct USGSEarthquakeService: EarthquakeProviding {
                 magnitude: feature.properties.mag ?? 0,
                 place: feature.properties.place ?? "Philippine region",
                 occurredAt: Date(timeIntervalSince1970: feature.properties.time / 1_000),
-                detailURL: feature.properties.url.flatMap(URL.init(string:))
+                detailURL: feature.properties.url.flatMap(URL.init(string:)),
+                latitude: latitude,
+                longitude: longitude
             )
         }
         .sorted { $0.occurredAt > $1.occurredAt }

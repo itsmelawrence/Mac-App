@@ -71,4 +71,30 @@ struct IntelligenceEngineTests {
         #expect(summary.sentence.contains("+2 priority alerts"))
         #expect(summary.sentence.contains("-1 overdue task"))
     }
+
+    @Test func groupsEarthquakesCloseInPlaceAndTime() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        func quake(_ id: String, _ magnitude: Double, hoursAgo: Double, lat: Double?, lon: Double?, place: String) -> EarthquakeEvent {
+            EarthquakeEvent(id: id, magnitude: magnitude, place: place, occurredAt: now.addingTimeInterval(-hoursAgo * 3_600),
+                            detailURL: nil, latitude: lat, longitude: lon)
+        }
+        let events = [
+            quake("a", 5.4, hoursAgo: 11, lat: 9.40, lon: 126.95, place: "114 km ENE of Barcelona, Philippines"),
+            quake("b", 5.8, hoursAgo: 15, lat: 9.38, lon: 126.92, place: "110 km ENE of Barcelona, Philippines"),
+            quake("c", 5.4, hoursAgo: 15, lat: 9.39, lon: 126.94, place: "113 km ENE of Barcelona, Philippines"),
+            quake("d", 5.1, hoursAgo: 2, lat: 16.40, lon: 120.60, place: "10 km N of Baguio, Philippines"),
+            quake("e", 5.0, hoursAgo: 80, lat: 9.40, lon: 126.95, place: "112 km ENE of Barcelona, Philippines")
+        ]
+
+        let clusters = IntelligenceEngine.clusters(events)
+
+        #expect(clusters.map(\.events.count) == [3, 1, 1])
+        #expect(clusters[0].strongest.id == "b")
+        #expect(clusters[0].area == "Barcelona, Philippines")
+        #expect(clusters[0].latest == events[0].occurredAt)
+
+        // Without coordinates, the place USGS measures from decides.
+        let unplaced = events.map { quake($0.id, $0.magnitude, hoursAgo: now.timeIntervalSince($0.occurredAt) / 3_600, lat: nil, lon: nil, place: $0.place) }
+        #expect(IntelligenceEngine.clusters(unplaced).map(\.events.count) == [3, 1, 1])
+    }
 }
