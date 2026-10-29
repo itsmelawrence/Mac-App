@@ -136,7 +136,7 @@ The status rail summarises:
 - Shows due-today and blocked-task counts.
 - Displays a locally stored motivational or philosophical quote.
 - Selects a stable quote for the day.
-- Allows another quote to be shown without refreshing network data.
+- Shows it as a highlighted "Daily resolve" banner under the greeting, with buttons to read it aloud, copy it, or show another quote without refreshing network data.
 
 ## 4. Tasks — Mission Queue
 

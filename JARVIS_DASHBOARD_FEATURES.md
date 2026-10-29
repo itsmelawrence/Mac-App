@@ -87,7 +87,7 @@ The Today screen is a fixed-hierarchy command centre rather than a collection of
 ### Active operations, daily resolve, and momentum
 
 - Displays one locally curated philosophical quote each day, focused on discipline, endurance, and purposeful action.
-- Allows another quote to be shown without refreshing live data.
+- Shows it as a highlighted "Daily resolve" banner under the greeting, with buttons to read it aloud, copy it, or show another quote without refreshing live data.
 - Keeps quotes local so the Today screen does not depend on another network service.
 - Ranks ongoing operations by website status, project status, priority, and recent activity.
 - Shows each operation's next action, open task count, and website status.

@@ -162,6 +162,7 @@ struct TodayView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 commandHeader
+                quoteBanner
                 statusRail
 
                 HStack(alignment: .top, spacing: 16) {
@@ -169,7 +170,6 @@ struct TodayView: View {
                     intelligenceColumn.frame(width: 300)
                 }
 
-                resolveCard
             }
             .padding(.horizontal, 36)
             .padding(.vertical, 32)
@@ -442,21 +442,77 @@ struct TodayView: View {
         }
     }
 
-    private var resolveCard: some View {
-        HStack(spacing: 16) {
-            Image(systemName: "quote.opening").foregroundStyle(.cyan)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("“\(dailyQuote.text)”").font(.system(.body, design: .serif, weight: .medium)).fixedSize(horizontal: false, vertical: true)
-                Text("— \(dailyQuote.author) · \(dailyQuote.source)").font(.caption2).foregroundStyle(.secondary)
+    /// The day's quote, under the greeting: large serif text on a soft cyan wash.
+    private var quoteBanner: some View {
+        HStack(alignment: .center, spacing: 20) {
+            Text("\u{201C}")
+                .font(.system(size: 84, weight: .bold, design: .serif))
+                .foregroundStyle(
+                    LinearGradient(colors: [.cyan, .cyan.opacity(0.35)], startPoint: .top, endPoint: .bottom)
+                )
+                .frame(width: 44, height: 64, alignment: .top)
+                .offset(y: 6)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("DAILY RESOLVE")
+                    .font(.caption.weight(.bold))
+                    .tracking(1.2)
+                    .foregroundStyle(.cyan)
+                Text(dailyQuote.text)
+                    .font(.system(size: 22, weight: .medium, design: .serif))
+                    .foregroundStyle(.primary.opacity(0.95))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                Text("\(dailyQuote.author) · \(dailyQuote.source)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            Spacer()
-            Button {
-                withAnimation(.easeInOut(duration: 0.18)) { quoteOffset += 1 }
-            } label: { Image(systemName: "arrow.right") }
-                .buttonStyle(.plain).help("Show another quote")
+            .id(dailyQuote.id)
+            .transition(.opacity)
+
+            Spacer(minLength: 16)
+
+            HStack(spacing: 8) {
+                Button {
+                    speechService.speak("\(dailyQuote.text) \(dailyQuote.author).")
+                } label: {
+                    Image(systemName: "speaker.wave.2.fill")
+                }
+                .help("Read the quote aloud")
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString("“\(dailyQuote.text)” — \(dailyQuote.author), \(dailyQuote.source)", forType: .string)
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                }
+                .help("Copy the quote")
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) { quoteOffset += 1 }
+                } label: {
+                    Image(systemName: "arrow.right")
+                }
+                .help("Show another quote")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
         }
-        .padding(18)
-        .commandSurface(cornerRadius: 14)
+        .padding(.horizontal, 26)
+        .padding(.vertical, 22)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.cyan.opacity(0.16), Color.purple.opacity(0.08), Color(nsColor: .controlBackgroundColor).opacity(0.58)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.cyan.opacity(0.28), lineWidth: 1)
+                )
+        )
     }
 
     private func statusLine(label: String, value: String, colour: Color) -> some View {
