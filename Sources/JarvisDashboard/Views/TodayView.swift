@@ -10,6 +10,7 @@ struct TodayView: View {
     @Query(sort: \SavedLocation.name) private var savedLocations: [SavedLocation]
 
     @ObservedObject private var siteMonitor = SiteMonitor.shared
+    @ObservedObject private var dailyReview = DailyReviewService.shared
     @State private var weather: WeatherSnapshot?
     @State private var hasFreshWeather = false
     @State private var earthquakes: [EarthquakeEvent] = []
@@ -291,6 +292,7 @@ struct TodayView: View {
     private var primaryColumn: some View {
         VStack(spacing: 16) {
             briefingCard
+            dailyReviewCard
             activeOperationsCard
             nextActionsCard
         }
@@ -324,6 +326,46 @@ struct TodayView: View {
                 .buttonStyle(.bordered)
                 Spacer()
                 Text("Live operational summary").font(.caption2).foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private var dailyReviewCard: some View {
+        CommandPanel(title: "Daily review", systemImage: "list.bullet.clipboard") {
+            if let review = dailyReview.review {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(review.summary.enumerated()), id: \.offset) { _, line in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Circle().fill(.cyan).frame(width: 5, height: 5).alignmentGuide(.firstTextBaseline) { $0[.bottom] + 1 }
+                            Text(line).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                        }
+                    }
+                }
+                Text("\(review.sourceLine) · \(review.generatedAt.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            } else {
+                CommandEmptyState(title: "No review yet", detail: "JARVIS writes one each morning after 7:00.")
+            }
+            if let message = dailyReview.message {
+                Label(message, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange).lineLimit(3)
+            }
+            HStack {
+                if let waiting = dailyReview.review?.counts.proposals, waiting > 0 {
+                    Button("\(waiting) suggestion\(waiting == 1 ? "" : "s") to approve", systemImage: "checkmark.shield") {
+                        appState.selection = .activity
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                if dailyReview.review != nil {
+                    Button("Open note") { dailyReview.openNote() }.buttonStyle(.bordered)
+                }
+                Spacer()
+                if dailyReview.isRunning {
+                    ProgressView().controlSize(.small)
+                }
+                Button(dailyReview.review == nil ? "Run now" : "Run again") { Task { await dailyReview.runNow() } }
+                    .buttonStyle(.plain).foregroundStyle(.cyan)
+                    .disabled(dailyReview.isRunning)
             }
         }
     }

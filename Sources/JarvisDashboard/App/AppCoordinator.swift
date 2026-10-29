@@ -64,6 +64,9 @@ final class AppCoordinator {
         SiteMonitor.shared.attach(context)
         tasks.append(Task { await SiteMonitor.shared.run() })
 
+        // The morning review (roadmap 4.1): once a day after 7:00; its proposals wait in Activity.
+        tasks.append(Task { await DailyReviewService.shared.run() })
+
         // The action gate's approvals and log, watched for the app's lifetime so approvals reach you
         // (notification and menu bar) with the window closed.
         ActionCenter.shared.attach(context)

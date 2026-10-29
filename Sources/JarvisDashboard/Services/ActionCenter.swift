@@ -176,7 +176,8 @@ final class ActionCenter: ObservableObject {
             recent = state.recent
             for action in state.pending where !announced.contains(action.id) {
                 announced.insert(action.id)
-                notify(action)
+                // The daily review announces its proposals together, in one notification.
+                if action.client != DailyReviewService.client { notify(action) }
             }
             if !state.jobs.isEmpty { await runJobs(state.jobs) }
             let open = Set(state.pending.map(\.id))
