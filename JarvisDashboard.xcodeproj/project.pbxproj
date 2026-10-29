@@ -21,6 +21,7 @@
 		21114C63EC381FE0A6B6E6E1 /* TaskQueueEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B26A1B5B3D7C66A5D27B7EF /* TaskQueueEngineTests.swift */; };
 		2300284192FBE27A0396330F /* PhilippineForecastService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */; };
 		26002C68FEBEB724716BED83 /* NeuralMapService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E3C3CF5D521AB7476FA7099 /* NeuralMapService.swift */; };
+		28E24A5F6E90BE84D1CC1C8B /* BackgroundJobTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A8CEB2EF436BFBA9D2E5DF /* BackgroundJobTests.swift */; };
 		29BF022C497B29BF6FCECD19 /* ICMRoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E0231110CC215074D454FD /* ICMRoutingService.swift */; };
 		2ADCFEE4E034459DC0C2A38D /* KeychainCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40389B2B6BAA9B17143922B9 /* KeychainCache.swift */; };
 		2BB7E43B446F0EE57B3508CF /* AppCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */; };
@@ -185,6 +186,7 @@
 		9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeMonitor.swift; sourceTree = "<group>"; };
 		9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLabelPlacement.swift; sourceTree = "<group>"; };
 		A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarthquakeService.swift; sourceTree = "<group>"; };
+		A2A8CEB2EF436BFBA9D2E5DF /* BackgroundJobTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundJobTests.swift; sourceTree = "<group>"; };
 		A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSettingsView.swift; sourceTree = "<group>"; };
 		A962457DF4DD94ED621844A8 /* SpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechService.swift; sourceTree = "<group>"; };
 		AA7F87E8A9E37C662408E6EC /* FeedRobustnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRobustnessTests.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 				08AF64D7F6C04BA3E65AA66B /* AppActionExecutorTests.swift */,
 				28CE484A32BEE9042341605D /* AppCoordinatorTests.swift */,
 				129B4602808BAD0764F88928 /* AppStateTests.swift */,
+				A2A8CEB2EF436BFBA9D2E5DF /* BackgroundJobTests.swift */,
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
 				7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */,
 				AA7F87E8A9E37C662408E6EC /* FeedRobustnessTests.swift */,
@@ -505,6 +508,7 @@
 				4BF91836ECC3B390A68AB2F2 /* AppActionExecutorTests.swift in Sources */,
 				2BB7E43B446F0EE57B3508CF /* AppCoordinatorTests.swift in Sources */,
 				5E55EAEB03DA6FDD7F85CFD0 /* AppStateTests.swift in Sources */,
+				28E24A5F6E90BE84D1CC1C8B /* BackgroundJobTests.swift in Sources */,
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
 				42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */,
 				B976679462518723D3799DEC /* FeedRobustnessTests.swift in Sources */,
@@ -651,7 +655,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 36;
+				CURRENT_PROJECT_VERSION = 37;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -672,7 +676,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.35;
+				MARKETING_VERSION = 0.2.36;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -790,7 +794,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 36;
+				CURRENT_PROJECT_VERSION = 37;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -805,7 +809,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.35;
+				MARKETING_VERSION = 0.2.36;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
