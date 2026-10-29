@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -34,17 +35,16 @@ struct TasksView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 26) {
                 missionHeader
                 statusRail
                 focusPanel
-
-                HStack(alignment: .top, spacing: 16) {
-                    queuePanel.frame(maxWidth: .infinity)
-                    controlsPanel.frame(width: 286)
-                }
+                queueSection
             }
-            .padding(28)
+            .padding(.horizontal, 36)
+            .padding(.vertical, 32)
+            .frame(maxWidth: 1_180)
+            .frame(maxWidth: .infinity)
         }
         .background(missionBackground)
         .navigationTitle("Tasks")
@@ -81,181 +81,130 @@ struct TasksView: View {
         .ignoresSafeArea()
     }
 
+    // MARK: Header and status
+
     private var missionHeader: some View {
         HStack(alignment: .center, spacing: 18) {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Mission Queue")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                 Text(summary.open == 0 ? "The board is clear. Suspiciously efficient." : "Prioritised work across every active operation.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if summary.overdue > 0 || summary.blocked > 0 {
-                HStack(spacing: 7) {
-                    Circle().fill(Color.orange).frame(width: 7, height: 7)
-                    Text("\(summary.overdue + summary.blocked) require attention")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                Label("\(summary.overdue + summary.blocked) need attention", systemImage: "exclamationmark.circle.fill")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 12).padding(.vertical, 7)
+                    .background(Color.orange.opacity(0.12), in: Capsule())
             }
             Button { showingNewTask = true } label: {
-                Label("New Mission", systemImage: "plus.circle.fill")
+                Label("New Mission", systemImage: "plus")
                     .fontWeight(.semibold)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .tint(.cyan)
         }
     }
 
     private var statusRail: some View {
         HStack(spacing: 0) {
-            TaskMetric(title: "Open", value: summary.open, tint: .primary)
+            TaskMetric(title: "Open", value: "\(summary.open)", tint: .primary)
             TaskMetricDivider()
-            TaskMetric(title: "Due today", value: summary.today, tint: summary.today > 0 ? .cyan : .secondary)
+            TaskMetric(title: "Due today", value: "\(summary.today)", tint: summary.today > 0 ? .cyan : .secondary)
             TaskMetricDivider()
-            TaskMetric(title: "Overdue", value: summary.overdue, tint: summary.overdue > 0 ? .red : .secondary)
+            TaskMetric(title: "Overdue", value: "\(summary.overdue)", tint: summary.overdue > 0 ? .red : .secondary)
             TaskMetricDivider()
-            TaskMetric(title: "Blocked", value: summary.blocked, tint: summary.blocked > 0 ? .orange : .secondary)
+            TaskMetric(title: "Blocked", value: "\(summary.blocked)", tint: summary.blocked > 0 ? .orange : .secondary)
             TaskMetricDivider()
-            TaskMetric(title: "Completed", value: summary.completed, tint: .green)
+            TaskMetric(title: "Completed", value: "\(summary.completed)", tint: .green)
+            TaskMetricDivider()
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(completionPercentage, format: .percent.precision(.fractionLength(0)))
+                        .font(.title2.monospacedDigit().weight(.bold)).foregroundStyle(.green)
+                    Text("momentum").font(.caption).foregroundStyle(.secondary)
+                }
+                ProgressView(value: completionPercentage).tint(.green).controlSize(.small)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
         }
-        .padding(.vertical, 14)
-        .taskSurface(cornerRadius: 14)
+        .padding(.vertical, 18)
+        .taskSurface(cornerRadius: 16)
     }
+
+    // MARK: Priority now
 
     @ViewBuilder
     private var focusPanel: some View {
         if let task = focusTask {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Label("Priority now", systemImage: "scope")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.cyan)
                     Spacer()
-                    Text(task.priority.title.uppercased())
-                        .font(.caption2.weight(.bold))
-                        .tracking(0.8)
-                        .foregroundStyle(priorityColor(task.priority))
+                    PriorityChip(priority: task.priority)
                 }
-
-                HStack(alignment: .center, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .center, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Text(task.title)
-                            .font(.system(size: 22, weight: .semibold, design: .rounded))
-                        HStack(spacing: 12) {
-                            if let projectName = projectName(for: task) {
-                                Label(projectName, systemImage: "square.stack.3d.up")
-                            } else {
-                                Label("Inbox", systemImage: "tray")
-                            }
-                            if let dueDate = task.dueDate {
-                                Label(dueText(dueDate), systemImage: dueDate < .now ? "clock.badge.exclamationmark" : "calendar")
-                                    .foregroundStyle(dueDate < .now ? Color.red : Color.secondary)
-                            }
+                            .font(.system(size: 24, weight: .semibold, design: .rounded))
+                            .fixedSize(horizontal: false, vertical: true)
+                        if !task.notes.isEmpty {
+                            Text(task.notes).font(.callout).foregroundStyle(.secondary).lineLimit(2)
                         }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        TaskMetaChips(task: task, projectName: projectName(for: task))
                     }
-                    Spacer()
-                    Button("Edit", systemImage: "pencil") { taskBeingEdited = task }
-                    Button("Mark Complete", systemImage: "checkmark.circle.fill") {
-                        TaskStore.setCompleted(task, true)
+                    Spacer(minLength: 20)
+                    HStack(spacing: 10) {
+                        Button { taskBeingEdited = task } label: {
+                            Label("Edit", systemImage: "pencil").padding(.horizontal, 4)
+                        }
+                        .controlSize(.large)
+                        Button { TaskStore.setCompleted(task, true) } label: {
+                            Label("Mark Complete", systemImage: "checkmark").fontWeight(.semibold).padding(.horizontal, 4)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .tint(.green)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
                 }
             }
-            .padding(20)
-            .taskSurface(cornerRadius: 16, highlighted: true)
+            .padding(24)
+            .taskSurface(cornerRadius: 18, highlighted: true)
         } else {
-            HStack(spacing: 14) {
-                Image(systemName: "checkmark.seal.fill").font(.title).foregroundStyle(.green)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("No active mission").font(.headline)
+            HStack(spacing: 16) {
+                Image(systemName: "checkmark.seal.fill").font(.largeTitle).foregroundStyle(.green)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("No active mission").font(.title3.weight(.semibold))
                     Text("Everything is either complete or waiting for your next instruction.")
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
             }
-            .padding(20)
+            .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .taskSurface(cornerRadius: 16, highlighted: true)
+            .taskSurface(cornerRadius: 18, highlighted: true)
         }
     }
 
-    private var queuePanel: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Label("\(selectedScope.title) queue", systemImage: selectedScope.systemImage)
-                    .font(.headline)
-                Spacer()
-                Text("\(visibleTasks.count) \(visibleTasks.count == 1 ? "mission" : "missions")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(18)
+    // MARK: Queue
 
-            Divider().opacity(0.5)
-
-            if visibleTasks.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: searchText.isEmpty ? selectedScope.systemImage : "magnifyingglass")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.tertiary)
-                    Text(searchText.isEmpty ? "Nothing in this queue" : "No matching missions")
-                        .font(.headline)
-                    Text(searchText.isEmpty ? emptyQueueMessage : "Try a broader search or another filter.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 250)
-            } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(visibleTasks.enumerated()), id: \.element.id) { index, task in
-                        MissionTaskRow(
-                            task: task,
-                            projectName: projectName(for: task),
-                            onEdit: { taskBeingEdited = task },
-                            onDelete: { taskPendingDeletion = task }
-                        )
-                        if index < visibleTasks.count - 1 { Divider().opacity(0.45).padding(.leading, 58) }
-                    }
-                }
-            }
-        }
-        .taskSurface(cornerRadius: 16)
-    }
-
-    private var controlsPanel: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("QUEUE VIEW")
-                    .font(.caption2.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
+    private var queueSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
                 ForEach(TaskQueueScope.allCases) { scope in
-                    Button { selectedScope = scope } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: scope.systemImage).frame(width: 18)
-                            Text(scope.title)
-                            Spacer()
-                            Text("\(count(for: scope))")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(selectedScope == scope ? Color.cyan : Color.secondary)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 9)
-                        .background(selectedScope == scope ? Color.cyan.opacity(0.11) : Color.clear, in: RoundedRectangle(cornerRadius: 9))
-                        .contentShape(Rectangle())
+                    ScopeChip(scope: scope, count: count(for: scope), isSelected: selectedScope == scope) {
+                        selectedScope = scope
                     }
-                    .buttonStyle(.plain)
                 }
-            }
-
-            Divider().opacity(0.5)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("OPERATION")
-                    .font(.caption2.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
+                Spacer(minLength: 12)
                 Picker("Project", selection: $selectedProjectID) {
                     Text("All projects").tag(UUID?.none)
                     ForEach(activeProjects) { project in
@@ -263,31 +212,34 @@ struct TasksView: View {
                     }
                 }
                 .labelsHidden()
-                .frame(maxWidth: .infinity)
+                .fixedSize()
             }
 
-            Divider().opacity(0.5)
-
-            completionPanel
-        }
-        .padding(18)
-        .taskSurface(cornerRadius: 16)
-    }
-
-    private var completionPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("MOMENTUM")
-                    .font(.caption2.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
-                Spacer()
-                Text(completionPercentage, format: .percent.precision(.fractionLength(0)))
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(.green)
+            if visibleTasks.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: searchText.isEmpty ? selectedScope.systemImage : "magnifyingglass")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.tertiary)
+                    Text(searchText.isEmpty ? "Nothing in this queue" : "No matching missions")
+                        .font(.headline)
+                    Text(searchText.isEmpty ? emptyQueueMessage : "Try a broader search or another filter.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 260)
+                .taskSurface(cornerRadius: 16)
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(visibleTasks) { task in
+                        MissionTaskCard(
+                            task: task,
+                            projectName: projectName(for: task),
+                            onEdit: { taskBeingEdited = task },
+                            onDelete: { taskPendingDeletion = task }
+                        )
+                    }
+                }
             }
-            ProgressView(value: completionPercentage).tint(.green)
-            Text(tasks.isEmpty ? "No missions logged yet." : "\(summary.completed) of \(tasks.count) missions resolved.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -319,89 +271,137 @@ struct TasksView: View {
     private func projectName(for task: TaskItem) -> String? {
         projects.first { $0.id == task.projectID }?.name
     }
+}
 
-    private func dueText(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) {
-            return "Today at \(date.formatted(date: .omitted, time: .shortened))"
-        }
-        if Calendar.current.isDateInTomorrow(date) {
-            return "Tomorrow at \(date.formatted(date: .omitted, time: .shortened))"
-        }
-        return date.formatted(date: .abbreviated, time: .shortened)
-    }
+// MARK: - Queue pieces
 
-    private func priorityColor(_ priority: TaskPriority) -> Color {
-        switch priority {
-        case .low: .secondary
-        case .normal: .cyan
-        case .high: .orange
-        case .critical: .red
+private struct ScopeChip: View {
+    let scope: TaskQueueScope
+    let count: Int
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: scope.systemImage).font(.caption)
+                Text(scope.title).font(.subheadline.weight(isSelected ? .semibold : .regular))
+                Text("\(count)")
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .padding(.horizontal, 6).padding(.vertical, 1)
+                    .background((isSelected ? Color.cyan : Color.secondary).opacity(0.18), in: Capsule())
+            }
+            .padding(.horizontal, 13).padding(.vertical, 8)
+            .foregroundStyle(isSelected ? Color.cyan : Color.primary)
+            .background(
+                Capsule().fill(isSelected ? Color.cyan.opacity(0.14) : Color.white.opacity(isHovering ? 0.07 : 0.035))
+            )
+            .overlay(Capsule().stroke(isSelected ? Color.cyan.opacity(0.45) : Color.white.opacity(0.08)))
+            .contentShape(Capsule())
         }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
     }
 }
 
-private struct MissionTaskRow: View {
+/// One task in the queue. The whole card opens the editor on a single click; the circle completes it.
+private struct MissionTaskCard: View {
     @Bindable var task: TaskItem
     let projectName: String?
     let onEdit: () -> Void
     let onDelete: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .top, spacing: 16) {
             Button { TaskStore.setCompleted(task, !task.isCompleted) } label: {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(task.isCompleted ? Color.green : priorityColor)
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(task.isCompleted ? Color.green : priorityColor(task.priority))
+                    .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
-            .help(task.isCompleted ? "Mark pending" : "Mark complete")
+            .help(task.isCompleted ? "Reopen" : "Mark complete")
+            .padding(.top, 1)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(task.title)
-                    .font(.body.weight(.semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .strikethrough(task.isCompleted)
                     .foregroundStyle(task.isCompleted ? Color.secondary : Color.primary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if !task.notes.isEmpty {
                     Text(task.notes)
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                HStack(spacing: 10) {
-                    Label(projectName ?? "Inbox", systemImage: projectName == nil ? "tray" : "square.stack.3d.up")
-                    if task.isBlocked {
-                        Label(task.blockedReason.isEmpty ? "Blocked" : task.blockedReason, systemImage: "hand.raised.fill")
-                            .foregroundStyle(.orange)
-                            .lineLimit(1)
+                TaskMetaChips(task: task, projectName: projectName)
+            }
+
+            Spacer(minLength: 16)
+
+            HStack(spacing: 6) {
+                Button(action: onEdit) {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .controlSize(.regular)
+                Menu {
+                    Button("Edit…", systemImage: "pencil", action: onEdit)
+                    Button(task.isCompleted ? "Reopen" : "Mark Complete",
+                           systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark") {
+                        TaskStore.setCompleted(task, !task.isCompleted)
                     }
+                    if !task.isCompleted {
+                        Button(task.isBlocked ? "Unblock" : "Mark as Blocked",
+                               systemImage: task.isBlocked ? "hand.thumbsup" : "hand.raised") {
+                            task.isBlocked.toggle()
+                            if !task.isBlocked { task.blockedReason = "" }
+                        }
+                    }
+                    Divider()
+                    Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+                } label: {
+                    Image(systemName: "ellipsis").frame(width: 20, height: 20)
                 }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("More actions")
             }
-
-            Spacer(minLength: 12)
-
-            VStack(alignment: .trailing, spacing: 7) {
-                if let dueDate = task.dueDate {
-                    Label(dueLabel(dueDate), systemImage: dueDate < .now && !task.isCompleted ? "clock.badge.exclamationmark" : "calendar")
-                        .font(.caption)
-                        .foregroundStyle(dueDate < .now && !task.isCompleted ? Color.red : Color.secondary)
-                } else {
-                    Text("No deadline").font(.caption).foregroundStyle(.tertiary)
-                }
-                Text(task.priority.title.uppercased())
-                    .font(.caption2.weight(.bold))
-                    .tracking(0.6)
-                    .foregroundStyle(priorityColor)
-            }
+            .opacity(isHovering ? 1 : 0.75)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2, perform: onEdit)
-        .help("Double-click to edit")
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.78 : 0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(isHovering ? Color.cyan.opacity(0.45) : Color.white.opacity(0.07), lineWidth: 1)
+        )
+        .overlay(alignment: .leading) {
+            // Priority accent along the card's left edge.
+            RoundedRectangle(cornerRadius: 2)
+                .fill(task.isCompleted ? Color.green.opacity(0.5) : priorityColor(task.priority))
+                .frame(width: 3)
+                .padding(.vertical, 14)
+        }
+        .opacity(task.isCompleted ? 0.72 : 1)
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture(perform: onEdit)
+        .onHover { hovering in
+            isHovering = hovering
+            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+        // Completing a task from the Open queue removes its card while the pointer is still on it.
+        .onDisappear { if isHovering { NSCursor.pop() } }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .help("Click to edit")
         .contextMenu {
-            Button("Edit Task", systemImage: "pencil", action: onEdit)
+            Button("Edit…", systemImage: "pencil", action: onEdit)
             Button(task.isBlocked ? "Unblock Task" : "Mark as Blocked", systemImage: task.isBlocked ? "hand.thumbsup" : "hand.raised") {
                 task.isBlocked.toggle()
                 if !task.isBlocked { task.blockedReason = "" }
@@ -410,40 +410,99 @@ private struct MissionTaskRow: View {
             Button("Delete Task", systemImage: "trash", role: .destructive, action: onDelete)
         }
     }
+}
 
-    private var priorityColor: Color {
-        switch task.priority {
-        case .low: .secondary
-        case .normal: .cyan
-        case .high: .orange
-        case .critical: .red
+/// Project, due date, priority, and blocked state as small chips.
+private struct TaskMetaChips: View {
+    let task: TaskItem
+    let projectName: String?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            MetaChip(text: projectName ?? "Inbox", systemImage: projectName == nil ? "tray" : "square.stack.3d.up", tint: .secondary)
+            if let dueDate = task.dueDate {
+                let overdue = dueDate < .now && !task.isCompleted
+                MetaChip(text: dueText(dueDate, overdue: overdue),
+                         systemImage: overdue ? "clock.badge.exclamationmark" : "calendar",
+                         tint: overdue ? .red : (Calendar.current.isDateInToday(dueDate) ? .cyan : .secondary))
+            } else {
+                MetaChip(text: "No deadline", systemImage: "calendar", tint: .secondary.opacity(0.7))
+            }
+            PriorityChip(priority: task.priority)
+            if task.isBlocked && !task.isCompleted {
+                MetaChip(text: task.blockedReason.isEmpty ? "Blocked" : "Blocked: \(task.blockedReason)",
+                         systemImage: "hand.raised.fill", tint: .orange)
+            }
         }
     }
 
-    private func dueLabel(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Today, \(date.formatted(date: .omitted, time: .shortened))" }
-        if Calendar.current.isDateInTomorrow(date) { return "Tomorrow, \(date.formatted(date: .omitted, time: .shortened))" }
-        return date.formatted(date: .abbreviated, time: .omitted)
+    private func dueText(_ date: Date, overdue: Bool) -> String {
+        let calendar = Calendar.current
+        let day = date.formatted(.dateTime.day().month(.abbreviated))
+        if calendar.isDateInToday(date) { return "Today, \(date.formatted(date: .omitted, time: .shortened))" }
+        if calendar.isDateInTomorrow(date) { return "Tomorrow, \(date.formatted(date: .omitted, time: .shortened))" }
+        if overdue { return "Overdue · \(day)" }
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: .now), to: calendar.startOfDay(for: date)).day ?? 0
+        if days < 7 { return "In \(days) days · \(day)" }
+        let year = calendar.component(.year, from: date) == calendar.component(.year, from: .now) ? "" : " \(calendar.component(.year, from: date))"
+        return "Due \(day)\(year)"
+    }
+}
+
+private struct MetaChip: View {
+    let text: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(.caption.weight(.medium))
+            .lineLimit(1)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(Color.white.opacity(0.05), in: Capsule())
+    }
+}
+
+private struct PriorityChip: View {
+    let priority: TaskPriority
+
+    var body: some View {
+        Text(priority.title.uppercased())
+            .font(.caption2.weight(.bold))
+            .tracking(0.7)
+            .foregroundStyle(priorityColor(priority))
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(priorityColor(priority).opacity(0.14), in: Capsule())
+    }
+}
+
+private func priorityColor(_ priority: TaskPriority) -> Color {
+    switch priority {
+    case .low: .secondary
+    case .normal: .cyan
+    case .high: .orange
+    case .critical: .red
     }
 }
 
 private struct TaskMetric: View {
     let title: String
-    let value: Int
+    let value: String
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("\(value)").font(.title2.monospacedDigit().weight(.bold)).foregroundStyle(tint)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value).font(.title2.monospacedDigit().weight(.bold)).foregroundStyle(tint)
             Text(title).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 20)
     }
 }
 
 private struct TaskMetricDivider: View {
-    var body: some View { Divider().frame(height: 34) }
+    var body: some View { Divider().frame(height: 38) }
 }
 
 private extension View {
