@@ -44,8 +44,15 @@ targets:
         LSMinimumSystemVersion: "$(MACOSX_DEPLOYMENT_TARGET)"
         NSHumanReadableCopyright: Copyright © 2026 Skeema Digital. All rights reserved.
         NSLocationWhenInUseUsageDescription: JARVIS uses your Mac location only when you choose Use Mac location to show a local weather forecast.
+        NSCalendarsFullAccessUsageDescription: JARVIS shows your Mac calendars, including holidays, beside your tasks in the Tasks calendar. It only reads them.
+        NSCalendarsUsageDescription: JARVIS shows your Mac calendars, including holidays, beside your tasks in the Tasks calendar. It only reads them.
         NSSupportsAutomaticTermination: false
         NSSupportsSuddenTermination: true
+    # The hardened runtime blocks calendar access unless the app declares it.
+    entitlements:
+      path: Supporting/JarvisDashboard.entitlements
+      properties:
+        com.apple.security.personal-information.calendars: true
     settings:
       base:
         PRODUCT_NAME: JarvisDashboard

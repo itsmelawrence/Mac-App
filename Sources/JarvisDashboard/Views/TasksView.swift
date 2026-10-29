@@ -13,6 +13,8 @@ struct TasksView: View {
     @State private var selectedProjectID: UUID?
     @State private var taskPendingDeletion: TaskItem?
     @State private var taskBeingEdited: TaskItem?
+    @State private var newTaskDay: DayToken?
+    @AppStorage("tasks.viewMode") private var viewMode = "list"
 
     private var summary: TaskQueueSummary { TaskQueueEngine.summary(for: tasks) }
     private var focusTask: TaskItem? { TaskQueueEngine.focusTask(from: tasks) }
@@ -38,8 +40,16 @@ struct TasksView: View {
             VStack(alignment: .leading, spacing: 26) {
                 missionHeader
                 statusRail
-                focusPanel
-                queueSection
+                if viewMode == "calendar" {
+                    TaskCalendarView(
+                        tasks: tasks.filter { selectedProjectID == nil || $0.projectID == selectedProjectID },
+                        projectName: projectName(for:),
+                        onEdit: { taskBeingEdited = $0 },
+                        onNewTask: { newTaskDay = DayToken(date: $0) })
+                } else {
+                    focusPanel
+                    queueSection
+                }
             }
             .padding(.horizontal, 36)
             .padding(.vertical, 32)
@@ -57,6 +67,7 @@ struct TasksView: View {
         }
         .sheet(isPresented: $showingNewTask) { TaskEditorView() }
         .sheet(item: $taskBeingEdited) { TaskEditorView(editing: $0) }
+        .sheet(item: $newTaskDay) { TaskEditorView(projectID: selectedProjectID, dueDate: $0.date) }
         .alert("Delete this task?", isPresented: deletionAlertBinding, presenting: taskPendingDeletion) { task in
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) { TaskStore.delete(task, from: modelContext) }
@@ -100,6 +111,14 @@ struct TasksView: View {
                     .padding(.horizontal, 12).padding(.vertical, 7)
                     .background(Color.orange.opacity(0.12), in: Capsule())
             }
+            Picker("View", selection: $viewMode) {
+                Label("List", systemImage: "list.bullet").tag("list")
+                Label("Calendar", systemImage: "calendar").tag("calendar")
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .help("Show tasks as a list or on a calendar")
             Button { showingNewTask = true } label: {
                 Label("New Mission", systemImage: "plus")
                     .fontWeight(.semibold)
@@ -271,6 +290,12 @@ struct TasksView: View {
     private func projectName(for task: TaskItem) -> String? {
         projects.first { $0.id == task.projectID }?.name
     }
+}
+
+/// A day chosen in the calendar, for opening the task editor with that due date.
+private struct DayToken: Identifiable {
+    let date: Date
+    var id: Date { date }
 }
 
 // MARK: - Queue pieces
@@ -534,9 +559,16 @@ struct TaskEditorView: View {
     @State private var blockedReason = ""
     private let task: TaskItem?
 
-    init(projectID: UUID? = nil) {
+    /// A new task. A `dueDate` at midnight (a calendar day) becomes 09:00 that day.
+    init(projectID: UUID? = nil, dueDate: Date? = nil) {
         task = nil
         _projectID = State(initialValue: projectID)
+        if let dueDate {
+            let calendar = Calendar.current
+            let atMidnight = calendar.startOfDay(for: dueDate) == dueDate
+            _dueDate = State(initialValue: atMidnight ? calendar.date(byAdding: .hour, value: 9, to: dueDate) ?? dueDate : dueDate)
+            _hasDueDate = State(initialValue: true)
+        }
     }
 
     init(editing task: TaskItem) {

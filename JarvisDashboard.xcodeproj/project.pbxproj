@@ -66,6 +66,7 @@
 		9CC54BFA367BF803357360B3 /* MonitoringHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AECC040E2CE1B8AD502271 /* MonitoringHealth.swift */; };
 		9F2B618CC3071B8EBAD32CE3 /* StateSnapshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9030BDED153AD284119200CF /* StateSnapshotService.swift */; };
 		A035E86236F77399BA88B212 /* MonitoringAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */; };
+		A30AD13F5F9B6E4A70095B02 /* MacCalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31421D5196960652FEC0FA3A /* MacCalendarService.swift */; };
 		A3C05E2892F9859A12FDB80E /* KeychainCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6FA9B60C4FA586054009EA /* KeychainCacheTests.swift */; };
 		A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */; };
 		A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B010D0F6012E31A7B947CC /* TaskQueueEngine.swift */; };
@@ -90,6 +91,7 @@
 		D8AE35CCC299394F9B03110D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E664AC10761E65E6FED7D18 /* Assets.xcassets */; };
 		D8DBCAA1E7DB74F432DD485A /* NewsAPIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87878484651E19DE89AFF690 /* NewsAPIKeyStore.swift */; };
 		DBA2EB3D421963F5B225E7EC /* NewsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE594907F9AB79B040D9F2E7 /* NewsServiceTests.swift */; };
+		DCE52C13740B2F37E52325D6 /* TaskCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5969E5F25B2646387E9B8852 /* TaskCalendarView.swift */; };
 		DDAE33EEC8D1C276092B865E /* IntelligenceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */; };
 		DDB7D5C22CC99A8419E8424A /* VaultMaintenanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5CE0FDBA8DE9E552D78301 /* VaultMaintenanceService.swift */; };
 		E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */; };
@@ -136,6 +138,7 @@
 		2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryServiceTests.swift; sourceTree = "<group>"; };
 		2ED09AD3EE3606647297A1CE /* MotivationalQuoteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteService.swift; sourceTree = "<group>"; };
 		2EE0303E41DC4C80F1F68571 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
+		31421D5196960652FEC0FA3A /* MacCalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacCalendarService.swift; sourceTree = "<group>"; };
 		35E272B07FD1A3E621A4B842 /* JarvisDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisDashboardApp.swift; sourceTree = "<group>"; };
 		3894B477148C693086708ABB /* JarvisCommandEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisCommandEngine.swift; sourceTree = "<group>"; };
 		39DAB7689B8FD15652EAC50C /* MonitoringSiteCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringSiteCredentialStore.swift; sourceTree = "<group>"; };
@@ -155,6 +158,7 @@
 		5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastService.swift; sourceTree = "<group>"; };
 		546651AFED44CD38B196EC04 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
 		54F58FE3B6B29601D526900C /* JarvisBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupService.swift; sourceTree = "<group>"; };
+		5969E5F25B2646387E9B8852 /* TaskCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCalendarView.swift; sourceTree = "<group>"; };
 		5C6BE971505CD5DA0C015277 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		5E3C3CF5D521AB7476FA7099 /* NeuralMapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralMapService.swift; sourceTree = "<group>"; };
 		5F41B209EF204B77186B9DFC /* MotivationalQuoteServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationalQuoteServiceTests.swift; sourceTree = "<group>"; };
@@ -239,6 +243,7 @@
 				929151532C0ADDCF47913F8B /* RootView.swift */,
 				7FCB316659775DD5F5F4F5B6 /* SettingsView.swift */,
 				4C18399618DAAD944A957B81 /* StoreRecoveryView.swift */,
+				5969E5F25B2646387E9B8852 /* TaskCalendarView.swift */,
 				2EE0303E41DC4C80F1F68571 /* TasksView.swift */,
 				12DF1F9E077E514D300D8146 /* TodayView.swift */,
 				6E2ACC1A3C15A094D6D8FBCC /* WeatherFocusDashboardView.swift */,
@@ -372,6 +377,7 @@
 				42BED1A44CFAB9EEF592F185 /* JarvisDataSchema.swift */,
 				40389B2B6BAA9B17143922B9 /* KeychainCache.swift */,
 				AD6319322836627DA4F54FAD /* LoginItemService.swift */,
+				31421D5196960652FEC0FA3A /* MacCalendarService.swift */,
 				7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */,
 				776BE5B74C1C34341B3E6676 /* MonitoringAPICredentialStore.swift */,
 				3F60988711DD11B9CBDF0D5A /* MonitoringAPIService.swift */,
@@ -568,6 +574,7 @@
 				343108046F415B870B70645F /* JarvisDataSchema.swift in Sources */,
 				2ADCFEE4E034459DC0C2A38D /* KeychainCache.swift in Sources */,
 				4309A00D49CD00FE92AB3311 /* LoginItemService.swift in Sources */,
+				A30AD13F5F9B6E4A70095B02 /* MacCalendarService.swift in Sources */,
 				F8A0C0E00BBBEB1B54682D53 /* MapTilerKeyStore.swift in Sources */,
 				6F85A824489D20F1BAA5761B /* MapTilerWeatherBasemap.swift in Sources */,
 				FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */,
@@ -594,6 +601,7 @@
 				C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */,
 				9F2B618CC3071B8EBAD32CE3 /* StateSnapshotService.swift in Sources */,
 				FB0EA75949B541527829E816 /* StoreRecoveryView.swift in Sources */,
+				DCE52C13740B2F37E52325D6 /* TaskCalendarView.swift in Sources */,
 				1D35A816CF9802B2636E4A17 /* TaskItem.swift in Sources */,
 				A744F6244C460CACC134C646 /* TaskQueueEngine.swift in Sources */,
 				723C92172AE5B40FB9FA3BBD /* TaskStore.swift in Sources */,
@@ -727,6 +735,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = Supporting/JarvisDashboard.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Supporting/Info.plist;
@@ -745,6 +754,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = Supporting/JarvisDashboard.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Supporting/Info.plist;

@@ -24,6 +24,10 @@
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>JARVIS shows your Mac calendars, including holidays, beside your tasks in the Tasks calendar. It only reads them.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>JARVIS shows your Mac calendars, including holidays, beside your tasks in the Tasks calendar. It only reads them.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Skeema Digital. All rights reserved.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
