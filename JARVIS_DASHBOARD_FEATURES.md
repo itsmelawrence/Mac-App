@@ -413,7 +413,7 @@ The initial watchlist is:
 
 ### 4.5 Briefings
 
-- Generates a current briefing from task, project, weather, and earthquake data.
+- Generates a current briefing from task, project, website, weather, and earthquake data, naming any site that is down or slow.
 - Opens the briefing in a floating presentation panel.
 - Records the time of the latest refresh.
 - Compares the current successful refresh with the previous baseline.

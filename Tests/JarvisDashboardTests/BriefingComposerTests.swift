@@ -35,3 +35,29 @@ struct BriefingComposerTests {
         #expect(output.contains("task queue is clear"))
     }
 }
+
+extension BriefingComposerTests {
+    private func briefing(weatherCode: Int? = nil, down: [String] = [], slow: [String] = []) -> String {
+        BriefingComposer().compose(BriefingInput(
+            pendingTaskCount: 0, overdueTaskCount: 0, activeProjectCount: 0,
+            weather: weatherCode.map {
+                WeatherSnapshot(locationName: "Manila", temperature: 27.2, apparentTemperature: 30,
+                                weatherCode: $0, precipitationProbability: 20)
+            },
+            significantEarthquakeCount: 0, downSiteNames: down, slowSiteNames: slow))
+    }
+
+    @Test func weatherReadsAsASentence() {
+        #expect(briefing(weatherCode: 2).contains("It is 27 degrees and partly cloudy in Manila."))
+        #expect(briefing(weatherCode: 61).contains("It is 27 degrees in Manila, with rain."))
+        #expect(briefing(weatherCode: 95).contains("It is 27 degrees in Manila, with a thunderstorm."))
+        #expect(briefing(weatherCode: 1_000).contains("It is 27 degrees in Manila."))
+    }
+
+    @Test func downAndSlowSitesAreNamed() {
+        #expect(briefing(down: ["Clinic"]).contains("Clinic is down."))
+        #expect(briefing(down: ["A", "B", "C"]).contains("3 websites are down: A, B and C."))
+        #expect(briefing(slow: ["My Portfolio Website"]).contains("My Portfolio Website is responding slowly."))
+        #expect(!briefing().contains("website"))
+    }
+}

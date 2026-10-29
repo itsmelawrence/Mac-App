@@ -17,6 +17,7 @@ struct TodayView: View {
     @State private var refreshError: String?
     @State private var quoteOffset = 0
     @State private var showingCommandConsole = false
+    @State private var showingAttention = false
 
     private let weatherService = OpenMeteoWeatherService()
     private let earthquakeService = USGSEarthquakeService()
@@ -61,7 +62,14 @@ struct TodayView: View {
     }
     private var monitoredProjects: [ProjectItem] { projects.filter { $0.hasWebsite && !$0.isArchived } }
     private var unhealthySiteCount: Int { monitoredProjects.filter { siteHealth(for: $0).needsAttention }.count }
-    private var healthySiteCount: Int { monitoredProjects.filter { siteHealth(for: $0).state == .up }.count }
+    /// Slow sites still answer, so they count as up.
+    private var upSiteCount: Int { monitoredProjects.filter { [.up, .slow].contains(siteHealth(for: $0).state) }.count }
+    /// Red only for a site that is down; a slow one is amber.
+    private var sitesTint: Color {
+        if monitoredProjects.isEmpty { return .secondary }
+        if downSiteCount > 0 { return .red }
+        return unhealthySiteCount > 0 ? .orange : .green
+    }
     private var hasSiteResults: Bool { siteMonitor.lastPassAt != nil || !siteMonitor.records.isEmpty }
     private var attentionCount: Int { overdueTasks.count + blockedTasks.count + waitingProjects.count + unhealthySiteCount }
     private var completionRatio: Double {
@@ -74,15 +82,37 @@ struct TodayView: View {
             ?? SavedLocationValue(name: "Manila", latitude: 14.5995, longitude: 120.9842)
     }
     private var briefing: String {
-        BriefingComposer().compose(
+        let sites = siteMonitor.briefingSites(for: projects)
+        return BriefingComposer().compose(
             BriefingInput(
                 pendingTaskCount: pendingTasks.count,
                 overdueTaskCount: overdueTasks.count,
                 activeProjectCount: operationalProjects.count,
                 weather: weather,
-                significantEarthquakeCount: significantEarthquakes.count
+                significantEarthquakeCount: significantEarthquakes.count,
+                downSiteNames: sites.down,
+                slowSiteNames: sites.slow
             )
         )
+    }
+    private var downSiteCount: Int { monitoredProjects.filter { siteHealth(for: $0).state == .down }.count }
+    /// Everything counted in the header's attention badge, worst first.
+    private var attentionItems: [AttentionItem] {
+        let sites = monitoredProjects
+            .map { ($0, siteHealth(for: $0)) }
+            .filter { $0.1.needsAttention }
+            .sorted { $0.1.sortRank < $1.1.sortRank }
+            .map { AttentionItem(systemImage: $0.1.systemImage, title: $0.0.name, detail: $0.1.detail, tint: $0.1.colour, destination: .projects) }
+        let overdue = TaskQueueEngine.sorted(overdueTasks).map {
+            AttentionItem(systemImage: "clock.badge.exclamationmark", title: $0.title, detail: "Overdue task", tint: .red, destination: .tasks)
+        }
+        let blocked = TaskQueueEngine.sorted(blockedTasks).map {
+            AttentionItem(systemImage: "hand.raised.fill", title: $0.title, detail: $0.blockedReason.isEmpty ? "Blocked task" : "Blocked: \($0.blockedReason)", tint: .orange, destination: .tasks)
+        }
+        let waiting = waitingProjects.map {
+            AttentionItem(systemImage: "hourglass", title: $0.name, detail: "Waiting on client", tint: .orange, destination: .projects)
+        }
+        return sites + overdue + blocked + waiting
     }
     private var commandContext: JarvisCommandContext {
         let unhealthy = monitoredProjects.filter { siteHealth(for: $0).needsAttention }
@@ -141,7 +171,10 @@ struct TodayView: View {
 
                 resolveCard
             }
-            .padding(28)
+            .padding(.horizontal, 36)
+            .padding(.vertical, 32)
+            .frame(maxWidth: 1_180)
+            .frame(maxWidth: .infinity)
         }
         .background(commandBackground)
         .task { await refreshCommandCentre() }
@@ -173,7 +206,7 @@ struct TodayView: View {
     private var commandHeader: some View {
         HStack(alignment: .center, spacing: 18) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(greeting).font(.system(size: 28, weight: .bold, design: .rounded))
+                Text(greeting).font(.system(size: 30, weight: .bold, design: .rounded))
                 Text(Date.now.formatted(date: .complete, time: .omitted))
                     .font(.subheadline).foregroundStyle(.secondary)
             }
@@ -195,13 +228,48 @@ struct TodayView: View {
         }
     }
 
+    @ViewBuilder
     private var attentionBadge: some View {
-        HStack(spacing: 7) {
-            Circle().fill(attentionCount == 0 ? Color.green : Color.orange).frame(width: 7, height: 7)
-            Text(attentionCount == 0 ? "Systems nominal" : "\(attentionCount) require attention")
+        if attentionCount == 0 {
+            Label("Systems nominal", systemImage: "checkmark.circle.fill")
                 .font(.subheadline.weight(.medium))
+                .foregroundStyle(.green)
+        } else {
+            Button { showingAttention.toggle() } label: {
+                Label("\(attentionCount) need\(attentionCount == 1 ? "s" : "") attention", systemImage: "exclamationmark.circle.fill")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 12).padding(.vertical, 7)
+                    .background(Color.orange.opacity(0.12), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .help("Show what needs attention")
+            .popover(isPresented: $showingAttention, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("NEEDS ATTENTION")
+                        .font(.caption.weight(.bold)).tracking(0.7).foregroundStyle(.secondary)
+                    ForEach(attentionItems) { item in
+                        Button {
+                            showingAttention = false
+                            appState.selection = item.destination
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                Image(systemName: item.systemImage).foregroundStyle(item.tint).frame(width: 18)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title).font(.subheadline.weight(.semibold)).lineLimit(1)
+                                    Text(item.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(16)
+                .frame(width: 320)
+            }
         }
-        .foregroundStyle(attentionCount == 0 ? Color.secondary : Color.orange)
     }
 
     private var statusRail: some View {
@@ -212,7 +280,7 @@ struct TodayView: View {
             CommandDivider()
             CommandMetric(title: "Active operations", value: "\(operationalProjects.count)", tint: .primary)
             CommandDivider()
-            CommandMetric(title: "Sites healthy", value: "\(healthySiteCount)/\(monitoredProjects.count)", tint: unhealthySiteCount == 0 ? .green : .orange)
+            CommandMetric(title: "Sites up", value: monitoredProjects.isEmpty ? "—" : "\(upSiteCount)/\(monitoredProjects.count)", tint: sitesTint)
             CommandDivider()
             CommandMetric(title: "Regional alerts", value: "\(significantEarthquakes.count)", tint: significantEarthquakes.isEmpty ? .secondary : .orange)
         }
@@ -341,8 +409,11 @@ struct TodayView: View {
             statusLine(label: "Site checks", value: siteMonitor.isOffline ? "Paused · offline" : "Every 5 min",
                        colour: siteMonitor.isOffline ? .orange : .green)
             statusLine(label: "Monitored sites", value: "\(monitoredProjects.count)", colour: .secondary)
-            statusLine(label: "Up", value: "\(healthySiteCount)", colour: .green)
-            if unhealthySiteCount > 0 { statusLine(label: "Attention", value: "\(unhealthySiteCount)", colour: .orange) }
+            statusLine(label: "Up", value: "\(upSiteCount)", colour: .green)
+            ForEach(monitoredProjects.filter { siteHealth(for: $0).needsAttention }) { project in
+                let health = siteHealth(for: project)
+                statusLine(label: project.name, value: health.detail, colour: health.colour)
+            }
             if let lastPassAt = siteMonitor.lastPassAt {
                 Text("Last checked \(lastPassAt.formatted(.relative(presentation: .named)))")
                     .font(.caption2).foregroundStyle(.tertiary)
@@ -390,9 +461,9 @@ struct TodayView: View {
 
     private func statusLine(label: String, value: String, colour: Color) -> some View {
         HStack {
-            Text(label).foregroundStyle(.secondary)
+            Text(label).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
-            Text(value).fontWeight(.semibold).foregroundStyle(colour)
+            Text(value).fontWeight(.semibold).foregroundStyle(colour).lineLimit(1)
         }
         .font(.caption)
     }
@@ -494,7 +565,7 @@ private struct OperationRow: View {
     private var statusText: String {
         if project.status == .waitingOnClient { return "Waiting on client" }
         if project.status == .onHold { return "Blocked" }
-        if project.hasWebsite { return health.label }
+        if project.hasWebsite { return health.detail }
         return project.status.title
     }
     private var statusColour: Color {
@@ -698,6 +769,14 @@ private struct JarvisCommandConsole: View {
 
 private struct TodayTaskRow: View {
     @Bindable var task: TaskItem
+    private var priorityTint: Color {
+        switch task.priority {
+        case .low: .secondary
+        case .normal: .cyan
+        case .high: .orange
+        case .critical: .red
+        }
+    }
     var body: some View {
         HStack(spacing: 11) {
             Button { TaskStore.setCompleted(task, !task.isCompleted) } label: {
@@ -718,9 +797,12 @@ private struct TodayTaskRow: View {
                 }
             }
             Spacer()
-            Text(task.priority.title)
-                .font(.caption2)
-                .foregroundStyle(task.priority == .critical ? Color.red : Color.secondary)
+            Text(task.priority.title.uppercased())
+                .font(.caption2.weight(.bold))
+                .tracking(0.7)
+                .foregroundStyle(priorityTint)
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(priorityTint.opacity(0.14), in: Capsule())
         }
         .padding(.vertical, 9)
     }
@@ -747,12 +829,25 @@ struct DashboardSection<Content: View>: View {
     }
 }
 
+private struct AttentionItem: Identifiable {
+    let id = UUID()
+    let systemImage: String
+    let title: String
+    let detail: String
+    let tint: Color
+    let destination: SidebarDestination
+}
+
 private extension View {
+    /// The same surface as the Tasks and Projects cards.
     func commandSurface(cornerRadius: CGFloat) -> some View {
-        background(Color.white.opacity(0.035), in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.cyan.opacity(0.10), lineWidth: 1)
-            }
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.58))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                )
+        )
     }
 }

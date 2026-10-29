@@ -324,6 +324,13 @@ final class SiteMonitor: ObservableObject {
 
     func record(for project: ProjectItem) -> SiteRecord? { records[project.id] }
 
+    /// Names of non-archived projects whose site is down, and those that are slow, for the briefing.
+    func briefingSites(for projects: [ProjectItem]) -> (down: [String], slow: [String]) {
+        let active = projects.filter { $0.hasWebsite && !$0.isArchived }
+        return (active.filter { health(for: $0).state == .down }.map(\.name),
+                active.filter { health(for: $0).state == .slow }.map(\.name))
+    }
+
     func attach(_ context: ModelContext) {
         self.context = context
         StateSnapshotService.shared.recordSites(records)

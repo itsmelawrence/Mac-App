@@ -138,13 +138,16 @@ struct IntelligenceView: View {
     }
 
     private var briefing: String {
-        BriefingComposer().compose(
+        let sites = SiteMonitor.shared.briefingSites(for: projects)
+        return BriefingComposer().compose(
             BriefingInput(
                 pendingTaskCount: tasks.filter { !$0.isCompleted }.count,
                 overdueTaskCount: overdueTasks.count,
                 activeProjectCount: activeProjects.count,
                 weather: primaryWeather,
-                significantEarthquakeCount: earthquakes.filter { $0.magnitude >= earthquakeThreshold }.count
+                significantEarthquakeCount: earthquakes.filter { $0.magnitude >= earthquakeThreshold }.count,
+                downSiteNames: sites.down,
+                slowSiteNames: sites.slow
             )
         )
     }

@@ -6,6 +6,8 @@ struct BriefingInput {
     let activeProjectCount: Int
     let weather: WeatherSnapshot?
     let significantEarthquakeCount: Int
+    var downSiteNames: [String] = []
+    var slowSiteNames: [String] = []
 }
 
 struct BriefingComposer {
@@ -24,8 +26,12 @@ struct BriefingComposer {
             components.append("\(input.activeProjectCount) active \(noun(input.activeProjectCount, singular: "project", plural: "projects")) remain in motion.")
         }
 
+        if let site = sitesSentence(down: input.downSiteNames, slow: input.slowSiteNames) {
+            components.append(site)
+        }
+
         if let weather = input.weather {
-            components.append("It is \(Int(weather.temperature.rounded())) degrees in \(weather.locationName), with \(weather.condition.lowercased()).")
+            components.append(weatherSentence(weather))
         }
 
         if input.significantEarthquakeCount > 0 {
@@ -33,6 +39,38 @@ struct BriefingComposer {
         }
 
         return components.joined(separator: " ")
+    }
+
+    /// A down site leads; slow sites follow. Healthy sites are not mentioned.
+    private func sitesSentence(down: [String], slow: [String]) -> String? {
+        var parts: [String] = []
+        if !down.isEmpty {
+            parts.append(down.count == 1 ? "\(down[0]) is down." : "\(down.count) websites are down: \(list(down)).")
+        }
+        if !slow.isEmpty {
+            parts.append(slow.count == 1 ? "\(slow[0]) is responding slowly." : "\(list(slow)) are responding slowly.")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    /// "27 degrees and partly cloudy in Manila", or "… in Manila, with rain" when the condition is a noun.
+    private func weatherSentence(_ weather: WeatherSnapshot) -> String {
+        let degrees = "It is \(Int(weather.temperature.rounded())) degrees"
+        switch weather.weatherCode {
+        case 0...3, 45, 48:
+            return "\(degrees) and \(weather.condition.lowercased()) in \(weather.locationName)."
+        case 95...99:
+            return "\(degrees) in \(weather.locationName), with a thunderstorm."
+        case 51...67, 71...77, 80...82, 85, 86:
+            return "\(degrees) in \(weather.locationName), with \(weather.condition.lowercased())."
+        default:
+            return "\(degrees) in \(weather.locationName)."
+        }
+    }
+
+    private func list(_ names: [String]) -> String {
+        guard names.count > 1 else { return names.first ?? "" }
+        return names.dropLast().joined(separator: ", ") + " and " + names[names.count - 1]
     }
 
     private func greeting(for date: Date, calendar: Calendar) -> String {

@@ -241,12 +241,17 @@ final class StateSnapshotService {
         var briefing: StateSnapshot.Briefing?
         if let store {
             let pending = store.tasks.filter { !$0.isCompleted }
+            let checked = store.projects.filter { !$0.isArchived }.compactMap { project in
+                sites?[project.id].map { (project.name, SiteHealth.evaluate(record: $0, hasWebsite: true).state) }
+            }
             let text = BriefingComposer().compose(BriefingInput(
                 pendingTaskCount: pending.count,
                 overdueTaskCount: pending.count(where: \.isOverdue),
                 activeProjectCount: store.projects.count { !$0.isArchived && $0.status != ProjectStatus.completed.rawValue },
                 weather: primaryWeather,
-                significantEarthquakeCount: earthquakes.count { $0.magnitude >= 4.5 }), date: now)
+                significantEarthquakeCount: earthquakes.count { $0.magnitude >= 4.5 },
+                downSiteNames: checked.filter { $0.1 == .down }.map(\.0),
+                slowSiteNames: checked.filter { $0.1 == .slow }.map(\.0)), date: now)
             briefing = StateSnapshot.Briefing(asOf: now, text: text)
         }
         var siteSection: StateSnapshot.Sites?

@@ -53,7 +53,7 @@ Today is the main overview rather than a miscellaneous widget board. It uses a f
 
 - Greets the user based on the current time of day.
 - Displays the complete date.
-- Shows whether systems are nominal or how many items require attention.
+- Shows whether systems are nominal or how many items need attention; clicking the count lists them (sites, overdue and blocked tasks, waiting clients) and opens the matching section.
 - Opens **Ask JARVIS** through the header or `Command-K`.
 - Refreshes weather and earthquake information.
 
@@ -526,7 +526,7 @@ Default watchlist terms are AI, WordPress, technology, and business.
 
 ### 9.9 Intelligence briefings
 
-- Generates the current briefing from task, project, weather, and earthquake data.
+- Generates the current briefing from task, project, website, weather, and earthquake data, naming any site that is down or slow.
 - Presents the briefing in the floating panel.
 - Records the latest refresh time.
 - Compares alert, overdue-task, and news totals with the previous successful baseline.
