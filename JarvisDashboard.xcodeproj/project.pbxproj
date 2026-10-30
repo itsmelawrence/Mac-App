@@ -85,6 +85,7 @@
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
 		BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */; };
 		C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A962457DF4DD94ED621844A8 /* SpeechService.swift */; };
+		D0DA0DF5E8FC62C9D018DAA7 /* ConsoleBrainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6737865FD1187C5227E5D1C5 /* ConsoleBrainService.swift */; };
 		D2A807A075566331803B2C91 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7987A59411E3538B9DEBF31E /* ConnectionsView.swift */; };
 		D39B539A085FAF1AD89EF0D0 /* WeatherLabelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */; };
 		D56FF636B4B5EB18CAC769C2 /* ProjectItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C7D173283F605CA610779F /* ProjectItem.swift */; };
@@ -100,6 +101,7 @@
 		E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */; };
 		E3738D08057098463AF945BD /* WeatherLabelPlacementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */; };
 		E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */; };
+		E893E7C76B6C1BCB37CF1045 /* ConsoleBrainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7926E2021F461D892DA642 /* ConsoleBrainServiceTests.swift */; };
 		EED791A557BA53F1B04FFABC /* BackupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */; };
 		F0DDACFD521803158C0DBDAC /* WakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9372B6E369B2B0843FCB16 /* WakeMonitor.swift */; };
 		F8A0C0E00BBBEB1B54682D53 /* MapTilerKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E0EC569BB6A22C1CEB73024 /* MapTilerKeyStore.swift */; };
@@ -163,6 +165,7 @@
 		629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisCommandEngineTests.swift; sourceTree = "<group>"; };
 		6376314B02879845B7136C78 /* TaskAndProjectStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskAndProjectStoreTests.swift; sourceTree = "<group>"; };
 		661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceEngineTests.swift; sourceTree = "<group>"; };
+		6737865FD1187C5227E5D1C5 /* ConsoleBrainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleBrainService.swift; sourceTree = "<group>"; };
 		6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		6E2ACC1A3C15A094D6D8FBCC /* WeatherFocusDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherFocusDashboardView.swift; sourceTree = "<group>"; };
 		73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsService.swift; sourceTree = "<group>"; };
@@ -210,6 +213,7 @@
 		E7DA412BA25E7DCA06F65553 /* WeatherLabelPlacementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherLabelPlacementTests.swift; sourceTree = "<group>"; };
 		E922635ABCE413EF39E007A3 /* NeuralMapServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralMapServiceTests.swift; sourceTree = "<group>"; };
 		E946B3F227D267E00F6D9C73 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		ED7926E2021F461D892DA642 /* ConsoleBrainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleBrainServiceTests.swift; sourceTree = "<group>"; };
 		EDD1180A3E483FC5284BDCDE /* NeuralMap */ = {isa = PBXFileReference; lastKnownFileType = folder; name = NeuralMap; path = Supporting/NeuralMap; sourceTree = SOURCE_ROOT; };
 		F05985254777A183A84A7C45 /* PhilippineForecastServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastServiceTests.swift; sourceTree = "<group>"; };
 		F31A6FFE0E92B946FC556DA5 /* GraphifyHTMLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphifyHTMLService.swift; sourceTree = "<group>"; };
@@ -290,6 +294,7 @@
 				9808ACE49BE4DE9988786EE0 /* BriefingComposerTests.swift */,
 				7A0743240C46CDA012237D2E /* CalendarMathTests.swift */,
 				7F30990B511BD047722E9719 /* ConnectionsServiceTests.swift */,
+				ED7926E2021F461D892DA642 /* ConsoleBrainServiceTests.swift */,
 				6205850CE4F4E19395973D9C /* DailyReviewServiceTests.swift */,
 				AA7F87E8A9E37C662408E6EC /* FeedRobustnessTests.swift */,
 				2D9DE7ACCA65B269B0A7AC92 /* GitRepositoryServiceTests.swift */,
@@ -365,6 +370,7 @@
 				95BAF81CB358147D371FF08A /* AppActionExecutor.swift */,
 				FA458F55412AA28A88A2FF8A /* BriefingComposer.swift */,
 				73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */,
+				6737865FD1187C5227E5D1C5 /* ConsoleBrainService.swift */,
 				0DDE1EF8BDDF5188A4AD4D89 /* DailyReviewService.swift */,
 				A086FA76D08E3C7501B7AD16 /* EarthquakeService.swift */,
 				498EC8A5762A334C883CA8AA /* GitRepositoryService.swift */,
@@ -515,6 +521,7 @@
 				319B17E0225A35F06B354237 /* BriefingComposerTests.swift in Sources */,
 				8C09AC91B000639FEDA88943 /* CalendarMathTests.swift in Sources */,
 				42E43421EB6747A43B23011E /* ConnectionsServiceTests.swift in Sources */,
+				E893E7C76B6C1BCB37CF1045 /* ConsoleBrainServiceTests.swift in Sources */,
 				0E4F49DF9F42868621A156D1 /* DailyReviewServiceTests.swift in Sources */,
 				B976679462518723D3799DEC /* FeedRobustnessTests.swift in Sources */,
 				AC74890D7DD35EB54AC9E0EB /* GitRepositoryServiceTests.swift in Sources */,
@@ -558,6 +565,7 @@
 				A495B6479E0060C0AF37820C /* BriefingPanelController.swift in Sources */,
 				AC2E3E23EA05AFE678552909 /* ConnectionsService.swift in Sources */,
 				D2A807A075566331803B2C91 /* ConnectionsView.swift in Sources */,
+				D0DA0DF5E8FC62C9D018DAA7 /* ConsoleBrainService.swift in Sources */,
 				8BADACBD0BDBA278E57D1F87 /* DailyReviewService.swift in Sources */,
 				E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */,
 				3EEA784EBF63F8D872D731CA /* GitRepositoryService.swift in Sources */,
@@ -659,7 +667,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 48;
+				CURRENT_PROJECT_VERSION = 49;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -680,7 +688,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.47;
+				MARKETING_VERSION = 0.2.48;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -800,7 +808,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 48;
+				CURRENT_PROJECT_VERSION = 49;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -815,7 +823,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.47;
+				MARKETING_VERSION = 0.2.48;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
