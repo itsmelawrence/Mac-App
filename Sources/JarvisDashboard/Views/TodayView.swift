@@ -12,17 +12,17 @@ struct TodayView: View {
     @ObservedObject private var siteMonitor = SiteMonitor.shared
     @ObservedObject private var leadMonitor = LeadMonitor.shared
     @ObservedObject private var dailyReview = DailyReviewService.shared
-    @State private var weather: WeatherSnapshot?
-    @State private var hasFreshWeather = false
-    @State private var earthquakes: [EarthquakeEvent] = []
-    @State private var isRefreshing = false
-    @State private var refreshError: String?
+    @ObservedObject private var feed = IntelligenceFeed.shared
     @State private var quoteOffset = 0
     @State private var showingCommandConsole = false
     @State private var showingAttention = false
 
-    private let weatherService = OpenMeteoWeatherService()
-    private let earthquakeService = USGSEarthquakeService()
+    // Fetched by IntelligenceFeed for the app's lifetime; Today only reads them.
+    private var weather: WeatherSnapshot? { feed.weather(for: primaryLocation.name) }
+    private var hasFreshWeather: Bool { feed.hasFreshWeather }
+    private var earthquakes: [EarthquakeEvent] { feed.earthquakes }
+    private var isRefreshing: Bool { feed.isRefreshing }
+    private var refreshError: String? { feed.errorMessage }
 
     private var pendingTasks: [TaskItem] { tasks.filter { !$0.isCompleted } }
     private var completedTasks: [TaskItem] { tasks.filter(\.isCompleted) }
@@ -188,8 +188,8 @@ struct TodayView: View {
             .frame(maxWidth: .infinity)
         }
         .background(commandBackground)
-        .task { await refreshCommandCentre() }
-        .refreshable { await refreshCommandCentre() }
+        .task { await feed.refreshIfStale() }
+        .refreshable { await feed.refresh() }
         .sheet(isPresented: $showingCommandConsole) {
             JarvisCommandConsole(
                 context: commandContext,
@@ -225,7 +225,7 @@ struct TodayView: View {
             attentionBadge
             ConsoleGlyphButton { showingCommandConsole = true }
                 .keyboardShortcut("k", modifiers: .command)
-            Button { Task { await refreshCommandCentre() } } label: {
+            Button { Task { await feed.refresh() } } label: {
                 Image(systemName: isRefreshing ? "hourglass" : "arrow.clockwise")
             }
             .buttonStyle(.bordered)
@@ -579,25 +579,6 @@ struct TodayView: View {
             Text(value).fontWeight(.semibold).foregroundStyle(colour).lineLimit(1)
         }
         .font(.caption)
-    }
-
-    @MainActor
-    private func refreshCommandCentre() async {
-        guard !isRefreshing else { return }
-        isRefreshing = true
-        defer { isRefreshing = false }
-
-        async let weatherRequest = try? weatherService.currentWeather(for: primaryLocation)
-        async let earthquakeRequest = try? earthquakeService.recentPhilippineEvents()
-        let (newWeather, newEarthquakes) = await (weatherRequest, earthquakeRequest)
-
-        hasFreshWeather = newWeather != nil
-        if let newWeather { weather = newWeather }
-        if let newEarthquakes { earthquakes = newEarthquakes }
-        StateSnapshotService.shared.recordConditions(weather: newWeather, earthquakes: earthquakes)
-        refreshError = newWeather == nil || newEarthquakes == nil
-            ? "One or more intelligence sources could not be refreshed; available results remain visible."
-            : nil
     }
 
     private func siteHealth(for project: ProjectItem) -> SiteHealth {

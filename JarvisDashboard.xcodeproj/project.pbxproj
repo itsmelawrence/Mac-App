@@ -60,6 +60,7 @@
 		749C66C9F7E3F666F8AF9DB2 /* NeuralMapServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E922635ABCE413EF39E007A3 /* NeuralMapServiceTests.swift */; };
 		78F1CAAC879FF1DCB34A8794 /* AlertReliabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBA6E94BC0D75E977D137E6 /* AlertReliabilityTests.swift */; };
 		7A8A5D4BEEBB5B3AB26916E0 /* SiteMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E2BFE1BAFA697A1A9EE4F0 /* SiteMonitorTests.swift */; };
+		7DCB9CC04DFC80CCD55DB022 /* IntelligenceFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719542CBDE804434F6FE20C0 /* IntelligenceFeed.swift */; };
 		84C602F87547A53090ADE266 /* PromptCaptureServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090543F19935FA409CC316BE /* PromptCaptureServiceTests.swift */; };
 		86E97D00B9EAB7184513FBEE /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C39902BB88D836CA9896FAE1 /* AppState.swift */; };
 		8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */; };
@@ -112,6 +113,7 @@
 		FB0EA75949B541527829E816 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C18399618DAAD944A957B81 /* StoreRecoveryView.swift */; };
 		FC802A67DC9C1C9C4A9F4423 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */; };
 		FDF28099F9294B4768048D42 /* AppActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95BAF81CB358147D371FF08A /* AppActionExecutor.swift */; };
+		FEBCE2A9D79F686BCE52CC89 /* IntelligenceFeedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57744E356C76F01F81656F79 /* IntelligenceFeedTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -161,6 +163,7 @@
 		5055E87FDFB477568982D0C4 /* PhilippineForecastService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhilippineForecastService.swift; sourceTree = "<group>"; };
 		546651AFED44CD38B196EC04 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
 		54F58FE3B6B29601D526900C /* JarvisBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisBackupService.swift; sourceTree = "<group>"; };
+		57744E356C76F01F81656F79 /* IntelligenceFeedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceFeedTests.swift; sourceTree = "<group>"; };
 		5969E5F25B2646387E9B8852 /* TaskCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCalendarView.swift; sourceTree = "<group>"; };
 		5C6BE971505CD5DA0C015277 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		5E3C3CF5D521AB7476FA7099 /* NeuralMapService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralMapService.swift; sourceTree = "<group>"; };
@@ -172,6 +175,7 @@
 		6737865FD1187C5227E5D1C5 /* ConsoleBrainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleBrainService.swift; sourceTree = "<group>"; };
 		6DDD7D037C7B9926FFE9DB31 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		6E2ACC1A3C15A094D6D8FBCC /* WeatherFocusDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherFocusDashboardView.swift; sourceTree = "<group>"; };
+		719542CBDE804434F6FE20C0 /* IntelligenceFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceFeed.swift; sourceTree = "<group>"; };
 		73BC3DC3C01B9CE31C612863 /* ConnectionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsService.swift; sourceTree = "<group>"; };
 		73E43E54DFF0BB6064AC4774 /* WeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSnapshotTests.swift; sourceTree = "<group>"; };
 		74E0231110CC215074D454FD /* ICMRoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICMRoutingService.swift; sourceTree = "<group>"; };
@@ -311,6 +315,7 @@
 				8EA2DF20E35C891DB8E9DFA5 /* GraphifyHTMLServiceTests.swift */,
 				1F40D3CA11050CF192AAA077 /* ICMRoutingServiceTests.swift */,
 				661690028BA1A379AB4BBFF9 /* IntelligenceEngineTests.swift */,
+				57744E356C76F01F81656F79 /* IntelligenceFeedTests.swift */,
 				3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */,
 				629FABE405479D54B01B8442 /* JarvisCommandEngineTests.swift */,
 				0F6FA9B60C4FA586054009EA /* KeychainCacheTests.swift */,
@@ -388,6 +393,7 @@
 				F31A6FFE0E92B946FC556DA5 /* GraphifyHTMLService.swift */,
 				74E0231110CC215074D454FD /* ICMRoutingService.swift */,
 				F39D8A8F54B1FB522D1F20FB /* IntelligenceEngine.swift */,
+				719542CBDE804434F6FE20C0 /* IntelligenceFeed.swift */,
 				C39D6263CE8B0B9D4B26943F /* IntelligenceNotificationService.swift */,
 				54F58FE3B6B29601D526900C /* JarvisBackupService.swift */,
 				3894B477148C693086708ABB /* JarvisCommandEngine.swift */,
@@ -540,6 +546,7 @@
 				44B4A5CAC904EFD470A4B5CB /* GraphifyHTMLServiceTests.swift in Sources */,
 				506C808B355162B386D3E291 /* ICMRoutingServiceTests.swift in Sources */,
 				DDAE33EEC8D1C276092B865E /* IntelligenceEngineTests.swift in Sources */,
+				FEBCE2A9D79F686BCE52CC89 /* IntelligenceFeedTests.swift in Sources */,
 				BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */,
 				9B014AA708572162BF677B1F /* JarvisCommandEngineTests.swift in Sources */,
 				A3C05E2892F9859A12FDB80E /* KeychainCacheTests.swift in Sources */,
@@ -587,6 +594,7 @@
 				BA9C638FBCE1407B654522E9 /* GraphifyHTMLView.swift in Sources */,
 				29BF022C497B29BF6FCECD19 /* ICMRoutingService.swift in Sources */,
 				E1B1A370C33367D3FF00830E /* IntelligenceEngine.swift in Sources */,
+				7DCB9CC04DFC80CCD55DB022 /* IntelligenceFeed.swift in Sources */,
 				E2E633A7FDC0CD08D55FE5BB /* IntelligenceNotificationService.swift in Sources */,
 				8B8DCE8B2B32034F1B78DCBF /* IntelligenceView.swift in Sources */,
 				50479114E93D90F40F989C23 /* JarvisBackupService.swift in Sources */,

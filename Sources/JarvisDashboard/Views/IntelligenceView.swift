@@ -22,7 +22,6 @@ struct IntelligenceView: View {
 
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var speechService: SpeechService
     @Query private var savedLocations: [SavedLocation]
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var tasks: [TaskItem]
     @Query(sort: \ProjectItem.updatedAt, order: .reverse) private var projects: [ProjectItem]
@@ -40,16 +39,8 @@ struct IntelligenceView: View {
     @AppStorage("intelligence.savedIDs") private var savedIDsRaw = "[]"
     @AppStorage("intelligence.dismissedIDs") private var dismissedIDsRaw = "[]"
 
-    @State private var savedWeather: [String: WeatherSnapshot] = [:]
-    @State private var regionalWeather: [String: WeatherSnapshot] = [:]
-    @State private var earthquakes: [EarthquakeEvent] = []
-    @State private var newsByCategory: [NewsSource.Category: [NewsArticle]] = [:]
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    @State private var newsAPIMessage: String?
+    @ObservedObject private var feed = IntelligenceFeed.shared
     @State private var showingLocationPicker = false
-    @State private var lastRefreshedAt: Date?
-    @State private var isNewsAPIEnhancementRunning = false
     @State private var changeSummary = IntelligenceChangeSummary(
         alertDelta: 0,
         overdueDelta: 0,
@@ -57,22 +48,18 @@ struct IntelligenceView: View {
         hasBaseline: false
     )
 
-    private let weatherService = OpenMeteoWeatherService()
-    private let earthquakeService = USGSEarthquakeService()
-    private let newsService = RSSNewsService()
-    private let newsAPIService = NewsAPIService()
     private let notificationService = IntelligenceNotificationService()
 
-    private let regionalLocations = [
-        SavedLocationValue(name: "Baguio", latitude: 16.4023, longitude: 120.5960),
-        SavedLocationValue(name: "Manila", latitude: 14.5995, longitude: 120.9842),
-        SavedLocationValue(name: "Legazpi", latitude: 13.1391, longitude: 123.7438),
-        SavedLocationValue(name: "Cebu", latitude: 10.3157, longitude: 123.8854),
-        SavedLocationValue(name: "Iloilo", latitude: 10.7202, longitude: 122.5621),
-        SavedLocationValue(name: "Davao", latitude: 7.1907, longitude: 125.4553),
-        SavedLocationValue(name: "Cagayan de Oro", latitude: 8.4542, longitude: 124.6319),
-        SavedLocationValue(name: "Zamboanga", latitude: 6.9214, longitude: 122.0790)
-    ]
+    // Fetched by IntelligenceFeed for the app's lifetime; this view only reads them.
+    private var savedWeather: [String: WeatherSnapshot] { feed.savedWeather }
+    private var regionalWeather: [String: WeatherSnapshot] { feed.regionalWeather }
+    private var earthquakes: [EarthquakeEvent] { feed.earthquakes }
+    private var newsByCategory: [NewsSource.Category: [NewsArticle]] { feed.newsByCategory }
+    private var isLoading: Bool { feed.isRefreshing }
+    private var errorMessage: String? { feed.errorMessage }
+    private var newsAPIMessage: String? { feed.newsAPIMessage }
+    private var lastRefreshedAt: Date? { feed.lastRefreshedAt }
+    private var regionalLocations: [SavedLocationValue] { IntelligenceFeed.regionalLocations }
 
     private var selectedPage: Binding<Page> {
         Binding(
@@ -254,7 +241,8 @@ struct IntelligenceView: View {
         }
         .task {
             seedDefaultLocationIfNeeded()
-            await refresh()
+            await feed.refreshIfStale()
+            updateChangeSummary()
         }
         .onChange(of: notificationsEnabled) { _, enabled in
             guard enabled else { return }
@@ -695,93 +683,8 @@ struct IntelligenceView: View {
 
     @MainActor
     private func refresh() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        let savedValues = savedLocations.isEmpty
-            ? [SavedLocationValue(name: "Manila", latitude: 14.5995, longitude: 120.9842)]
-            : savedLocations.map { SavedLocationValue(name: $0.name, latitude: $0.latitude, longitude: $0.longitude) }
-
-        async let savedRequest = try? fetchWeather(for: savedValues)
-        async let regionalRequest = try? fetchWeather(for: regionalLocations)
-        async let earthquakeRequest = try? earthquakeService.recentPhilippineEvents()
-        async let philippinesNewsRequest = try? fetchNews(category: .philippines)
-        async let worldNewsRequest = try? fetchNews(category: .world)
-
-        let results = await (savedRequest, regionalRequest, earthquakeRequest, philippinesNewsRequest, worldNewsRequest)
-        if let result = results.0 { savedWeather = result }
-        if let result = results.1 { regionalWeather = result }
-        if let result = results.2 { earthquakes = result }
-        if let result = results.3 { newsByCategory[.philippines] = result }
-        if let result = results.4 { newsByCategory[.world] = result }
-
+        await feed.refresh(forceNewsAPI: true)
         updateChangeSummary()
-        lastRefreshedAt = .now
-        StateSnapshotService.shared.recordIntelligence(
-            alerts: intelligenceAlerts, weather: Array(savedWeather.values), earthquakes: earthquakes, news: newsByCategory)
-
-        let successes = [results.0 != nil, results.1 != nil, results.2 != nil, results.3 != nil, results.4 != nil]
-        errorMessage = successes.allSatisfy { $0 }
-            ? nil
-            : "One or more live sources could not be refreshed. Available results remain visible."
-
-        if notificationsEnabled {
-            await notificationService.deliverNewCriticalAlerts(
-                intelligenceAlerts,
-                quietStartHour: quietStartHour,
-                quietEndHour: quietEndHour
-            )
-        }
-        speechService.speakNewCriticalAlert(from: intelligenceAlerts)
-        startNewsAPIEnhancement()
-    }
-
-    /// One failed location no longer discards the others; it throws only when every location fails.
-    private func fetchWeather(for locations: [SavedLocationValue]) async throws -> [String: WeatherSnapshot] {
-        let results = await withTaskGroup(of: Result<WeatherSnapshot, Error>.self) { group in
-            for location in locations {
-                group.addTask { await capture { try await weatherService.currentWeather(for: location) } }
-            }
-            var collected: [Result<WeatherSnapshot, Error>] = []
-            for await result in group { collected.append(result) }
-            return collected
-        }
-        var output: [String: WeatherSnapshot] = [:]
-        for case let .success(snapshot) in results { output[snapshot.locationName] = snapshot }
-        if output.isEmpty, case let .failure(error)? = results.first { throw error }
-        return output
-    }
-
-    private func fetchNews(category: NewsSource.Category) async throws -> [NewsArticle] {
-        guard let source = NewsSource.defaults.first(where: { $0.category == category }) else { return [] }
-        return try await newsService.articles(from: source)
-    }
-
-    @MainActor
-    private func startNewsAPIEnhancement() {
-        guard !isNewsAPIEnhancementRunning else { return }
-        isNewsAPIEnhancementRunning = true
-        Task {
-            let apiKey = await Task.detached(priority: .utility) {
-                NewsAPIKeyStore().read()
-            }.value
-            guard let apiKey else {
-                isNewsAPIEnhancementRunning = false
-                return
-            }
-
-            // Results instead of try?, so a bad key or used-up quota is shown rather than silently ignored.
-            async let philippines = capture { try await newsAPIService.articles(category: .philippines, apiKey: apiKey) }
-            async let world = capture { try await newsAPIService.articles(category: .world, apiKey: apiKey) }
-            let results = await (philippines, world)
-            if case let .success(articles) = results.0, !articles.isEmpty { newsByCategory[.philippines] = articles }
-            if case let .success(articles) = results.1, !articles.isEmpty { newsByCategory[.world] = articles }
-            newsAPIMessage = [results.0, results.1].compactMap { result -> String? in
-                if case let .failure(error) = result { return error.localizedDescription }
-                return nil
-            }.first
-            isNewsAPIEnhancementRunning = false
-        }
     }
 
     private func updateChangeSummary() {
@@ -1113,9 +1016,4 @@ private struct AddLocationView: View {
             }
         }
     }
-}
-
-/// Runs an async throwing operation and keeps its error, unlike `try?`.
-private func capture<T>(_ operation: () async throws -> T) async -> Result<T, Error> {
-    do { return .success(try await operation()) } catch { return .failure(error) }
 }

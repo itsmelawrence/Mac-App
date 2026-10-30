@@ -48,6 +48,7 @@ final class AppCoordinator {
         wakeMonitor.start { [weak self] sleepDuration in
             SiteMonitor.shared.checkAfterWake()
             LeadMonitor.shared.syncAfterWake()
+            IntelligenceFeed.shared.refreshAfterWake()
             guard let self,
                   appState.showWakeBriefing,
                   sleepDuration >= appState.minimumSleepForBriefing else { return }
@@ -65,6 +66,10 @@ final class AppCoordinator {
         SiteMonitor.shared.attach(context)
         tasks.append(Task { await SiteMonitor.shared.run() })
 
+        // Weather, earthquakes, and news every 30 minutes, so alerts and state.json stay current with the window closed.
+        IntelligenceFeed.shared.attach(context)
+        tasks.append(Task { await IntelligenceFeed.shared.run() })
+
         // Contact-form leads from the portfolio sites, hourly with the window closed too.
         tasks.append(Task { await LeadMonitor.shared.run() })
 
@@ -77,7 +82,7 @@ final class AppCoordinator {
         tasks.append(Task { await ActionCenter.shared.run() })
 
         // The assistant's state.json: tasks and projects on launch, on every save, and each minute
-        // (so overdue and due-today flags stay current). SiteMonitor adds sites; views add weather and news as they fetch.
+        // (so overdue and due-today flags stay current). SiteMonitor adds sites; IntelligenceFeed adds weather, quakes, and news.
         let snapshots = StateSnapshotService.shared
         snapshots.refreshStore(context: context)
         tasks.append(Task {
