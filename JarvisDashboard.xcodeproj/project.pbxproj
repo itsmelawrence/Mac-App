@@ -85,6 +85,7 @@
 		BCA72791AAD8B3139165CEFC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929151532C0ADDCF47913F8B /* RootView.swift */; };
 		BFEDB283F6FEB9D5182E7848 /* JarvisBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD032476F03162FCB64A9B1 /* JarvisBackupServiceTests.swift */; };
 		C5D53B0C56866CFE9BDF75A8 /* SpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A962457DF4DD94ED621844A8 /* SpeechService.swift */; };
+		C7437AD67F637CEA99124CBE /* ConsoleGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE9F947F3F8658B2F8A5E4B8 /* ConsoleGlyph.swift */; };
 		D0DA0DF5E8FC62C9D018DAA7 /* ConsoleBrainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6737865FD1187C5227E5D1C5 /* ConsoleBrainService.swift */; };
 		D2A807A075566331803B2C91 /* ConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7987A59411E3538B9DEBF31E /* ConnectionsView.swift */; };
 		D39B539A085FAF1AD89EF0D0 /* WeatherLabelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D595A2D28C5969B733F49AA /* WeatherLabelPlacement.swift */; };
@@ -199,6 +200,7 @@
 		B0397F0438367EDF0F066574 /* TaskStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskStore.swift; sourceTree = "<group>"; };
 		B0E2BFE1BAFA697A1A9EE4F0 /* SiteMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteMonitorTests.swift; sourceTree = "<group>"; };
 		B505B3E083A24B260FD66DC7 /* SiteMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteMonitor.swift; sourceTree = "<group>"; };
+		BE9F947F3F8658B2F8A5E4B8 /* ConsoleGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleGlyph.swift; sourceTree = "<group>"; };
 		BF590F901D7F4447A3F3DDDA /* GraphifyViewer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GraphifyViewer; path = Supporting/GraphifyViewer; sourceTree = SOURCE_ROOT; };
 		C0C7D173283F605CA610779F /* ProjectItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectItem.swift; sourceTree = "<group>"; };
 		C39902BB88D836CA9896FAE1 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -235,6 +237,7 @@
 				A7ECC5FDBBD4D86DA434B8ED /* BackupSettingsView.swift */,
 				E63FF12B1553CF7C2E218795 /* BriefingPanelController.swift */,
 				7987A59411E3538B9DEBF31E /* ConnectionsView.swift */,
+				BE9F947F3F8658B2F8A5E4B8 /* ConsoleGlyph.swift */,
 				F8B5D0D6E57EAD013994D12D /* GraphifyHTMLView.swift */,
 				D9BB30267310BD2005CEB9E9 /* IntelligenceView.swift */,
 				49CE4DF20786D7D4B48EB0BD /* MapTilerWeatherBasemap.swift */,
@@ -566,6 +569,7 @@
 				AC2E3E23EA05AFE678552909 /* ConnectionsService.swift in Sources */,
 				D2A807A075566331803B2C91 /* ConnectionsView.swift in Sources */,
 				D0DA0DF5E8FC62C9D018DAA7 /* ConsoleBrainService.swift in Sources */,
+				C7437AD67F637CEA99124CBE /* ConsoleGlyph.swift in Sources */,
 				8BADACBD0BDBA278E57D1F87 /* DailyReviewService.swift in Sources */,
 				E7CA744190BE7D643E99B37C /* EarthquakeService.swift in Sources */,
 				3EEA784EBF63F8D872D731CA /* GitRepositoryService.swift in Sources */,
@@ -667,7 +671,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 49;
+				CURRENT_PROJECT_VERSION = 50;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -688,7 +692,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.48;
+				MARKETING_VERSION = 0.2.49;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -808,7 +812,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 49;
+				CURRENT_PROJECT_VERSION = 50;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = TRM376DDJX;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -823,7 +827,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.48;
+				MARKETING_VERSION = 0.2.49;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
