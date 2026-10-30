@@ -22,7 +22,7 @@ struct LeadsView: View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Leads").font(.title2.bold())
-                Text("Contact-form submissions from your sites, checked every 10 minutes while JARVIS is open.")
+                Text("Contact-form submissions from your sites, checked hourly while JARVIS is open, or now with Check now.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -274,7 +274,7 @@ struct LeadSourceSettings: View {
         } header: {
             Text("Leads")
         } footer: {
-            Text("JARVIS reads each site's /api/jarvis/leads feed every 10 minutes while it is open. The token must match JARVIS_LEADS_TOKEN in the site's environment and is stored in macOS Keychain. Leads are kept on this Mac and included in backups; tokens are not.")
+            Text("JARVIS reads each site's /api/jarvis/leads feed hourly while it is open, and after the Mac wakes. The token must match JARVIS_LEADS_TOKEN in the site's environment and is stored in macOS Keychain. Leads are kept on this Mac and included in backups; tokens are not.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .confirmationDialog(

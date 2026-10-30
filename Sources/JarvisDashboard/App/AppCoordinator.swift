@@ -65,7 +65,7 @@ final class AppCoordinator {
         SiteMonitor.shared.attach(context)
         tasks.append(Task { await SiteMonitor.shared.run() })
 
-        // Contact-form leads from the portfolio sites, every 10 minutes with the window closed too.
+        // Contact-form leads from the portfolio sites, hourly with the window closed too.
         tasks.append(Task { await LeadMonitor.shared.run() })
 
         // The morning review (roadmap 4.1): once a day after 7:00; its proposals wait in Activity.

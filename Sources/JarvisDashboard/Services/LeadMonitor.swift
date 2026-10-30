@@ -276,11 +276,12 @@ struct LeadTokenStore: Sendable {
     }
 }
 
-/// Fetches every source's leads every 10 minutes, for the app's lifetime (window open or not).
+/// Fetches every source's leads hourly, for the app's lifetime (window open or not). Hourly rather than
+/// more often so the check alone does not keep a hibernating Laravel Cloud app awake.
 @MainActor
 final class LeadMonitor: ObservableObject {
     static let shared = LeadMonitor(snapshots: .shared)
-    static let interval: Duration = .seconds(10 * 60)
+    static let interval: Duration = .seconds(60 * 60)
     static let notificationsKey = "leads.notifyOnNew"
     /// More new leads than this in one sync arrive as one summary notification.
     static let notificationBurstLimit = 3
