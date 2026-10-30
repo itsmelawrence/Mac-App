@@ -113,12 +113,13 @@ struct TasksView: View {
             }
             Picker("View", selection: $viewMode) {
                 Label("List", systemImage: "list.bullet").tag("list")
+                Label("Grid", systemImage: "square.grid.3x2").tag("grid")
                 Label("Calendar", systemImage: "calendar").tag("calendar")
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
-            .help("Show tasks as a list or on a calendar")
+            .help("Show tasks as a list, as tiles, or on a calendar")
             Button { showingNewTask = true } label: {
                 Label("New Mission", systemImage: "plus")
                     .fontWeight(.semibold)
@@ -248,14 +249,28 @@ struct TasksView: View {
                 .frame(maxWidth: .infinity, minHeight: 260)
                 .taskSurface(cornerRadius: 16)
             } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(visibleTasks) { task in
-                        MissionTaskCard(
-                            task: task,
-                            projectName: projectName(for: task),
-                            onEdit: { taskBeingEdited = task },
-                            onDelete: { taskPendingDeletion = task }
-                        )
+                if viewMode == "grid" {
+                    LazyVGrid(columns: CollectionLayout.gridColumns, spacing: 12) {
+                        ForEach(visibleTasks) { task in
+                            MissionTaskCard(
+                                task: task,
+                                projectName: projectName(for: task),
+                                isTile: true,
+                                onEdit: { taskBeingEdited = task },
+                                onDelete: { taskPendingDeletion = task }
+                            )
+                        }
+                    }
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(visibleTasks) { task in
+                            MissionTaskCard(
+                                task: task,
+                                projectName: projectName(for: task),
+                                onEdit: { taskBeingEdited = task },
+                                onDelete: { taskPendingDeletion = task }
+                            )
+                        }
                     }
                 }
             }
@@ -331,31 +346,28 @@ private struct ScopeChip: View {
 }
 
 /// One task in the queue. The whole card opens the editor on a single click; the circle completes it.
+/// A task as a full-width row, or as a grid tile when `isTile` is set.
 private struct MissionTaskCard: View {
     @Bindable var task: TaskItem
     let projectName: String?
+    var isTile = false
     let onEdit: () -> Void
     let onDelete: () -> Void
     @State private var isHovering = false
 
     var body: some View {
+        Group {
+            if isTile { tileLayout } else { rowLayout }
+        }
+        .modifier(MissionCardChrome(task: task, isHovering: $isHovering, onEdit: onEdit, onDelete: onDelete))
+    }
+
+    private var rowLayout: some View {
         HStack(alignment: .top, spacing: 16) {
-            Button { TaskStore.setCompleted(task, !task.isCompleted) } label: {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 24, weight: .light))
-                    .foregroundStyle(task.isCompleted ? Color.green : priorityColor(task.priority))
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .help(task.isCompleted ? "Reopen" : "Mark complete")
-            .padding(.top, 1)
+            completionButton.padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(task.title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .strikethrough(task.isCompleted)
-                    .foregroundStyle(task.isCompleted ? Color.secondary : Color.primary)
-                    .fixedSize(horizontal: false, vertical: true)
+                title
                 if !task.notes.isEmpty {
                     Text(task.notes)
                         .font(.callout)
@@ -372,68 +384,125 @@ private struct MissionTaskCard: View {
                     Label("Edit", systemImage: "pencil")
                 }
                 .controlSize(.regular)
-                Menu {
-                    Button("Edit…", systemImage: "pencil", action: onEdit)
-                    Button(task.isCompleted ? "Reopen" : "Mark Complete",
-                           systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark") {
-                        TaskStore.setCompleted(task, !task.isCompleted)
-                    }
-                    if !task.isCompleted {
-                        Button(task.isBlocked ? "Unblock" : "Mark as Blocked",
-                               systemImage: task.isBlocked ? "hand.thumbsup" : "hand.raised") {
-                            task.isBlocked.toggle()
-                            if !task.isBlocked { task.blockedReason = "" }
-                        }
-                    }
-                    Divider()
-                    Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
-                } label: {
-                    Image(systemName: "ellipsis").frame(width: 20, height: 20)
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help("More actions")
+                actionsMenu
             }
             .opacity(isHovering ? 1 : 0.75)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.78 : 0.55))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(isHovering ? Color.cyan.opacity(0.45) : Color.white.opacity(0.07), lineWidth: 1)
-        )
-        .overlay(alignment: .leading) {
-            // Priority accent along the card's left edge.
-            RoundedRectangle(cornerRadius: 2)
-                .fill(task.isCompleted ? Color.green.opacity(0.5) : priorityColor(task.priority))
-                .frame(width: 3)
-                .padding(.vertical, 14)
+    }
+
+    /// Tiles fill their grid row's height so a row lines up; the chips wrap instead of widening the tile.
+    private var tileLayout: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                completionButton
+                title.lineLimit(2)
+                Spacer(minLength: 4)
+                actionsMenu.opacity(isHovering ? 1 : 0.6)
+            }
+            if !task.notes.isEmpty {
+                Text(task.notes)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            TaskMetaChips(task: task, projectName: projectName, wraps: true)
         }
-        .opacity(task.isCompleted ? 0.72 : 1)
-        .contentShape(RoundedRectangle(cornerRadius: 14))
-        .onTapGesture(perform: onEdit)
-        .onHover { hovering in
-            isHovering = hovering
-            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 160, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var completionButton: some View {
+        Button { TaskStore.setCompleted(task, !task.isCompleted) } label: {
+            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 24, weight: .light))
+                .foregroundStyle(task.isCompleted ? Color.green : priorityColor(task.priority))
+                .frame(width: 28, height: 28)
         }
-        // Completing a task from the Open queue removes its card while the pointer is still on it.
-        .onDisappear { if isHovering { NSCursor.pop() } }
-        .animation(.easeOut(duration: 0.12), value: isHovering)
-        .help("Click to edit")
-        .contextMenu {
+        .buttonStyle(.plain)
+        .help(task.isCompleted ? "Reopen" : "Mark complete")
+    }
+
+    private var title: some View {
+        Text(task.title)
+            .font(.system(size: 16, weight: .semibold))
+            .strikethrough(task.isCompleted)
+            .foregroundStyle(task.isCompleted ? Color.secondary : Color.primary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var actionsMenu: some View {
+        Menu {
             Button("Edit…", systemImage: "pencil", action: onEdit)
-            Button(task.isBlocked ? "Unblock Task" : "Mark as Blocked", systemImage: task.isBlocked ? "hand.thumbsup" : "hand.raised") {
-                task.isBlocked.toggle()
-                if !task.isBlocked { task.blockedReason = "" }
+            Button(task.isCompleted ? "Reopen" : "Mark Complete",
+                   systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark") {
+                TaskStore.setCompleted(task, !task.isCompleted)
+            }
+            if !task.isCompleted {
+                Button(task.isBlocked ? "Unblock" : "Mark as Blocked",
+                       systemImage: task.isBlocked ? "hand.thumbsup" : "hand.raised") {
+                    task.isBlocked.toggle()
+                    if !task.isBlocked { task.blockedReason = "" }
+                }
             }
             Divider()
-            Button("Delete Task", systemImage: "trash", role: .destructive, action: onDelete)
+            Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+        } label: {
+            Image(systemName: "ellipsis").frame(width: 20, height: 20)
         }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("More actions")
+    }
+}
+
+/// The card surface, priority accent, hover, click-to-edit and context menu shared by rows and tiles.
+private struct MissionCardChrome: ViewModifier {
+    @Bindable var task: TaskItem
+    @Binding var isHovering: Bool
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.78 : 0.55))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isHovering ? Color.cyan.opacity(0.45) : Color.white.opacity(0.07), lineWidth: 1)
+            )
+            .overlay(alignment: .leading) {
+                // Priority accent along the card's left edge.
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(task.isCompleted ? Color.green.opacity(0.5) : priorityColor(task.priority))
+                    .frame(width: 3)
+                    .padding(.vertical, 14)
+            }
+            .opacity(task.isCompleted ? 0.72 : 1)
+            .contentShape(RoundedRectangle(cornerRadius: 14))
+            .onTapGesture(perform: onEdit)
+            .onHover { hovering in
+                isHovering = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+            // Completing a task from the Open queue removes its card while the pointer is still on it.
+            .onDisappear { if isHovering { NSCursor.pop() } }
+            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .help("Click to edit")
+            .contextMenu {
+                Button("Edit…", systemImage: "pencil", action: onEdit)
+                Button(task.isBlocked ? "Unblock Task" : "Mark as Blocked", systemImage: task.isBlocked ? "hand.thumbsup" : "hand.raised") {
+                    task.isBlocked.toggle()
+                    if !task.isBlocked { task.blockedReason = "" }
+                }
+                Divider()
+                Button("Delete Task", systemImage: "trash", role: .destructive, action: onDelete)
+            }
     }
 }
 
@@ -441,23 +510,32 @@ private struct MissionTaskCard: View {
 private struct TaskMetaChips: View {
     let task: TaskItem
     let projectName: String?
+    /// Wraps onto further lines instead of running past a narrow tile.
+    var wraps = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            MetaChip(text: projectName ?? "Inbox", systemImage: projectName == nil ? "tray" : "square.stack.3d.up", tint: .secondary)
-            if let dueDate = task.dueDate {
-                let overdue = dueDate < .now && !task.isCompleted
-                MetaChip(text: dueText(dueDate, overdue: overdue),
-                         systemImage: overdue ? "clock.badge.exclamationmark" : "calendar",
-                         tint: overdue ? .red : (Calendar.current.isDateInToday(dueDate) ? .cyan : .secondary))
-            } else {
-                MetaChip(text: "No deadline", systemImage: "calendar", tint: .secondary.opacity(0.7))
-            }
-            PriorityChip(priority: task.priority)
-            if task.isBlocked && !task.isCompleted {
-                MetaChip(text: task.blockedReason.isEmpty ? "Blocked" : "Blocked: \(task.blockedReason)",
-                         systemImage: "hand.raised.fill", tint: .orange)
-            }
+        if wraps {
+            ChipFlowLayout(spacing: 6) { chips }
+        } else {
+            HStack(spacing: 8) { chips }
+        }
+    }
+
+    @ViewBuilder
+    private var chips: some View {
+        MetaChip(text: projectName ?? "Inbox", systemImage: projectName == nil ? "tray" : "square.stack.3d.up", tint: .secondary)
+        if let dueDate = task.dueDate {
+            let overdue = dueDate < .now && !task.isCompleted
+            MetaChip(text: dueText(dueDate, overdue: overdue),
+                     systemImage: overdue ? "clock.badge.exclamationmark" : "calendar",
+                     tint: overdue ? .red : (Calendar.current.isDateInToday(dueDate) ? .cyan : .secondary))
+        } else {
+            MetaChip(text: "No deadline", systemImage: "calendar", tint: .secondary.opacity(0.7))
+        }
+        PriorityChip(priority: task.priority)
+        if task.isBlocked && !task.isCompleted {
+            MetaChip(text: task.blockedReason.isEmpty ? "Blocked" : "Blocked: \(task.blockedReason)",
+                     systemImage: "hand.raised.fill", tint: .orange)
         }
     }
 

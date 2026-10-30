@@ -19,6 +19,7 @@ struct ConnectionsView: View {
     @State private var searchText = ""
     @State private var collapsedGroups: Set<String> = []
     @State private var showingVaultIssues = false
+    @AppStorage("cortex.layout") private var layout: CollectionLayout = .list
 
     private var vaultURL: URL { ICMRoutingService.vaultURL(configuredPath: vaultPath) }
     private var project: ConnectionProject? { projects.first { $0.id == selectedProjectID } }
@@ -196,6 +197,7 @@ struct ConnectionsView: View {
                     }
                 }
                 Spacer(minLength: 0)
+                CollectionLayoutPicker(layout: $layout)
             }
             let groups = visibleGroups
             if groups.isEmpty {
@@ -234,7 +236,15 @@ struct ConnectionsView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if !isCollapsed {
+            if !isCollapsed && layout == .grid {
+                LazyVGrid(columns: CollectionLayout.gridColumns, spacing: 12) {
+                    ForEach(group.projects) { item in
+                        CortexProjectTile(project: item, isMapped: mappedIDs.contains(item.id)) {
+                            selectedProjectID = item.id
+                        }
+                    }
+                }
+            } else if !isCollapsed {
                 VStack(spacing: 0) {
                     ForEach(Array(group.projects.enumerated()), id: \.element.id) { index, item in
                         if index > 0 { Divider().padding(.leading, 46) }
@@ -643,6 +653,78 @@ private struct CortexProjectRow: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
+        .help(project.route.projectPath)
+    }
+
+    private func badge(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8).padding(.vertical, 2)
+            .background(tint.opacity(0.13), in: Capsule())
+    }
+}
+
+/// One project as a grid tile; a click opens it, as a row does.
+private struct CortexProjectTile: View {
+    let project: ConnectionProject
+    let isMapped: Bool
+    let onOpen: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: onOpen) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: isMapped ? "point.3.connected.trianglepath.dotted" : "circle.dashed")
+                        .font(.title3)
+                        .foregroundStyle(isMapped ? Color.cyan : Color.secondary.opacity(0.6))
+                        .frame(width: 26)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(project.name)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(project.route.projectPath)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer(minLength: 0)
+                }
+                Spacer(minLength: 0)
+                HStack(spacing: 6) {
+                    if isMapped {
+                        badge("Mapped", tint: .cyan)
+                    } else {
+                        Text("No map").font(.caption).foregroundStyle(.tertiary)
+                    }
+                    if project.isRegistered {
+                        badge("ICM route", tint: .purple)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .opacity(isHovering ? 1 : 0.35)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 112, maxHeight: .infinity, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.78 : 0.55))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isHovering ? Color.cyan.opacity(0.45) : Color.white.opacity(0.07), lineWidth: 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
         .help(project.route.projectPath)
     }
 
