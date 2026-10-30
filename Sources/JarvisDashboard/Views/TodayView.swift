@@ -213,13 +213,8 @@ struct TodayView: View {
             }
             Spacer()
             attentionBadge
-            Button { showingCommandConsole = true } label: {
-                Label("Ask JARVIS", systemImage: "waveform.circle.fill")
-                    .fontWeight(.semibold).padding(.horizontal, 6)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.cyan)
-            .keyboardShortcut("k", modifiers: .command)
+            ConsoleGlyphButton { showingCommandConsole = true }
+                .keyboardShortcut("k", modifiers: .command)
             Button { Task { await refreshCommandCentre() } } label: {
                 Image(systemName: isRefreshing ? "hourglass" : "arrow.clockwise")
             }
@@ -699,6 +694,14 @@ private struct CommandEmptyState: View {
     }
 }
 
+/// An earlier exchange in the console's scrollback (text only; buttons belong to the latest one).
+private struct ConsoleLine: Identifiable {
+    static let limit = 20
+    let id = UUID()
+    let prompt: String
+    let output: String
+}
+
 private struct JarvisCommandConsole: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("icm.vaultPath") private var vaultPath = ""
@@ -711,123 +714,181 @@ private struct JarvisCommandConsole: View {
     @State private var captureStatus: String?
     @State private var brainReply: ConsoleBrainReply?
     @State private var isThinking = false
+    @State private var lastPrompt: String?
+    @State private var history: [ConsoleLine] = []
     let context: JarvisCommandContext
     let onResult: (JarvisCommandResult) -> Void
     let onOpenProject: (UUID) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                Label("JARVIS Command Console", systemImage: "waveform.circle.fill")
-                    .font(.title2.bold()).foregroundStyle(.cyan)
-                Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
-            }
-            HStack(spacing: 10) {
-                TextField("Ask about a project or describe work to route…", text: $command)
-                    .textFieldStyle(.roundedBorder).focused($commandFocused).onSubmit(executeCommand)
-                Button("Execute", action: executeCommand)
-                    .buttonStyle(.borderedProminent).tint(.cyan)
-                    .disabled(isThinking || command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Label(preparedRoute?.route.name ?? lastResult?.card?.title ?? "JARVIS RESPONSE", systemImage: "sparkles.rectangle.stack")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.cyan)
-                        Spacer()
-                        if isThinking { ProgressView().controlSize(.small) }
-                        if let card = lastResult?.card {
-                            Text(card.status).font(.caption.weight(.semibold))
-                                .padding(.horizontal, 8).padding(.vertical, 4)
-                                .background(.cyan.opacity(0.12), in: Capsule())
-                        }
-                    }
-                    Text(responseText).font(.subheadline).textSelection(.enabled)
-                    if let preparedRoute {
-                        Divider()
-                        LabeledContent("Project", value: preparedRoute.projectURL.path)
-                            .font(.caption).textSelection(.enabled)
-                        LabeledContent("Context", value: preparedRoute.contextURL.path)
-                            .font(.caption).textSelection(.enabled)
-                        Text("Graphify hints: \(preparedRoute.graphURLs.count) · verify each connection in source")
-                            .font(.caption).foregroundStyle(.secondary)
-                        HStack {
-                            Button("Copy agent handoff", systemImage: "doc.on.doc") {
-                                NSPasteboard.general.clearContents()
-                                let activityInstruction = activityNoteURL.map {
-                                    "\nActivity note: \($0.path)\nUpdate this note with work performed, source files, verification, outcome and next action before finishing."
-                                } ?? ""
-                                NSPasteboard.general.setString(preparedRoute.handoff + activityInstruction, forType: .string)
-                            }
-                            Button("Open project", systemImage: "folder") {
-                                NSWorkspace.shared.open(preparedRoute.projectURL)
-                            }
-                            Button("Open context", systemImage: "doc.text") {
-                                NSWorkspace.shared.open(preparedRoute.contextURL)
+        VStack(spacing: 0) {
+            titleBar
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("JARVIS console · built-in commands answer first; anything else goes to the local model · type help")
+                            .font(ConsoleTheme.smallFont).foregroundStyle(ConsoleTheme.dim)
+                        ForEach(history) { line in
+                            VStack(alignment: .leading, spacing: 4) {
+                                promptLine(line.prompt)
+                                Text(line.output).foregroundStyle(ConsoleTheme.dim).textSelection(.enabled)
                             }
                         }
-                        .buttonStyle(.bordered)
+                        currentExchange
+                        Color.clear.frame(height: 1).id("end")
                     }
-                    if let card = lastResult?.card {
-                        Divider()
-                        ForEach(card.facts, id: \.self) { fact in
-                            Text(fact).font(.subheadline).textSelection(.enabled)
-                        }
-                        HStack {
-                            Text(card.source).font(.caption).foregroundStyle(.secondary)
-                            Spacer()
-                            if let projectID = card.projectID {
-                                Button("View project", systemImage: "arrow.up.right.square") {
-                                    onOpenProject(projectID)
-                                }
-                                .buttonStyle(.borderedProminent).tint(.cyan)
-                            }
-                        }
-                    } else if let brainReply {
-                        Divider()
-                        if brainReply.awaitsApproval {
-                            Label("A change waits for your approval in Activity.", systemImage: "checkmark.shield")
-                                .font(.caption).foregroundStyle(.orange)
-                        }
-                        if let tools = brainReply.toolsLine {
-                            Text("Tools: \(tools)").font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                        }
-                        Text(brainReply.sourceLine).font(.caption2).foregroundStyle(.tertiary)
-                    } else if preparedRoute == nil && !isThinking {
-                        Text("Source: local dashboard snapshot")
-                            .font(.caption2).foregroundStyle(.tertiary)
-                    }
-                    if let captureStatus {
-                        Text(captureStatus).font(.caption2).foregroundStyle(.secondary)
-                    }
+                    .font(ConsoleTheme.font)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
+                .onChange(of: history.count) { withAnimation { proxy.scrollTo("end", anchor: .bottom) } }
+                .onChange(of: response) { withAnimation { proxy.scrollTo("end", anchor: .bottom) } }
             }
-            .frame(maxWidth: .infinity, minHeight: 120, maxHeight: 340)
-            .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(["Brief me", "What needs attention?", "What should I work on?", "Are my sites healthy?"], id: \.self) { suggestion in
-                    Button(suggestion) { command = suggestion; executeCommand() }
-                        .buttonStyle(.bordered).controlSize(.small).disabled(isThinking)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                Button("Ask about a project…") {
-                    command = "How is "
-                    commandFocused = true
-                }
-                .buttonStyle(.bordered).controlSize(.small)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            Text("Work requests use the local ICM vault route and create a PARA project activity note. Copy the handoff into Codex or Claude. Anything else the built-in commands don't recognise goes to the local model on this Mac, through the same gated jarvis tools; nothing leaves the Mac. Every submitted prompt is saved locally when the vault is available.")
-                .font(.caption2).foregroundStyle(.tertiary)
+            Divider().overlay(ConsoleTheme.accent.opacity(0.2))
+            inputLine
+            suggestions
         }
-        .padding(26)
-        .frame(width: 650)
-        .background(Color(red: 0.012, green: 0.028, blue: 0.052))
+        .frame(width: 680, height: 520)
+        .background(ConsoleTheme.background)
+        .environment(\.colorScheme, .dark)
         .onAppear { commandFocused = true }
+    }
+
+    private var titleBar: some View {
+        ZStack {
+            HStack(spacing: 7) {
+                Button { dismiss() } label: {
+                    Circle().fill(Color(red: 1, green: 0.37, blue: 0.34)).frame(width: 12, height: 12)
+                }
+                .buttonStyle(.plain).keyboardShortcut(.cancelAction).help("Close (Esc)")
+                Circle().fill(Color(white: 0.3)).frame(width: 12, height: 12)
+                Circle().fill(Color(white: 0.3)).frame(width: 12, height: 12)
+                Spacer()
+                Text(isThinking ? "local model" : "ready")
+                    .font(ConsoleTheme.smallFont)
+                    .foregroundStyle(isThinking ? ConsoleTheme.accent : ConsoleTheme.dim)
+            }
+            Text("jarvis — console").font(ConsoleTheme.smallFont.weight(.semibold)).foregroundStyle(ConsoleTheme.dim)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(ConsoleTheme.chrome)
+    }
+
+    private func promptLine(_ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("❯").foregroundStyle(ConsoleTheme.accent)
+            Text(text).foregroundStyle(ConsoleTheme.text).textSelection(.enabled)
+        }
+    }
+
+    @ViewBuilder
+    private var currentExchange: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let lastPrompt { promptLine(lastPrompt) }
+            if isThinking {
+                HStack(spacing: 8) {
+                    ConsoleSpinner().foregroundStyle(ConsoleTheme.accent)
+                    Text(response).foregroundStyle(ConsoleTheme.dim)
+                }
+            } else {
+                if let card = lastResult?.card {
+                    Text("\(card.title) · \(card.status)").foregroundStyle(ConsoleTheme.accent).fontWeight(.semibold)
+                } else if let preparedRoute {
+                    Text("→ \(preparedRoute.route.name)").foregroundStyle(ConsoleTheme.accent).fontWeight(.semibold)
+                }
+                Text(responseText).foregroundStyle(ConsoleTheme.text).textSelection(.enabled)
+            }
+            if let preparedRoute {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("project  \(preparedRoute.projectURL.path)")
+                    Text("context  \(preparedRoute.contextURL.path)")
+                    Text("graphify \(preparedRoute.graphURLs.count) hints · verify each connection in source")
+                }
+                .font(ConsoleTheme.smallFont).foregroundStyle(ConsoleTheme.dim).textSelection(.enabled)
+                HStack(spacing: 8) {
+                    consoleAction("copy handoff", systemImage: "doc.on.doc") {
+                        NSPasteboard.general.clearContents()
+                        let activityInstruction = activityNoteURL.map {
+                            "\nActivity note: \($0.path)\nUpdate this note with work performed, source files, verification, outcome and next action before finishing."
+                        } ?? ""
+                        NSPasteboard.general.setString(preparedRoute.handoff + activityInstruction, forType: .string)
+                    }
+                    consoleAction("open project", systemImage: "folder") { NSWorkspace.shared.open(preparedRoute.projectURL) }
+                    consoleAction("open context", systemImage: "doc.text") { NSWorkspace.shared.open(preparedRoute.contextURL) }
+                }
+            }
+            if let card = lastResult?.card {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(card.facts, id: \.self) { fact in Text("  \(fact)").foregroundStyle(ConsoleTheme.text) }
+                }
+                .textSelection(.enabled)
+                HStack {
+                    Text(card.source).font(ConsoleTheme.smallFont).foregroundStyle(ConsoleTheme.dim)
+                    Spacer()
+                    if let projectID = card.projectID {
+                        consoleAction("view project", systemImage: "arrow.up.right.square") { onOpenProject(projectID) }
+                    }
+                }
+            } else if let brainReply {
+                VStack(alignment: .leading, spacing: 3) {
+                    if brainReply.awaitsApproval {
+                        Text("! a change waits for your approval in Activity").foregroundStyle(.orange)
+                    }
+                    if let tools = brainReply.toolsLine { Text("tools  \(tools)").textSelection(.enabled) }
+                    Text(brainReply.sourceLine)
+                }
+                .font(ConsoleTheme.smallFont).foregroundStyle(ConsoleTheme.dim)
+            }
+            if let captureStatus {
+                Text(captureStatus).font(ConsoleTheme.smallFont).foregroundStyle(ConsoleTheme.dim.opacity(0.7))
+            }
+        }
+    }
+
+    private func consoleAction(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(ConsoleTheme.smallFont)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(ConsoleTheme.accent.opacity(0.5)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain).foregroundStyle(ConsoleTheme.accent)
+    }
+
+    private var inputLine: some View {
+        HStack(spacing: 8) {
+            Text("❯").foregroundStyle(isThinking ? ConsoleTheme.dim : ConsoleTheme.accent)
+            TextField("ask about a project, or describe work to route", text: $command)
+                .textFieldStyle(.plain)
+                .foregroundStyle(ConsoleTheme.text)
+                .focused($commandFocused)
+                .onSubmit(executeCommand)
+                .disabled(isThinking)
+            Text("⏎").foregroundStyle(ConsoleTheme.dim)
+        }
+        .font(ConsoleTheme.font)
+        .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    private var suggestions: some View {
+        HStack(spacing: 6) {
+            ForEach(["brief me", "what needs attention?", "what should I work on?", "are my sites healthy?"], id: \.self) { suggestion in
+                Button(suggestion) { command = suggestion; executeCommand() }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
+            }
+            Button("how is …") { command = "How is "; commandFocused = true }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
+            Spacer(minLength: 0)
+        }
+        .font(ConsoleTheme.smallFont)
+        .foregroundStyle(ConsoleTheme.dim)
+        .disabled(isThinking)
+        .padding(.horizontal, 16).padding(.bottom, 12)
     }
 
     /// The model answers in Markdown; render its inline styling (bold, code, links).
@@ -840,6 +901,12 @@ private struct JarvisCommandConsole: View {
     private func executeCommand() {
         let prompt = command.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !isThinking else { return }
+        if let lastPrompt {
+            history.append(ConsoleLine(prompt: lastPrompt, output: response))
+            history = Array(history.suffix(ConsoleLine.limit))
+        }
+        lastPrompt = prompt
+        command = ""
         let vaultURL = ICMRoutingService.vaultURL(configuredPath: vaultPath)
         preparedRoute = nil
         activityNoteURL = nil
@@ -892,6 +959,7 @@ private struct JarvisCommandConsole: View {
                 Result { try ConsoleBrainService.ask(prompt, vaultURL: vaultURL) }
             }.value
             isThinking = false
+            commandFocused = true
             switch result {
             case let .success(reply) where !reply.answer.isEmpty:
                 brainReply = reply
