@@ -106,6 +106,13 @@ struct JarvisCommandEngineTests {
         #expect(result.destination == nil)
         #expect(!result.shouldSpeak)
         #expect(result.response.contains("Say “help”"))
+        #expect(!result.understood)
+    }
+
+    @Test func builtInCommandsAreUnderstoodSoTheyNeverReachTheModel() {
+        for command in ["Brief me", "What needs attention?", "How is JAK?", "How is Orbital Dynamics?", "Open settings"] {
+            #expect(JarvisCommandEngine.execute(command, context: context).understood, "\(command)")
+        }
     }
 
     @Test func namedProjectQuestionReturnsSourcedCard() {

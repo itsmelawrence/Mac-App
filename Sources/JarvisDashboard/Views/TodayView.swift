@@ -709,6 +709,8 @@ private struct JarvisCommandConsole: View {
     @State private var preparedRoute: ICMPreparedRoute?
     @State private var activityNoteURL: URL?
     @State private var captureStatus: String?
+    @State private var brainReply: ConsoleBrainReply?
+    @State private var isThinking = false
     let context: JarvisCommandContext
     let onResult: (JarvisCommandResult) -> Void
     let onOpenProject: (UUID) -> Void
@@ -726,7 +728,7 @@ private struct JarvisCommandConsole: View {
                     .textFieldStyle(.roundedBorder).focused($commandFocused).onSubmit(executeCommand)
                 Button("Execute", action: executeCommand)
                     .buttonStyle(.borderedProminent).tint(.cyan)
-                    .disabled(command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(isThinking || command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -735,13 +737,14 @@ private struct JarvisCommandConsole: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.cyan)
                         Spacer()
+                        if isThinking { ProgressView().controlSize(.small) }
                         if let card = lastResult?.card {
                             Text(card.status).font(.caption.weight(.semibold))
                                 .padding(.horizontal, 8).padding(.vertical, 4)
                                 .background(.cyan.opacity(0.12), in: Capsule())
                         }
                     }
-                    Text(response).font(.subheadline).textSelection(.enabled)
+                    Text(responseText).font(.subheadline).textSelection(.enabled)
                     if let preparedRoute {
                         Divider()
                         LabeledContent("Project", value: preparedRoute.projectURL.path)
@@ -782,7 +785,17 @@ private struct JarvisCommandConsole: View {
                                 .buttonStyle(.borderedProminent).tint(.cyan)
                             }
                         }
-                    } else if preparedRoute == nil {
+                    } else if let brainReply {
+                        Divider()
+                        if brainReply.awaitsApproval {
+                            Label("A change waits for your approval in Activity.", systemImage: "checkmark.shield")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                        if let tools = brainReply.toolsLine {
+                            Text("Tools: \(tools)").font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                        }
+                        Text(brainReply.sourceLine).font(.caption2).foregroundStyle(.tertiary)
+                    } else if preparedRoute == nil && !isThinking {
                         Text("Source: local dashboard snapshot")
                             .font(.caption2).foregroundStyle(.tertiary)
                     }
@@ -798,7 +811,7 @@ private struct JarvisCommandConsole: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(["Brief me", "What needs attention?", "What should I work on?", "Are my sites healthy?"], id: \.self) { suggestion in
                     Button(suggestion) { command = suggestion; executeCommand() }
-                        .buttonStyle(.bordered).controlSize(.small)
+                        .buttonStyle(.bordered).controlSize(.small).disabled(isThinking)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Button("Ask about a project…") {
@@ -808,7 +821,7 @@ private struct JarvisCommandConsole: View {
                 .buttonStyle(.bordered).controlSize(.small)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Text("Work requests use the local ICM vault route and create a PARA project activity note. Copy the handoff into Codex or Claude. Every submitted prompt is saved locally when the vault is available; nothing is sent to an LLM from this console.")
+            Text("Work requests use the local ICM vault route and create a PARA project activity note. Copy the handoff into Codex or Claude. Anything else the built-in commands don't recognise goes to the local model on this Mac, through the same gated jarvis tools; nothing leaves the Mac. Every submitted prompt is saved locally when the vault is available.")
                 .font(.caption2).foregroundStyle(.tertiary)
         }
         .padding(26)
@@ -817,13 +830,21 @@ private struct JarvisCommandConsole: View {
         .onAppear { commandFocused = true }
     }
 
+    /// The model answers in Markdown; render its inline styling (bold, code, links).
+    private var responseText: AttributedString {
+        guard brainReply != nil else { return AttributedString(response) }
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        return (try? AttributedString(markdown: response, options: options)) ?? AttributedString(response)
+    }
+
     private func executeCommand() {
         let prompt = command.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prompt.isEmpty else { return }
+        guard !prompt.isEmpty, !isThinking else { return }
         let vaultURL = ICMRoutingService.vaultURL(configuredPath: vaultPath)
         preparedRoute = nil
         activityNoteURL = nil
         captureStatus = nil
+        brainReply = nil
         if ICMRoutingService.isWorkRequest(prompt) {
             lastResult = nil
             response = "Routing…"
@@ -833,10 +854,13 @@ private struct JarvisCommandConsole: View {
                     Result { try ICMRoutingService.prepare(prompt: prompt, vaultURL: vaultURL) }
                 }.value
                 switch result {
-                case let .success(route):
+                case let .success(route?):
                     preparedRoute = route
-                    response = route.map { "Routed to \($0.route.name). The agent handoff is ready to copy." }
-                        ?? "No project route matched. Add an alias in ICM/routes.json or name a configured project."
+                    response = "Routed to \(route.route.name). The agent handoff is ready to copy."
+                case .success(nil):
+                    // Not project work (e.g. "add a task to call Bob"): the model can do it through the tools.
+                    askModel(prompt, vaultURL: vaultURL,
+                             fallback: "No project route matched. Add an alias in ICM/routes.json or name a configured project.")
                 case let .failure(error):
                     response = error.localizedDescription
                 }
@@ -849,8 +873,34 @@ private struct JarvisCommandConsole: View {
         lastResult = result
         onResult(result)
         capture(prompt: prompt, route: nil, vaultURL: vaultURL)
+        if !result.understood {
+            askModel(prompt, vaultURL: vaultURL, fallback: result.response)
+            return
+        }
         if result.response.contains("Opening") && result.destination != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { dismiss() }
+        }
+    }
+
+    /// Sends a prompt no built-in command matched to the local model (roadmap 4.2). On failure the console
+    /// shows why, followed by `fallback`, so it never ends up with nothing to say.
+    private func askModel(_ prompt: String, vaultURL: URL, fallback: String) {
+        isThinking = true
+        response = "Thinking with the local model… this can take up to a minute."
+        Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                Result { try ConsoleBrainService.ask(prompt, vaultURL: vaultURL) }
+            }.value
+            isThinking = false
+            switch result {
+            case let .success(reply) where !reply.answer.isEmpty:
+                brainReply = reply
+                response = reply.answer
+            case let .success(reply):
+                response = (reply.error ?? "The local model gave no answer.") + "\n\n" + fallback
+            case let .failure(error):
+                response = error.localizedDescription + "\n\n" + fallback
+            }
         }
     }
 

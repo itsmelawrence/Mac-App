@@ -45,6 +45,8 @@ struct JarvisCommandResult: Equatable, Sendable {
     let destination: SidebarDestination?
     let shouldSpeak: Bool
     let card: JarvisResponseCard?
+    /// False when no built-in command matched; the console then asks the local model (roadmap 4.2).
+    var understood = true
 }
 
 enum JarvisCommandEngine {
@@ -116,16 +118,19 @@ enum JarvisCommandEngine {
         if contains(input, ["today", "command centre", "command center", "home"]) {
             return result("Returning to the command centre.", destination: .today)
         }
-        return result("I can brief you, identify work needing attention, suggest your next task, report site health and weather, or open a dashboard section. Say “help” for examples. Broader conversational control awaits the local model.")
+        return result(fallbackHelp, understood: false)
     }
+
+    static let fallbackHelp = "I can brief you, identify work needing attention, suggest your next task, report site health and weather, or open a dashboard section. Say “help” for examples."
 
     private static func result(
         _ response: String,
         destination: SidebarDestination? = nil,
         speak: Bool = false,
-        card: JarvisResponseCard? = nil
+        card: JarvisResponseCard? = nil,
+        understood: Bool = true
     ) -> JarvisCommandResult {
-        JarvisCommandResult(response: response, destination: destination, shouldSpeak: speak, card: card)
+        JarvisCommandResult(response: response, destination: destination, shouldSpeak: speak, card: card, understood: understood)
     }
 
     private static func projectAnswer(for input: String, projects: [JarvisProjectBrief]) -> JarvisCommandResult? {
