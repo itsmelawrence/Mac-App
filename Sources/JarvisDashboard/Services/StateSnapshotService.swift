@@ -144,6 +144,7 @@ final class StateSnapshotService {
     private var primaryWeather: WeatherSnapshot?
     private var earthquakes: [EarthquakeEvent] = []
     private var intelligence: StateSnapshot.Intelligence?
+    private var unreadLeads = 0
     private var pendingWrite: Task<Void, Never>?
 
     init(
@@ -200,6 +201,13 @@ final class StateSnapshotService {
         scheduleWrite()
     }
 
+    /// Only the count of unread leads; names and messages stay out of state.json.
+    func recordLeads(unread: Int) {
+        guard unread != unreadLeads else { return }
+        unreadLeads = unread
+        scheduleWrite()
+    }
+
     /// The weather and quakes behind Today's briefing.
     func recordConditions(weather: WeatherSnapshot?, earthquakes: [EarthquakeEvent]) {
         if let weather { primaryWeather = weather }
@@ -251,7 +259,8 @@ final class StateSnapshotService {
                 weather: primaryWeather,
                 significantEarthquakeCount: earthquakes.count { $0.magnitude >= 4.5 },
                 downSiteNames: checked.filter { $0.1 == .down }.map(\.0),
-                slowSiteNames: checked.filter { $0.1 == .slow }.map(\.0)), date: now)
+                slowSiteNames: checked.filter { $0.1 == .slow }.map(\.0),
+                newLeadCount: unreadLeads), date: now)
             briefing = StateSnapshot.Briefing(asOf: now, text: text)
         }
         var siteSection: StateSnapshot.Sites?

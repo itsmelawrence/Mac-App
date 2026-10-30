@@ -144,7 +144,8 @@ struct IntelligenceView: View {
                 weather: primaryWeather,
                 significantEarthquakeCount: earthquakes.filter { $0.magnitude >= earthquakeThreshold }.count,
                 downSiteNames: sites.down,
-                slowSiteNames: sites.slow
+                slowSiteNames: sites.slow,
+                newLeadCount: LeadMonitor.shared.unreadCount()
             )
         )
     }

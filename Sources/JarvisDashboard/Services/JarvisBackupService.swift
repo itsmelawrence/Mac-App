@@ -14,6 +14,8 @@ struct JarvisBackupDocument: Codable, Equatable, Sendable {
     let projects: [ProjectBackupRecord]
     let savedLocations: [LocationBackupRecord]
     let preferences: [String: BackupPreferenceValue]
+    /// Lead sources and fetched leads. Absent in backups made before leads existed; feed tokens are never included.
+    var leads: LeadBook? = nil
 }
 
 struct TaskBackupRecord: Codable, Equatable, Sendable {
@@ -168,6 +170,7 @@ struct JarvisImportPreview: Equatable, Sendable {
     let projects: ImportEntityPreview
     let locations: ImportEntityPreview
     let changedPreferences: Int
+    var leads = ImportEntityPreview(new: 0, updated: 0, skipped: 0)
 }
 
 enum JarvisImportMode: Sendable {
@@ -209,6 +212,7 @@ enum PreferenceBackupStore {
         ("minimumSleepForBriefing", .double),
         ("projects.sort", .string),
         ("sites.notifyOnChange", .bool),
+        ("leads.notifyOnNew", .bool),
         ("intelligence.selectedPage", .string),
         ("intelligence.newsCategory", .string),
         ("intelligence.watchlist", .string),
@@ -282,17 +286,20 @@ struct JarvisBackupService {
     let fileManager: FileManager
     let now: () -> Date
     let appVersion: String
+    let leadMonitor: LeadMonitor
 
     init(
         defaults: UserDefaults = .standard,
         fileManager: FileManager = .default,
         now: @escaping () -> Date = { .now },
-        appVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
+        appVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development",
+        leadMonitor: LeadMonitor? = nil
     ) {
         self.defaults = defaults
         self.fileManager = fileManager
         self.now = now
         self.appVersion = appVersion
+        self.leadMonitor = leadMonitor ?? .shared
     }
 
     func makeDocument(context: ModelContext) throws -> JarvisBackupDocument {
@@ -303,7 +310,8 @@ struct JarvisBackupService {
             tasks: try context.fetch(FetchDescriptor<TaskItem>()).map(TaskBackupRecord.init),
             projects: try context.fetch(FetchDescriptor<ProjectItem>()).map(ProjectBackupRecord.init),
             savedLocations: try context.fetch(FetchDescriptor<SavedLocation>()).map(LocationBackupRecord.init),
-            preferences: PreferenceBackupStore.export(from: defaults)
+            preferences: PreferenceBackupStore.export(from: defaults),
+            leads: leadMonitor.book
         )
     }
 
@@ -335,11 +343,14 @@ struct JarvisBackupService {
         let currentLocations = Dictionary(uniqueKeysWithValues: try context.fetch(FetchDescriptor<SavedLocation>()).map { (LocationBackupRecord($0).stableID, LocationBackupRecord($0)) })
         let currentPreferences = PreferenceBackupStore.export(from: defaults)
 
+        let currentLeads = Dictionary(leadMonitor.book.leads.map { ($0.id, $0) }) { first, _ in first }
+
         return JarvisImportPreview(
             tasks: counts(incoming: document.tasks, current: currentTasks, id: \.id),
             projects: counts(incoming: document.projects, current: currentProjects, id: \.id),
             locations: counts(incoming: document.savedLocations, current: currentLocations, id: \.stableID),
-            changedPreferences: document.preferences.filter { currentPreferences[$0.key] != $0.value }.count
+            changedPreferences: document.preferences.filter { currentPreferences[$0.key] != $0.value }.count,
+            leads: counts(incoming: document.leads?.leads ?? [], current: currentLeads, id: \.id)
         )
     }
 
@@ -385,6 +396,8 @@ struct JarvisBackupService {
 
             try context.save()
             PreferenceBackupStore.apply(document.preferences, to: defaults)
+            // An older backup without leads leaves the current leads alone, even on replace.
+            if let leads = document.leads { leadMonitor.restore(leads, replacing: mode == .replace) }
             return safetyBackup
         } catch {
             context.rollback()
@@ -489,6 +502,21 @@ struct JarvisBackupService {
         }
         guard PreferenceBackupStore.isValid(document.preferences) else {
             throw JarvisBackupError.invalidRecord("preference")
+        }
+        if let leads = document.leads {
+            let sourceIDs = Set(leads.sources.map(\.id))
+            guard sourceIDs.count == leads.sources.count else {
+                throw JarvisBackupError.duplicateRecord("lead source")
+            }
+            guard Set(leads.leads.map(\.id)).count == leads.leads.count else {
+                throw JarvisBackupError.duplicateRecord("lead")
+            }
+            guard leads.sources.allSatisfy({ LeadFeedClient.feedURL(for: $0.websiteURL, afterID: 0) != nil }) else {
+                throw JarvisBackupError.invalidRecord("lead source")
+            }
+            guard leads.leads.allSatisfy({ sourceIDs.contains($0.sourceID) }) else {
+                throw JarvisBackupError.invalidRecord("lead-to-source relationship")
+            }
         }
     }
 

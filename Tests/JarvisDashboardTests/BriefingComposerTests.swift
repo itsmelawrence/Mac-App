@@ -37,14 +37,14 @@ struct BriefingComposerTests {
 }
 
 extension BriefingComposerTests {
-    private func briefing(weatherCode: Int? = nil, down: [String] = [], slow: [String] = []) -> String {
+    private func briefing(weatherCode: Int? = nil, down: [String] = [], slow: [String] = [], leads: Int = 0) -> String {
         BriefingComposer().compose(BriefingInput(
             pendingTaskCount: 0, overdueTaskCount: 0, activeProjectCount: 0,
             weather: weatherCode.map {
                 WeatherSnapshot(locationName: "Manila", temperature: 27.2, apparentTemperature: 30,
                                 weatherCode: $0, precipitationProbability: 20)
             },
-            significantEarthquakeCount: 0, downSiteNames: down, slowSiteNames: slow))
+            significantEarthquakeCount: 0, downSiteNames: down, slowSiteNames: slow, newLeadCount: leads))
     }
 
     @Test func weatherReadsAsASentence() {
@@ -59,5 +59,11 @@ extension BriefingComposerTests {
         #expect(briefing(down: ["A", "B", "C"]).contains("3 websites are down: A, B and C."))
         #expect(briefing(slow: ["My Portfolio Website"]).contains("My Portfolio Website is responding slowly."))
         #expect(!briefing().contains("website"))
+    }
+
+    @Test func newLeadsAreCounted() {
+        #expect(briefing(leads: 1).contains("A new lead is waiting in Leads."))
+        #expect(briefing(leads: 4).contains("4 new leads are waiting in Leads."))
+        #expect(!briefing().contains("lead"))
     }
 }

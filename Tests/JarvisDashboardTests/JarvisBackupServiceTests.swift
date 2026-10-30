@@ -191,7 +191,7 @@ struct JarvisBackupServiceTests {
         let configuration = ModelConfiguration(schema: JarvisDataStore.schema, isStoredInMemoryOnly: true)
         let container = try JarvisDataStore.makeContainer(configuration: configuration)
         let context = ModelContext(container)
-        let service = JarvisBackupService(defaults: defaults, now: { clock }, appVersion: "test")
+        let service = JarvisBackupService(defaults: defaults, now: { clock }, appVersion: "test", leadMonitor: .temporary())
 
         #expect(try service.backupIfDue(context: context) != nil)
         #expect(try service.backupIfDue(context: context) == nil)
@@ -265,6 +265,7 @@ private final class Harness {
     let defaults: UserDefaults
     let folder: URL
     let service: JarvisBackupService
+    let leads = LeadMonitor.temporary()
     private let suiteName: String
 
     init() throws {
@@ -280,12 +281,14 @@ private final class Harness {
         service = JarvisBackupService(
             defaults: defaults,
             now: { Date(timeIntervalSince1970: 1_900_000_000) },
-            appVersion: "test"
+            appVersion: "test",
+            leadMonitor: leads
         )
     }
 
     func cleanUp() {
         try? FileManager.default.removeItem(at: folder)
+        try? FileManager.default.removeItem(at: leads.fileURL)
         defaults.removePersistentDomain(forName: suiteName)
     }
 }

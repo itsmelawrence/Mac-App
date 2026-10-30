@@ -47,6 +47,7 @@ final class AppCoordinator {
 
         wakeMonitor.start { [weak self] sleepDuration in
             SiteMonitor.shared.checkAfterWake()
+            LeadMonitor.shared.syncAfterWake()
             guard let self,
                   appState.showWakeBriefing,
                   sleepDuration >= appState.minimumSleepForBriefing else { return }
@@ -63,6 +64,9 @@ final class AppCoordinator {
         // Website up/down checks, every 5 minutes with the window closed too.
         SiteMonitor.shared.attach(context)
         tasks.append(Task { await SiteMonitor.shared.run() })
+
+        // Contact-form leads from the portfolio sites, every 10 minutes with the window closed too.
+        tasks.append(Task { await LeadMonitor.shared.run() })
 
         // The morning review (roadmap 4.1): once a day after 7:00; its proposals wait in Activity.
         tasks.append(Task { await DailyReviewService.shared.run() })

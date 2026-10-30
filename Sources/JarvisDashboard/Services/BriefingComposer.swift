@@ -8,6 +8,7 @@ struct BriefingInput {
     let significantEarthquakeCount: Int
     var downSiteNames: [String] = []
     var slowSiteNames: [String] = []
+    var newLeadCount = 0
 }
 
 struct BriefingComposer {
@@ -24,6 +25,12 @@ struct BriefingComposer {
 
         if input.activeProjectCount > 0 {
             components.append("\(input.activeProjectCount) active \(noun(input.activeProjectCount, singular: "project", plural: "projects")) remain in motion.")
+        }
+
+        if input.newLeadCount > 0 {
+            components.append(input.newLeadCount == 1
+                ? "A new lead is waiting in Leads."
+                : "\(input.newLeadCount) new leads are waiting in Leads.")
         }
 
         if let site = sitesSentence(down: input.downSiteNames, slow: input.slowSiteNames) {

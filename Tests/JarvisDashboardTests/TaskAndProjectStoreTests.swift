@@ -95,7 +95,7 @@ struct TaskAndProjectStoreTests {
         #expect(try context.fetch(FetchDescriptor<TaskItem>()).count == 2)
 
         // The bug this fixes: a backup taken now must import into a store that lacks the project.
-        let service = JarvisBackupService(defaults: UserDefaults(suiteName: "store-test-\(UUID().uuidString)")!)
+        let service = JarvisBackupService(defaults: UserDefaults(suiteName: "store-test-\(UUID().uuidString)")!, leadMonitor: .temporary())
         let document = try service.makeDocument(context: context)
         #expect(try service.preview(document, context: try self.context()).tasks.new == 2)
     }
@@ -110,7 +110,7 @@ struct TaskAndProjectStoreTests {
         context.delete(project)
         try context.save()
 
-        let service = JarvisBackupService(defaults: UserDefaults(suiteName: "store-test-\(UUID().uuidString)")!)
+        let service = JarvisBackupService(defaults: UserDefaults(suiteName: "store-test-\(UUID().uuidString)")!, leadMonitor: .temporary())
         let document = try service.makeDocument(context: context)
         #expect(throws: JarvisBackupError.self) { try service.preview(document, context: try self.context()) }
     }

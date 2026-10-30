@@ -10,6 +10,7 @@ struct TodayView: View {
     @Query(sort: \SavedLocation.name) private var savedLocations: [SavedLocation]
 
     @ObservedObject private var siteMonitor = SiteMonitor.shared
+    @ObservedObject private var leadMonitor = LeadMonitor.shared
     @ObservedObject private var dailyReview = DailyReviewService.shared
     @State private var weather: WeatherSnapshot?
     @State private var hasFreshWeather = false
@@ -72,7 +73,11 @@ struct TodayView: View {
         return unhealthySiteCount > 0 ? .orange : .green
     }
     private var hasSiteResults: Bool { siteMonitor.lastPassAt != nil || !siteMonitor.records.isEmpty }
-    private var attentionCount: Int { overdueTasks.count + blockedTasks.count + waitingProjects.count + unhealthySiteCount }
+    private var attentionCount: Int { overdueTasks.count + blockedTasks.count + waitingProjects.count + unhealthySiteCount + leadSourcesWithUnread.count }
+    /// Lead sources with unread leads, each with its count.
+    private var leadSourcesWithUnread: [(source: LeadSource, unread: Int)] {
+        leadMonitor.sources.map { ($0, leadMonitor.unreadCount(for: $0.id)) }.filter { $0.unread > 0 }
+    }
     private var completionRatio: Double {
         guard !tasks.isEmpty else { return 0 }
         return Double(completedTasks.count) / Double(tasks.count)
@@ -92,7 +97,8 @@ struct TodayView: View {
                 weather: weather,
                 significantEarthquakeCount: significantEarthquakes.count,
                 downSiteNames: sites.down,
-                slowSiteNames: sites.slow
+                slowSiteNames: sites.slow,
+                newLeadCount: leadMonitor.unreadCount()
             )
         )
     }
@@ -113,7 +119,11 @@ struct TodayView: View {
         let waiting = waitingProjects.map {
             AttentionItem(systemImage: "hourglass", title: $0.name, detail: "Waiting on client", tint: .orange, destination: .projects)
         }
-        return sites + overdue + blocked + waiting
+        let leads = leadSourcesWithUnread.map {
+            AttentionItem(systemImage: "tray.and.arrow.down.fill", title: $0.source.name,
+                          detail: $0.unread == 1 ? "1 new lead" : "\($0.unread) new leads", tint: .cyan, destination: .leads)
+        }
+        return sites + leads + overdue + blocked + waiting
     }
     private var commandContext: JarvisCommandContext {
         let unhealthy = monitoredProjects.filter { siteHealth(for: $0).needsAttention }

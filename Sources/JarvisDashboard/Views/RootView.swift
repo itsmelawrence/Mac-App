@@ -5,12 +5,13 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject private var actions = ActionCenter.shared
+    @ObservedObject private var leads = LeadMonitor.shared
 
     var body: some View {
         NavigationSplitView {
             List(SidebarDestination.allCases, selection: $appState.selection) { destination in
                 Label(destination.title, systemImage: destination.systemImage)
-                    .badge(destination == .activity ? actions.pending.count : 0)
+                    .badge(badge(for: destination))
                     .tag(destination)
             }
             .navigationTitle("JARVIS")
@@ -23,6 +24,8 @@ struct RootView: View {
                 TasksView()
             case .projects:
                 ProjectsView()
+            case .leads:
+                LeadsView()
             case .connections:
                 ConnectionsView()
             case .neuralMap:
@@ -38,6 +41,14 @@ struct RootView: View {
         .frame(minWidth: 900, minHeight: 600)
         .background(WindowFirstPaintConfigurator())
         // Automatic backups run in AppCoordinator, so they continue with this window closed.
+    }
+
+    private func badge(for destination: SidebarDestination) -> Int {
+        switch destination {
+        case .activity: actions.pending.count
+        case .leads: leads.unreadCount()
+        default: 0
+        }
     }
 }
 

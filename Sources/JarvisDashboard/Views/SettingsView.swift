@@ -270,6 +270,8 @@ struct SettingsView: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
 
+        LeadSourceSettings()
+
         Section {
             Toggle("Notify me when a site goes down or recovers", isOn: $notifyOnSiteChange)
         } header: {
@@ -450,7 +452,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         switch self {
         case .general: "Startup and notification permission."
         case .voice: "The wake briefing and how JARVIS speaks."
-        case .connections: "News, map tiles, website checks, and your Obsidian vault."
+        case .connections: "News, map tiles, leads, website checks, and your Obsidian vault."
         case .data: "Backups, exports, and what stays on this Mac."
         }
     }

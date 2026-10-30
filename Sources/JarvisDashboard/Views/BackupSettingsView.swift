@@ -66,7 +66,7 @@ struct BackupSettingsView: View {
             } header: {
                 Text("Export and restore")
             } footer: {
-                Text("Exports include tasks, projects, saved locations, and non-secret preferences. API keys are never included: restoring on another Mac means re-entering them and reconnecting local repositories.")
+                Text("Exports include tasks, projects, saved locations, leads, and non-secret preferences. API keys and lead feed tokens are never included: restoring on another Mac means re-entering them and reconnecting local repositories.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -235,6 +235,7 @@ private struct ImportPreviewView: View {
                 previewRow("Tasks", pending.preview.tasks)
                 previewRow("Projects", pending.preview.projects)
                 previewRow("Locations", pending.preview.locations)
+                previewRow("Leads", pending.preview.leads)
             }
 
             Text("\(pending.preview.changedPreferences) preference values differ. Merge updates matching stable IDs and never duplicates them.")

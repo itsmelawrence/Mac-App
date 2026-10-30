@@ -61,6 +61,7 @@ enum SidebarDestination: String, CaseIterable, Identifiable {
     case today
     case tasks
     case projects
+    case leads
     case connections
     case neuralMap
     case intelligence
@@ -74,6 +75,7 @@ enum SidebarDestination: String, CaseIterable, Identifiable {
         case .today: "Today"
         case .tasks: "Tasks"
         case .projects: "Projects"
+        case .leads: "Leads"
         case .connections: "Cortex"
         case .neuralMap: "Neural Map"
         case .intelligence: "Intelligence"
@@ -87,6 +89,7 @@ enum SidebarDestination: String, CaseIterable, Identifiable {
         case .today: "sparkles"
         case .tasks: "checklist"
         case .projects: "square.stack.3d.up"
+        case .leads: "tray.and.arrow.down"
         case .connections: "point.3.connected.trianglepath.dotted"
         case .neuralMap: "brain"
         case .intelligence: "globe.asia.australia"
